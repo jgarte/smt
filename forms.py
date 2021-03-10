@@ -12,25 +12,22 @@ class Form(SmtObj):
         self.content = content
 
         
-def __descendants(obj, gen, D):
+def __descendants(obj, N, D):
     """"""
     if isinstance(obj, Form):
-        if gen in D:
-            D[gen].extend(obj.content.copy())
+        if N in D:
+            D[N].extend(obj.content)
         else:
-            D[gen] = obj.content.copy()
-        # ~ D.append([gen, obj.content])
+            D[N] = obj.content
         for child in obj.content:
-            __descendants(child, gen+1, D)
+            __descendants(child, N+1, D)
     return D
     
 def descendants(obj, lastgen_first=True):
-    desc = __descendants(obj, 0, {})
     D = []
-    for gen in sorted(desc.keys(), reverse=lastgen_first):
-        D.extend(desc[gen])
+    for _, gen in sorted(__descendants(obj, 0, {}).items(), reverse=lastgen_first):
+        D.extend(gen)
     return D
-
 
 # ~ f =Form("f1", 
         # ~ content=[MChar("m1"),
@@ -43,7 +40,3 @@ def descendants(obj, lastgen_first=True):
                                     # ~ Form("f3", content=[MChar("M5"),
                                                         # ~ Form("FF", content=([MChar("MM"+str(i)) for i in range(5)]))])])])
 
-
-# ~ d = descendants(f)
-d = __descendants(f, 0, {})
-# ~ print(list(map(lambda x:x.id, d)))
