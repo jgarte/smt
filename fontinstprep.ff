@@ -1,0 +1,35 @@
+
+
+
+Open($1);
+#exportpath=$2;
+bboxpath=$2
+SelectAll();
+
+
+foreach
+
+ name=GlyphInfo("Name");
+ #shitty names!
+ /*Error about bravura names:
+ It should be printable ASCII,
+ must not contain (){}[]<>%/ or space
+ and must be shorter than 63 characters
+ */
+ if (Strsub(name,0,5) != "pedal")
+  bb=GlyphInfo("BBox");
+  minx=bb[0];
+  miny=bb[1];
+  maxx=bb[2];
+  maxy=bb[3];
+  top=maxy*-1;
+  bottom=miny*-1;
+  
+  arr = [name,ToString(minx),ToString(top),ToString(maxx),ToString(bottom),ToString(maxx-minx),ToString(bottom-top),"\\n"];
+  
+  WriteStringToFile(StrJoin(arr, " "), bboxpath, 1);
+  #Export(exportpath + "/" + name + ".svg");
+
+ endif;
+
+endloop;
