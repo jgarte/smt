@@ -58,7 +58,7 @@ def instfont(fontname, srcpath, shrg=__staff_height_reference_glyph):
     __fontdicts[fontname] = D
 
 # ~ Iinstalled fonts
-instfont(font, "/home/amir/haydn/svg/haydn-11.svg")
+instfont("Haydn", "/home/amir/haydn/svg/haydn-11.svg")
 
 
 
