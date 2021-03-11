@@ -2,7 +2,6 @@
 
 
 Open($1);
-#exportpath=$2;
 bboxpath=$2
 SelectAll();
 
@@ -28,7 +27,6 @@ foreach
   arr = [name,ToString(minx),ToString(top),ToString(maxx),ToString(bottom),ToString(maxx-minx),ToString(bottom-top),"\\n"];
   
   WriteStringToFile(StrJoin(arr, " "), bboxpath, 1);
-  #Export(exportpath + "/" + name + ".svg");
 
  endif;
 
