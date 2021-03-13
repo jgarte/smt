@@ -9,7 +9,7 @@ SelectAll();
 foreach
 
  name=GlyphInfo("Name");
- #shitty names!
+ # shitty names!
  /*Error about bravura names:
  It should be printable ASCII,
  must not contain (){}[]<>%/ or space
