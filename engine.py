@@ -6,6 +6,29 @@ import svgwrite
 # ~ Alias name
 from svgwrite.utils import rgb
 
+
+############### rule
+
+_ruletable = {}
+class rule:
+    def __init__(self, order, targs=None, domains=None, table=None):
+        self.order = order
+        # ~ self.ruler = ruler
+        self.targs = targs or (object,)
+        self.domains = domains or ()
+        self.extensions = []
+        self.table = table or _ruletable
+        self.table[order] = self
+        # ~ self.table[self.order] = {"targs": self.targs,
+        # ~ "domains": self.domains, "extensions": self.extensions}
+    def extend(self, fn): self.extensions.append(fn)
+
+# ~ def apply(fn, L):
+    # ~ exec("{}({})".format(fn.__name__, ", ".join([repr(A) for A in L])))
+# ~ def _argcount(fn): return fn.__code__.co_argcount
+
+
+
 ##### Font
 __fontdicts = {}
 font = "Haydn"
@@ -76,11 +99,12 @@ _TOP_MARGIN = mmtopx(56)
 class _MeObj:
     _meid_count = -1
     _meid_name = "ME"
-    def __init__(self, _id=None, domain=None):
+    def __init__(self, _id=None, domain=None, tst=None):
         self.ancestors = []
         self.id = self.allocid(_id)
         self._svglst = []
         self.domain = domain
+        self._tst = tst or []
     def allocid(self, _id):
         if not(_id):
             _MeObj._meid_count += 1
@@ -119,21 +143,14 @@ class _Canvas(_MeObj):
         # ~ We need xy at init-time, just make absx 0 above??????
         self._x = (self.absx or 0) + self.xoff
         self._y = (self.absy or 0) + self.yoff
-    def _compute_surface(self):
-        self._left = self.compute_left()
-        self._right = self.compute_right()
-        self._width = self.compute_width()
-        self._top = self.compute_top()
-        self._bottom = self.compute_bottom()
-        self._height = self.compute_height()
-    def _bbox_rect(self): 
-        return svgwrite.shapes.Rect(
-        insert=(self.left, self.top),
-        size=(self.width, self.height), 
-        fill=self.canvas_color,
-        fill_opacity=self.canvas_opacity, 
-        id_=self.id
-        )
+    def _compute_hsurface(self):
+        self._left = self._compute_left()
+        self._right = self._compute_right()
+        self._width = self._compute_width()
+    def _compute_vsurface(self):
+        self._top = self._compute_top()
+        self._bottom = self._compute_bottom()
+        self._height = self._compute_height()
     # ~ A canvas can be a page??
     def render(self):
         D = svgwrite.drawing.Drawing(filename="/tmp/me.svg", size=(pgw,pgh),debug=True)
@@ -141,20 +158,53 @@ class _Canvas(_MeObj):
         for elem in self._svglst:
             D.add(elem)
         D.save(pretty=True)
-
+    def apply_rules(self):
+        """
+        Applies rules to OBJ and all it's descendants
+        """
+        family = [self] + descendants(self, False)
+        for order in sorted(_ruletable):
+            rule = _ruletable[order]
+            # ~ ruler = ruletab["ruler"] # A string
+            # ~ targtypes = ruletab["targs"]
+            # ~ targtypes = rule.targs
+            # ~ doms = ruletab["domains"]
+            # ~ get targs to which rule should be applied
+            # ~ targobjs = list(filter(lambda obj: isinstance(obj, targtypes), family))
+            # ~ domobjs = list(filter(lambda obj: obj.domain in doms, targobjs))
+            for obj in list(filter(lambda obj: isinstance(obj, rule.targs) and obj.domain in rule.domains, family)):
+                for ext in rule.extensions: 
+                    ext(obj)
+                # ~ func = ruletab["extensions"][type(getattr(obj, ruler))]
+                # ~ argcount = _argcount(func)
+                # ~ if argcount == 0: func()
+                # ~ elif argcount == 1: func(obj)
+                # ~ else: apply(func, [obj] + reversed(obj.ancestors[:argcount])) 
+    
+def _bboxelem(obj): 
+    return svgwrite.shapes.Rect(
+    insert=(obj.left, obj.top),
+    size=(obj.width, obj.height), 
+    fill=obj.canvas_color,
+    fill_opacity=obj.canvas_opacity, 
+    id_=obj.id + "BBox"
+    )
 _ORIGIN_CROSS_LEN = 20
 _ORIGIN_CIRCLE_R = 4
 _ORIGIN_LINE_THICKNESS = 0.06
-def origin_elems(obj):
+def _origelems(obj):
     halfln = _ORIGIN_CROSS_LEN / 2
     return [svgwrite.shapes.Circle(center=(obj.x, obj.y), r=_ORIGIN_CIRCLE_R,
-                                    stroke=rgb(0, 0, 0), fill="none",
+                                    id_=obj.id + "OriginCircle",
+                                    stroke=rgb(87, 78, 55), fill="none",
                                     stroke_width=_ORIGIN_LINE_THICKNESS),
             svgwrite.shapes.Line(start=(obj.x-halfln, obj.y), end=(obj.x+halfln, obj.y),
-                                        stroke=rgb(0, 0, 0), 
+                                        id_=obj.id + "OriginHLine",
+                                        stroke=rgb(87, 78, 55), 
                                         stroke_width=_ORIGIN_LINE_THICKNESS),
             svgwrite.shapes.Line(start=(obj.x, obj.y-halfln), end=(obj.x, obj.y+halfln),
-                                        stroke=rgb(0, 0, 0), 
+                                        id_=obj.id + "OriginVLine",
+                                        stroke=rgb(87, 78, 55), 
                                         stroke_width=_ORIGIN_LINE_THICKNESS)]
 
 class MChar(_Canvas):
@@ -168,65 +218,62 @@ class MChar(_Canvas):
         self.visible = visible
         self.canvas_color = canvas_color or rgb(100, 0, 0, "%")
         # ~ Compute the surface area
-        self._compute_surface()
+        self._compute_hsurface()
+        self._compute_vsurface()
     # ~ Horizontals
-    @property
-    def x(self): return self._x
     @property
     def left(self): return self._left
     @property
     def right(self): return self._right
     @property
     def width(self): return self._width
+    @property
+    def x(self): return self._x
     @x.setter
     def x(self, newx):
-        print(">>>>>>>>>SetX")
         dx = newx - self.x
         self._x += dx
         self._left += dx
         self._right += dx
         for A in reversed(self.ancestors): # An ancestor IS a Form.
-            A._left = A.compute_left()
-            A._right = A.compute_right()
-            A._width = A.compute_width()
+            A._left = A._compute_left()
+            A._right = A._compute_right()
+            A._width = A._compute_width()
     # ~ Verticals
     @property
     def y(self): return self._y
     @y.setter
     def y(self, newy):
-        print(">>>>>>>>SetY", self.id)
         dy = newy - self.y
         self._y += dy
         self._top += dy
         self._bottom += dy
         for A in reversed(self.ancestors): # A are Forms
-            A._top = A.compute_top()
-            A._bottom = A.compute_bottom()
-            A._height = A.compute_height()
+            A._top = A._compute_top()
+            A._bottom = A._compute_bottom()
+            A._height = A._compute_height()
     @property
     def top(self): return self._top
     @property
     def bottom(self): return self._bottom
     @property
     def height(self): return self._height
-    @y.setter
-    def y(self, newy): pass
-    def compute_left(self):
+    def _compute_left(self):
         return self.x + toplevel_scale(glyph(self.name, self.font)["left"])
-    def compute_right(self):
+    def _compute_right(self):
         return self.x + toplevel_scale(glyph(self.name, self.font)["right"])
-    def compute_width(self):
+    def _compute_width(self):
         return toplevel_scale(glyph(self.name, self.font)["width"])
-    def compute_top(self):
+    def _compute_top(self):
         return self.y + toplevel_scale(glyph(self.name, self.font)["top"])
-    def compute_bottom(self):
+    def _compute_bottom(self):
         return self.y + toplevel_scale(glyph(self.name, self.font)["bottom"])
-    def compute_height(self):
+    def _compute_height(self):
         return toplevel_scale(glyph(self.name, self.font)["height"])
     def _pack_svglst(self):
         # ~ Add bbox rect
         if self.canvas_visible:
-            self._svglst.append(self._bbox_rect())
+            self._svglst.append(_bboxelem(self))
         # ~ Add the music character
         self._svglst.append(
         svgwrite.path.Path(d=glyph(self.name, self.font)["d"],
@@ -235,10 +282,10 @@ class MChar(_Canvas):
         self.x, self.y, self.xscale*_scale(), self.yscale*_scale())))
         # ~ Origin
         if self.origin_visible:
-            for elem in origin_elems(self):
+            for elem in _origelems(self):
                 self._svglst.append(elem)
 
-def __descendants(obj, N, D):
+def _descendants(obj, N, D):
     """"""
     if isinstance(obj, _Form) and obj.content:
         if not(N in D): 
@@ -249,12 +296,12 @@ def __descendants(obj, N, D):
         # ~ for child in obj.content:
             # ~ D[N].append(child)
         for child in obj.content:
-            __descendants(child, N+1, D)
+            _descendants(child, N+1, D)
     return D
     
 def descendants(obj, lastgen_first=True):
     D = []
-    for _, gen in sorted(__descendants(obj, 0, {}).items(), reverse=lastgen_first):
+    for _, gen in sorted(_descendants(obj, 0, {}).items(), reverse=lastgen_first):
         D.extend(gen)
     return D
 
@@ -264,6 +311,7 @@ class _Form(_Canvas):
         self.content = content if content else []
         self.FIXTOP = self.y + toplevel_scale(glyph(STAFF_HEIGHT_REFERENCE_GLYPH, self.font)["top"])
         self.FIXBOTTOM = self.y + toplevel_scale(glyph(STAFF_HEIGHT_REFERENCE_GLYPH, self.font)["bottom"])
+        # ~ Wozu das fixheight??
         self.FIXHEIGHT = toplevel_scale(glyph(STAFF_HEIGHT_REFERENCE_GLYPH, self.font)["height"])
         self.uwidth = uwidth
         for D in descendants(self, False):
@@ -273,10 +321,30 @@ class _Form(_Canvas):
                 # ~ Call child's setter
                 C.x += self.x
             if not(C.absy):
-                print("Y",C.y,self.y,C.id,type(C))
                 C.y += self.y
-                C.y = 23
-                print("Y",C.y,self.y)
+    def add(self, child):
+        print("Adding to cont")
+        # ~ Tell child & his children about their parents
+        child.ancestors.insert(0, self)
+        if isinstance(child, _Form):
+            for D in descendants(child, False):
+                D.ancestors.insert(0, self)
+        for A in reversed(self.ancestors):
+            child.ancestors.insert(0, A)
+            if isinstance(child, _Form):
+                for D in descendants(child, False):
+                    D.ancestors.insert(A)
+        self.content.append(child)
+        if not(child.absx):
+            child.x += self.x
+        if not(child.absy):
+            child.y += self.y
+        for D in descendants(self):
+            D._compute_hsurface()
+        self._compute_hsurface()
+        for A in reversed(self.ancestors):
+            A._compute_hsurface()
+        
     # ~ Horizontal Attributes
     @property
     def x(self): return self._x
@@ -285,7 +353,7 @@ class _Form(_Canvas):
     @property
     def right(self): return self._right
     @property
-    def width(self): return self._width
+    def width(self): return self.uwidth or self._width
     @x.setter
     def x(self, newx):
         dx = newx - self.x
@@ -296,10 +364,10 @@ class _Form(_Canvas):
             d._x += dx
             d._left += dx
             d._right += dx
-        for a in reversed(self.ancestors):
-            a._left = a.compute_left()
-            a._right = a.compute_right()
-            a._width = a.compute_width()
+        for A in reversed(self.ancestors):
+            A._left = A._compute_left()
+            A._right = A._compute_right()
+            A._width = A._compute_width()
     # ~ Vertical Attributes
     @property
     def y(self): return self._y
@@ -313,20 +381,19 @@ class _Form(_Canvas):
     def height(self): return self._height
     @y.setter
     def y(self, newy): pass
-    def compute_left(self):
+    def _compute_left(self):
         return min([self.x] + list(map(lambda c: c.left, self.content)))
-    def compute_right(self):
+    def _compute_right(self):
         return max([self.x] + list(map(lambda c: c.right, self.content)))
-    def compute_width(self): return self.right - self.left
-    def compute_top(self):
+    def _compute_width(self): return self.right - self.left
+    def _compute_top(self):
         return min([self.FIXTOP] + list(map(lambda C: C.top, self.content)))
-    def compute_bottom(self):
+    def _compute_bottom(self):
         return max([self.FIXBOTTOM] + list(map(lambda C: C.bottom, self.content)))
-    def compute_height(self): return self.bottom - self.top
+    def _compute_height(self): return self.bottom - self.top
     def _pack_svglst(self):
         # ~ Bbox
-        if self.canvas_visible:
-            self._svglst.append(self._bbox_rect())
+        if self.canvas_visible: self._svglst.append(_bboxelem(self))
         # ~ Add content
         for C in self.content:
             C.xscale *= self.xscale
@@ -334,16 +401,15 @@ class _Form(_Canvas):
             C._pack_svglst() # Recursively gather svg elements
             self._svglst.extend(C._svglst)
         # ~ Origin
-        if self.origin_visible:
-            for elem in origin_elems(self):
-                self._svglst.append(elem)
+        if self.origin_visible: self._svglst.extend(_origelems(self))
 
 class SForm(_Form):
     def __init__(self, canvas_color=None, **kwargs):
         super().__init__(**kwargs)
         self.canvas_color = canvas_color or rgb(0, 100, 0, "%")
         self.domain = "stacked"
-        self._compute_surface()
+        self._compute_hsurface()
+        self._compute_vsurface()
 
 class HForm(_Form):
     def __init__(self, canvas_color=None, **kwargs):
@@ -351,30 +417,23 @@ class HForm(_Form):
         self.canvas_color = canvas_color or rgb(0, 0, 100, "%")
         self.domain = "horizontal"
         # ~ First Lineup!
-        self._compute_surface()
+        self._compute_hsurface()
+        self._compute_vsurface()
+        
 
 
-# ~ f=SForm(content=[MChar("clefs.C",color=rgb(100,0,0,"%"),canvas_visible=True),
-                # ~ ],
-        # ~ canvas_visible=True, absy=10)
-# ~ f.render()
+f=SForm(content=[MChar("clefs.C",tst="",color=rgb(100,0,0,"%"),canvas_visible=True),
+                MChar("accidentals.sharp",xoff=-50,domain="foo",tst=("F",3)),
+                ],
+        canvas_visible=True, absy=50)
+r=rule(0,targs=(MChar,), domains=("foo",))
 
-# ~ class C:
-    # ~ def __init__(self):
-        # ~ self._x=2
-        # ~ self._y=3
-    # ~ @property
-    # ~ def x(self): return self._x
-    # ~ @x.setter
-    # ~ def x(self, a): print("Setx")
-    # ~ @property
-    # ~ def y(self): return self._y
-    # ~ @y.setter
-    # ~ def y(self, a): print("sety")
+def x(self): 
+    print(self.ancestors)
+    self.color = rgb(0,100,50,"%")
+    self.ancestors[0].add(MChar("noteheads.s1", xoff=50))
 
-# ~ c=C()
-# ~ c.y = 1
+r.extend(x)
+f.apply_rules()
+f.render()
 
-m=MChar("clefs.C")
-m.x = True
-m.y = True
