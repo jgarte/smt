@@ -2,30 +2,57 @@
 import tempfile
 import xml.etree.ElementTree as ET
 import subprocess as sp
+import copy as cp
 import svgwrite
 # ~ Alias name
 from svgwrite.utils import rgb
 
 
-############### rule
+############### rules
 
-_ruletable = []
 _ruleregistry = []
-def rule(targets, domains, *funcs):
-    _ruleregistry.append({"T": targets, "D": domains, "F": funcs})
+def rule(targets, domains, fn):
+    for r in _ruleregistry:
+        if fn is r["F"]:
+            return
+    _ruleregistry.append({"T": targets, "D": domains, "F": fn})
 
+# ~ New rule is by default applicable to all hitherto defined domains
+_ruledomains = set()
+_ruletable = {}
+
+def r(order=None, targets=None, domains=None, func=None):
+    if order in _ruletable:
+        return
+    else:
+        # ~ Second arg for isinstance:
+        if targets:
+            if isinstance(targets, list):
+                targets = tuple(targets)
+        else:
+            targets = object
+        # ~ T = tuple(targets) if targets else object
+        if not(domains):
+            domains = _ruledomains
+        else:
+            # ~ domains must be a tuple
+            if isinstance(domains, str):
+                domains = [domains]
+            _ruledomains.update(domains)
+        func = func or (lambda:None)
+        _ruletable[order] = {"T": targets, "D": domains, "F": func}
 # ~ class rule:
-    # ~ def __init__(self, targs=None, domains=None, table=None):
-       
-        # ~ self.targs = targs or (object,)
-        # ~ self.domains = domains or ()
-        # ~ self.extensions = []
-        # ~ self.table = table or _ruletable
-        # ~ self.table.append(self)
-       
-    # ~ def extend(self, *funcs): self.extensions.extend(funcs)
-
-# ~ def apply(fn, L):
+    # ~ _ruleorder = 0
+    # ~ def __init__(self, order=None, targets=(), domains=(), *funcs):
+        # ~ self.order = order or rule._rulecounter; rule._rulecounter += 1
+        # ~ self.targets = targets
+        # ~ self.domains = domains
+        # ~ self.funcs = funcs
+        # ~ if func.__name__ not in _ruletable:
+        
+        
+        
+        # ~ def apply(fn, L):
     # ~ exec("{}({})".format(fn.__name__, ", ".join([repr(A) for A in L])))
 # ~ def _argcount(fn): return fn.__code__.co_argcount
 
@@ -99,21 +126,19 @@ _TOP_MARGIN = mmtopx(56)
 
 ##### Score Objects
 class _MeObj:
-    _meid_count = -1
-    _meid_name = "ME"
-    def __init__(self, _id=None, domain=None, tst=None):
+    def __init__(self, id_=None, domain=None, tst=None, _rules_applied_to=False):
         self.ancestors = []
-        self.id = self.__allocid(_id)
+        self.id = id_ or self.__class__.__name__ + str(self.__class__._idcounter); self.__class__._idcounter += 1
         self._svglst = []
         self.domain = domain
-        self._rules_applied = False
+        self._rules_applied_to = _rules_applied_to
         self._tst = tst or []
-    def __allocid(self, _id):
-        if not(_id):
-            _MeObj._meid_count += 1
-            return _MeObj._meid_name + str(_MeObj._meid_count)
-        else: return _id
     def parent(self): return list(reversed(self.ancestors))[0]
+    # ~ def allocid(self):
+        # ~ _id = self.__IDNAME + str(self.__idcount)
+        # ~ self.__idcount += 1
+        # ~ return _id 
+    
     
 # ~ _Canvas, Origin's Circle, Origin's Cross, Origin's Circle Contour
 mchar_cnv = __mchar_orgcrcl = __mchar_orgcrs = __mchar_orgcrcl_cntr = "deeppink"
@@ -138,26 +163,45 @@ def rules_domains():
     for rule in _ruleregistry:
         D.extend(rule["D"])
     return D
-    
 
-def _descendants(obj, N, D):
-    """"""
-    if isinstance(obj, _Form) and obj.content:
-        if not(N in D): 
-            D[N] = obj.content
-        else:
-            D[N].extend(obj.content)
-        # need objs themselves
+
+# ~ def _descendants(obj, N, D):
+    # ~ """"""
+    # ~ if isinstance(obj, _Form) and obj.content:
+        # ~ if not(N in D):
+            # ~ D[N] = []
+            # ~ for x in obj.content:
+                # ~ D[N].append(x)
+            # ~ D[N] = cp.copy(obj.content)
+        # ~ else:
+            # ~ D[N].extend(obj.content)
+            # ~ for x in obj.content:
+                # ~ D[N].append(x)
+        # ~ # need objs themselves
         # ~ for child in obj.content:
             # ~ D[N].append(child)
-        for child in obj.content:
-            _descendants(child, N+1, D)
+        # ~ for child in obj.content:
+            # ~ _descendants(child, N+1, D)
+            # ~ _descendants(child, N+1, D)
+    # ~ return D
+
+# ~ Why am I not writing this as a method to FORM?
+def _descendants(obj, N, D):
+    if isinstance(obj, _Form) and obj.content:
+        if N not in D:
+            D[N] = cp.copy(obj.content)
+        else:
+            D[N].extend(obj.content)
+        for C in obj.content:
+            _descendants(C, N+1, D)
     return D
     
 def descendants(obj, lastgen_first=True):
     D = []
-    for _, gen in sorted(_descendants(obj, 0, {}).items(), reverse=lastgen_first):
-        D.extend(gen)
+    d = _descendants(obj, 0, {})
+    for i in sorted(d.keys(), reverse=lastgen_first):
+    # ~ for _, gen in sorted(_descendants(obj, 0, {}).items(), reverse=lastgen_first):
+        D.extend(d[i])
     return D
 
 def members(obj): return [obj] + descendants(obj, lastgen_first=False)
@@ -182,6 +226,12 @@ class _Canvas(_MeObj):
         # ~ We need xy at init-time, just make absx 0 above??????
         self._x = (self.absx or 0) + self.xoff
         self._y = (self.absy or 0) + self.yoff
+    @property
+    def x(self): return self._x
+    @property
+    def left(self): return self._left
+    @property
+    def y(self): return self._y
     def _compute_hsurface(self):
         self._left = self._compute_left()
         self._right = self._compute_right()
@@ -196,6 +246,7 @@ class _Canvas(_MeObj):
         self._apply_rules()
         # ~ Form's packsvglst will call packsvglst on descendants recursively
         self._pack_svglst()
+        # ~ print(self._svglst)
         for elem in self._svglst:
             D.add(elem)
         D.save(pretty=True)
@@ -203,25 +254,39 @@ class _Canvas(_MeObj):
         """
         Applies rules to OBJ and all it's descendants. 
         """
+        eligible_objs = list(filter(lambda O: not(O._rules_applied_to), members(self)))
         # ~ Each obj will get rules applied to him only ONCE! True or False __rule_applied
-        while list(filter(lambda O: not(O._rules_applied), members(self))):
-            objs = list(filter(lambda O: not(O._rules_applied), members(self)))
-            print("->", objs)
-            for obj in objs:
-                for rule in list(filter(lambda R: isinstance(obj, R["T"]) and obj.domain in R["D"], _ruleregistry)):
-                    for func in rule["F"]: 
-                        func(obj)
-                obj._rules_applied = True
+        # ~ print("Member>>>", list(map(lambda a:id(a), members(self))))
+        # ~ print("khodesh>>>", id(self),list(map(lambda a:id(a), self.content)))
+        while True:
+            # ~ print(list(map(lambda a:a.id, eligible_objs)))
+            if eligible_objs:
+                # ~ print("-----------------------")
+                # ~ print("!!!", list(map(lambda x:[x.id, x.content] if isinstance(x,_Form) else x.id, eligible_objs)))
+                for obj in eligible_objs:
+                    # ~ print("1>>>", id(obj), obj.id, list(map(lambda a:a.id, members(self))))
+                    for order in sorted(_ruletable):
+                        rule = _ruletable[order]
+                        if isinstance(obj, rule["T"]) and obj.domain in rule["D"]:
+                            rule["F"](obj)
+                    # ~ for rule in filter(lambda R: isinstance(obj, R["T"]) and obj.domain in R["D"], _ruleregistry):
+                        # ~ rule["F"](obj)
+                    obj._rules_applied_to = True
+                eligible_objs = list(filter(lambda O: not(O._rules_applied_to), members(self)))
+            else:
+                break
+        # ~ Wird immer schlimmer! muss nach jeder Runde noch lineupen!
+        # ~ for hform in filter(lambda form: isinstance(form, HForm), members(self)):
+            # ~ hform._lineup()
 
     
 def _bboxelem(obj): 
-    return svgwrite.shapes.Rect(
-    insert=(obj.left, obj.top),
-    size=(obj.width, obj.height), 
-    fill=obj.canvas_color,
-    fill_opacity=obj.canvas_opacity, 
-    id_=obj.id + "BBox"
-    )
+    return svgwrite.shapes.Rect(insert=(obj.left, obj.top),
+                                size=(obj.width, obj.height), 
+                                fill=obj.canvas_color,
+                                fill_opacity=obj.canvas_opacity, 
+                                id_=obj.id + "BBox")
+
 _ORIGIN_CROSS_LEN = 20
 _ORIGIN_CIRCLE_R = 4
 _ORIGIN_LINE_THICKNESS = 0.06
@@ -242,11 +307,15 @@ def _origelems(obj):
 
 
 class MChar(_Canvas):
-    def __init__(self, name, color=None, opacity=None,
+    # ~ __IDNAME = "MChar"
+    # ~ __idcount = 0
+    _idcounter = 0
+    def __init__(self, name=None, color=None, opacity=None,
     visible=True, canvas_color=None,
     **kwargs):
         super().__init__(**kwargs)
         self.name = name
+        # ~ self.id = _id or MChar.__IDNAME + str(MChar.__idcount); MChar.__idcount += 1
         self.color = color or rgb(0, 0, 0)
         self.opacity = opacity or 1
         self.visible = visible
@@ -254,10 +323,7 @@ class MChar(_Canvas):
         # ~ Compute the surface area
         self._compute_hsurface()
         self._compute_vsurface()
-    # ~ Horizontals
-    @property
-    def left(self): return self._left
-    @left.setter
+    @_Canvas.left.setter
     def left(self, newl):
         dl = newl - self.left
         self.x += dl
@@ -267,7 +333,7 @@ class MChar(_Canvas):
     def width(self): return self._width
     @property
     def x(self): return self._x
-    @x.setter
+    @_Canvas.x.setter
     def x(self, newx):
         dx = newx - self.x
         self._x += dx
@@ -278,10 +344,7 @@ class MChar(_Canvas):
             # ~ A._left = A._compute_left()
             # ~ A._right = A._compute_right()
             # ~ A._width = A._compute_width()
-    # ~ Verticals
-    @property
-    def y(self): return self._y
-    @y.setter
+    @_Canvas.y.setter
     def y(self, newy):
         dy = newy - self.y
         self._y += dy
@@ -315,11 +378,12 @@ class MChar(_Canvas):
         if self.canvas_visible:
             self._svglst.append(_bboxelem(self))
         # ~ Add the music character
-        self._svglst.append(
-        svgwrite.path.Path(d=glyph(self.name, self.font)["d"],
+        # ~ print(self.id, self._svglst)
+        self._svglst.append(svgwrite.path.Path(d=glyph(self.name, self.font)["d"],
         id_=self.id, fill=self.color, fill_opacity=self.opacity,
         transform="translate({0} {1}) scale(1 -1) scale({2} {3})".format(
         self.x, self.y, self.xscale * _scale(), self.yscale * _scale())))
+        # ~ print(self.id, self._svglst)
         # ~ Origin
         if self.origin_visible:
             for elem in _origelems(self):
@@ -327,9 +391,12 @@ class MChar(_Canvas):
 
 
 class _Form(_Canvas):
+    # ~ __IDNAME = "Form"
+    _idcounter = 0
     def __init__(self, content=None, uwidth=None, **kwargs):
         super().__init__(**kwargs)
-        self.content = content if content else []
+        self.content = content or []
+        # ~ self.id = _id or self.__ + str(_Form.__idcount); _Form.__idcount += 1
         self.FIXTOP = self.y + toplevel_scale(glyph(STAFF_HEIGHT_REFERENCE_GLYPH, self.font)["top"])
         self.FIXBOTTOM = self.y + toplevel_scale(glyph(STAFF_HEIGHT_REFERENCE_GLYPH, self.font)["bottom"])
         # ~ Wozu das fixheight??
@@ -343,8 +410,8 @@ class _Form(_Canvas):
                 C.x += self.x
             if not(C.absy):
                 C.y += self.y
-    def addcont(self, child):
-        print("Adding to cont")
+    def addcont(self, child): # plural?
+        assert isinstance(child, _MeObj), "Form can only contain MeObjs!"
         # ~ Tell child & his children about their parents
         child.ancestors.insert(0, self)
         if isinstance(child, _Form):
@@ -368,16 +435,20 @@ class _Form(_Canvas):
         for A in reversed(self.ancestors):
             A._compute_hsurface()
             A._compute_vsurface()
-    # ~ Horizontal Attributes
-    @property
-    def x(self): return self._x
-    @property
-    def left(self): return self._left
+        # ~ print("+++++++++", self.id, self.content)
+    
+    @_Canvas.left.setter
+    def left(self, newl):
+        dl = newl - self.left
+        self.x += dl
+    
     @property
     def right(self): return self._right
     @property
     def width(self): return self.uwidth or self._width
-    @x.setter
+    
+    
+    @_Canvas.x.setter
     def x(self, newx):
         dx = newx - self.x
         self._x += dx
@@ -389,13 +460,8 @@ class _Form(_Canvas):
             d._right += dx
         for A in reversed(self.ancestors):
             A._compute_hsurface()
-            # ~ A._left = A._compute_left()
-            # ~ A._right = A._compute_right()
-            # ~ A._width = A._compute_width()
-    # ~ Vertical Attributes
-    @property
-    def y(self): return self._y
-    @y.setter # move if C.absy check to here
+
+    @_Canvas.y.setter # move if C.absy check to here
     def y(self, newy):
         dy = newy - self.y
         self._y += dy
@@ -429,10 +495,14 @@ class _Form(_Canvas):
         if self.canvas_visible: self._svglst.append(_bboxelem(self))
         # ~ Add content
         for C in self.content:
+            # ~ print(self.id, C.id, self._svglst, C.content if isinstance(C, _Form) else "!")
             C.xscale *= self.xscale
             C.yscale *= self.yscale
             C._pack_svglst() # Recursively gather svg elements
             self._svglst.extend(C._svglst)
+            # ~ print(self.id, C.id, self._svglst)
+        # ~ self._svglst.extend(list(map(lambda C: C._svglst, self.content)))
+            # ~ print(self.id, C.id, self._svglst)
         # ~ Origin
         if self.origin_visible: self._svglst.extend(_origelems(self))
 
@@ -454,9 +524,9 @@ class HForm(_Form):
         self._compute_hsurface()
         self._compute_vsurface()
     def _lineup(self):
-        for i, C in enumerate(self.content[1:]):
-            print(">>>>>>>>",self.content[1:][i].left)
-            self.content[1:][i].left = self.content[i].right
+        for a, b in zip(self.content[:-1], self.content[1:]):
+            b.left = a.right
+
 
 ###### Clocks
 class Clock:
@@ -470,4 +540,4 @@ class Note(SForm, Clock, Pitch):
         super().__init__(**kwargs)
         self.dur = dur or 1
         self.domain = domain or None
-        self.__head = None
+        self.head = None
