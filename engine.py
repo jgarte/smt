@@ -10,37 +10,25 @@ from svgwrite.utils import rgb
 
 ############### rules
 
-_ruleregistry = []
-def rule(targets, domains, fn):
-    for r in _ruleregistry:
-        if fn is r["F"]:
-            return
-    _ruleregistry.append({"T": targets, "D": domains, "F": fn})
+# _ruleregistry = []
+# def rule(targets, domains, fn):
+    # for r in _ruleregistry:
+        # if fn is r["F"]:
+            # return
+    # _ruleregistry.append({"T": targets, "D": domains, "F": fn})
 
 # ~ New rule is by default applicable to all hitherto defined domains
-_ruledomains = set()
+_ruledomains = set(("stacked", "horizontal"))
+_ruletargets = set((object,))
 _ruletable = {}
 
-def r(order=None, targets=None, domains=None, func=None):
+def r(order, targets, domains, func):
     if order in _ruletable:
         # ~ raise Exception("Rule order exists")
         return
     else:
-        # ~ Second arg for isinstance:
-        if targets:
-            if isinstance(targets, list):
-                targets = tuple(targets)
-        else:
-            targets = object
-        # ~ T = tuple(targets) if targets else object
-        if not(domains):
-            domains = _ruledomains
-        else:
-            # ~ domains must be a tuple
-            if isinstance(domains, str):
-                domains = [domains]
-            _ruledomains.update(domains)
-        func = func or (lambda:None)
+        _ruletargets.update(tuple(targets))
+        _ruledomains.update(tuple(domains))
         _ruletable[order] = {"T": targets, "D": domains, "F": func}
 
 ##### Font
@@ -50,7 +38,7 @@ STAFF_HEIGHT_REFERENCE_GLYPH = "clefs.C"
 
 def _fontdict(fontname): return _fonts[fontname]
 def glyphs(fontname): return _fontdict(fontname).keys()
-def getglyph(name, fontname): 
+def getglyph(name, fontname):
     """Returns glyph's dictionary"""
     return _fontdict(fontname)[name]
 
@@ -141,18 +129,6 @@ __orgln_thickness = 0.06
 pgw = mmtopx(210)
 pgh =mmtopx(297)
 
-def rules_targets():
-    T = []
-    for rule in _ruleregistry:
-        T.extend(rule["T"])
-    return T
-
-def rules_domains():
-    D= []
-    for rule in _ruleregistry:
-        D.extend(rule["D"])
-    return D
-
 
 # ~ def _descendants(obj, N, D):
     # ~ """"""
@@ -195,11 +171,20 @@ def descendants(obj, lastgen_first=True):
         # ~ D.extend(d[i])
     return D
 
+
 def members(obj): return [obj] + descendants(obj, lastgen_first=False)
 
 def getallin(typeof, obj):
     """Returns an iterable of all types in obj."""
     return filter(lambda O: isinstance(O, typeof), members(obj))
+
+def _rule_appl_elig_objs(obj):
+    # put in list to get False [] if nothing was filtered. 
+    return list(filter(
+    lambda O: (O.domain in _ruledomains) and
+    (isinstance(O, tuple(_ruletargets))) and
+    not(O._rules_applied_to), 
+    members(obj)))
 
 class _Canvas(_MeObj):
     def __init__(self, absx=None, absy=None, toplevel=False, font=None,
@@ -235,38 +220,25 @@ class _Canvas(_MeObj):
         self._top = self._compute_top()
         self._bottom = self._compute_bottom()
         self._height = self._compute_height()
-    # ~ A canvas can be a page??
     def _apply_rules(self):
         """
         Applies rules to OBJ and all it's descendants. 
         """
-        eligible_objs = list(filter(lambda O: not(O._rules_applied_to), members(self)))
-        # ~ Each obj will get rules applied to him only ONCE! True or False __rule_applied
-        # ~ print("Member>>>", list(map(lambda a:id(a), members(self))))
-        # ~ print("khodesh>>>", id(self),list(map(lambda a:id(a), self.content)))
+        eligible_objs = _rule_appl_elig_objs(self)
         while True:
-            # ~ print(list(map(lambda a:a.id, eligible_objs)))
             if eligible_objs:
-                # ~ print("-----------------------")
-                # ~ print("!!!", list(map(lambda x:[x.id, x.content] if isinstance(x,_Form) else x.id, eligible_objs)))
-                for obj in eligible_objs:
-                    for order in sorted(_ruletable):
+                # Must iterate over rules first, then over objs.
+                # It is the order of rules to be applied which matters here! 
+                for order in sorted(_ruletable):
+                    for obj in eligible_objs:
                         rule = _ruletable[order]
                         if isinstance(obj, rule["T"]) and (obj.domain in rule["D"]):
+                            print(obj, rule["T"],rule["F"])
                             rule["F"](obj)
-                            print(obj.id, obj.left)
-                    # ~ for rule in filter(lambda R: isinstance(obj, R["T"]) and obj.domain in R["D"], _ruleregistry):
-                        # ~ rule["F"](obj)
-                    obj._rules_applied_to = True
-                    if isinstance(obj, HForm):
-                        obj._lineup()
-                eligible_objs = list(filter(lambda O: not(O._rules_applied_to), members(self)))
+                            obj._rules_applied_to = True
+                eligible_objs = _rule_appl_elig_objs(self)
             else:
                 break
-        # ~ Wird immer schlimmer! muss nach jeder Runde noch lineupen!
-        for hform in getallin(HForm, self):
-            # hform._lineup()
-            pass
 
     
 def _bboxelem(obj): 
@@ -515,7 +487,3 @@ class Note(SForm):
         self.domain = domain or "treble"
         self.dur = dur
         self.head = None
-
-
-
-print(MChar(name="clefs.C").glyph["height"])

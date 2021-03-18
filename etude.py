@@ -23,16 +23,18 @@ def notehead(note):
             .25: "noteheads.s2"
         }[note.dur]))
 # ~ Deduces the notehead symbol from note's duration.
-E.r(1, E.Note, "treble", notehead)
+E.r(1, (E.Note,), ["treble"], notehead)
+E.r(2, (E.Note,), ["treble"], lambda x: x.addcont(E.MChar(name="clefs.F")))
+E.r(3, (E.HForm,), ["horizontal"], lambda h: h._lineup())
 
-def f(self):
-    self.left = randint(40, 101)
-# E.r(2, E.Note, "treble", f)
+
+print(E._ruletable)
+print(E._ruletargets)
+print(E._ruledomains)
 cnt = [E.Note(dur="q"), E.Note(dur=1), E.Note(dur=.25), E.Note(dur="h")]
 h = E.HForm(content=cnt)
-print([x.left for x in cnt])
 h.render()
-print([(x.id, x.left) for x in cnt])
+
 
 """
 MNSD
