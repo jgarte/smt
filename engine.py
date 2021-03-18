@@ -307,7 +307,7 @@ class MChar(_Canvas):
         self.opacity = opacity or 1
         self.visible = visible
         self.canvas_color = canvas_color or rgb(100, 0, 0, "%")
-        # ~ Compute the surface are
+        # ~ Compute the surface area
         self._compute_hsurface()
         self._compute_vsurface()
     @_Canvas.left.setter
