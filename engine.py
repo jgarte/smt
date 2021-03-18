@@ -23,6 +23,7 @@ _ruletable = {}
 
 def r(order=None, targets=None, domains=None, func=None):
     if order in _ruletable:
+        # ~ raise Exception("Rule order exists")
         return
     else:
         # ~ Second arg for isinstance:
@@ -41,33 +42,17 @@ def r(order=None, targets=None, domains=None, func=None):
             _ruledomains.update(domains)
         func = func or (lambda:None)
         _ruletable[order] = {"T": targets, "D": domains, "F": func}
-# ~ class rule:
-    # ~ _ruleorder = 0
-    # ~ def __init__(self, order=None, targets=(), domains=(), *funcs):
-        # ~ self.order = order or rule._rulecounter; rule._rulecounter += 1
-        # ~ self.targets = targets
-        # ~ self.domains = domains
-        # ~ self.funcs = funcs
-        # ~ if func.__name__ not in _ruletable:
-        
-        
-        
-        # ~ def apply(fn, L):
-    # ~ exec("{}({})".format(fn.__name__, ", ".join([repr(A) for A in L])))
-# ~ def _argcount(fn): return fn.__code__.co_argcount
-
-
 
 ##### Font
-__fontdicts = {}
-font = "Haydn"
+_fonts = {}
+current_font = "Haydn"
 STAFF_HEIGHT_REFERENCE_GLYPH = "clefs.C"
 
-def fontdict(fontname): return __fontdicts[fontname]
-def glyphs(fontname): return fontdict(fontname).keys()
-def glyph(name, fontname): 
+def _fontdict(fontname): return _fonts[fontname]
+def glyphs(fontname): return _fontdict(fontname).keys()
+def getglyph(name, fontname): 
     """Returns glyph's dictionary"""
-    return fontdict(fontname)[name]
+    return _fontdict(fontname)[name]
 
 def instfont(fontname, srcpath, shrg=STAFF_HEIGHT_REFERENCE_GLYPH):
     """"""
@@ -97,7 +82,7 @@ def instfont(fontname, srcpath, shrg=STAFF_HEIGHT_REFERENCE_GLYPH):
             }
     # ~ Closing Neccessary?
     temp_bbox_file.close()
-    __fontdicts[fontname] = D
+    _fonts[fontname] = D
 
 # ~ Iinstalled fonts
 instfont("Haydn", "/home/amir/haydn/svg/haydn-11.svg")
@@ -117,7 +102,7 @@ def chlapik_staff_space(rastral):
 space = chlapik_staff_space(2)
 scale = 1
 def _scale():
-    return scale * ((4 * space) / glyph("clefs.C", "Haydn")["height"])
+    return scale * ((4 * space) / getglyph("clefs.C", "Haydn")["height"])
 def toplevel_scale(R): return R * _scale()
 
 _LEFT_MARGIN = mmtopx(36)
@@ -134,11 +119,15 @@ class _MeObj:
         self._rules_applied_to = _rules_applied_to
         self._tst = tst or []
     def parent(self): return list(reversed(self.ancestors))[0]
-    # ~ def allocid(self):
-        # ~ _id = self.__IDNAME + str(self.__idcount)
-        # ~ self.__idcount += 1
-        # ~ return _id 
-    
+    def render(self):
+        D = svgwrite.drawing.Drawing(filename="/tmp/me.svg", size=(pgw,pgh),debug=True)
+        self._apply_rules()
+        # ~ Form's packsvglst will call packsvglst on descendants recursively
+        self._pack_svglst()
+        # ~ print(self._svglst)
+        for elem in self._svglst:
+            D.add(elem)
+        D.save(pretty=True)
     
 # ~ _Canvas, Origin's Circle, Origin's Cross, Origin's Circle Contour
 mchar_cnv = __mchar_orgcrcl = __mchar_orgcrs = __mchar_orgcrcl_cntr = "deeppink"
@@ -189,6 +178,7 @@ def rules_domains():
 def _descendants(obj, N, D):
     if isinstance(obj, _Form) and obj.content:
         if N not in D:
+            # ~ Shallow copy only the outer content List,
             D[N] = cp.copy(obj.content)
         else:
             D[N].extend(obj.content)
@@ -198,21 +188,26 @@ def _descendants(obj, N, D):
     
 def descendants(obj, lastgen_first=True):
     D = []
-    d = _descendants(obj, 0, {})
-    for i in sorted(d.keys(), reverse=lastgen_first):
+    for _, gen in sorted(_descendants(obj, 0, {}).items(), reverse=lastgen_first):
+        D.extend(gen)
+    # ~ for i in sorted(d.keys(), reverse=lastgen_first):
     # ~ for _, gen in sorted(_descendants(obj, 0, {}).items(), reverse=lastgen_first):
-        D.extend(d[i])
+        # ~ D.extend(d[i])
     return D
 
 def members(obj): return [obj] + descendants(obj, lastgen_first=False)
 
+def getallin(typeof, obj):
+    """Returns an iterable of all types in obj."""
+    return filter(lambda O: isinstance(O, typeof), members(obj))
+
 class _Canvas(_MeObj):
-    def __init__(self, absx=None, absy=None, toplevel=False, font=font,
+    def __init__(self, absx=None, absy=None, toplevel=False, font=None,
     canvas_opacity=None, xoff=None, yoff=None, xscale=scale, yscale=scale,
     canvas_visible=True, origin_visible=True,
     **kwargs):
         super().__init__(**kwargs)
-        self.font = font
+        self.font = font or current_font
         self.canvas_opacity = canvas_opacity or 0.3
         self.canvas_visible = canvas_visible
         self.origin_visible = origin_visible
@@ -241,15 +236,6 @@ class _Canvas(_MeObj):
         self._bottom = self._compute_bottom()
         self._height = self._compute_height()
     # ~ A canvas can be a page??
-    def render(self):
-        D = svgwrite.drawing.Drawing(filename="/tmp/me.svg", size=(pgw,pgh),debug=True)
-        self._apply_rules()
-        # ~ Form's packsvglst will call packsvglst on descendants recursively
-        self._pack_svglst()
-        # ~ print(self._svglst)
-        for elem in self._svglst:
-            D.add(elem)
-        D.save(pretty=True)
     def _apply_rules(self):
         """
         Applies rules to OBJ and all it's descendants. 
@@ -264,20 +250,23 @@ class _Canvas(_MeObj):
                 # ~ print("-----------------------")
                 # ~ print("!!!", list(map(lambda x:[x.id, x.content] if isinstance(x,_Form) else x.id, eligible_objs)))
                 for obj in eligible_objs:
-                    # ~ print("1>>>", id(obj), obj.id, list(map(lambda a:a.id, members(self))))
                     for order in sorted(_ruletable):
                         rule = _ruletable[order]
-                        if isinstance(obj, rule["T"]) and obj.domain in rule["D"]:
+                        if isinstance(obj, rule["T"]) and (obj.domain in rule["D"]):
                             rule["F"](obj)
+                            print(obj.id, obj.left)
                     # ~ for rule in filter(lambda R: isinstance(obj, R["T"]) and obj.domain in R["D"], _ruleregistry):
                         # ~ rule["F"](obj)
                     obj._rules_applied_to = True
+                    if isinstance(obj, HForm):
+                        obj._lineup()
                 eligible_objs = list(filter(lambda O: not(O._rules_applied_to), members(self)))
             else:
                 break
         # ~ Wird immer schlimmer! muss nach jeder Runde noch lineupen!
-        # ~ for hform in filter(lambda form: isinstance(form, HForm), members(self)):
-            # ~ hform._lineup()
+        for hform in getallin(HForm, self):
+            # hform._lineup()
+            pass
 
     
 def _bboxelem(obj): 
@@ -307,15 +296,13 @@ def _origelems(obj):
 
 
 class MChar(_Canvas):
-    # ~ __IDNAME = "MChar"
-    # ~ __idcount = 0
     _idcounter = 0
-    def __init__(self, name=None, color=None, opacity=None,
+    def __init__(self, name, color=None, opacity=None,
     visible=True, canvas_color=None,
     **kwargs):
         super().__init__(**kwargs)
         self.name = name
-        # ~ self.id = _id or MChar.__IDNAME + str(MChar.__idcount); MChar.__idcount += 1
+        self.glyph = getglyph(self.name, self.font)
         self.color = color or rgb(0, 0, 0)
         self.opacity = opacity or 1
         self.visible = visible
@@ -341,9 +328,6 @@ class MChar(_Canvas):
         self._right += dx
         for A in reversed(self.ancestors): # An ancestor IS a Form.
             A._compute_hsurface()
-            # ~ A._left = A._compute_left()
-            # ~ A._right = A._compute_right()
-            # ~ A._width = A._compute_width()
     @_Canvas.y.setter
     def y(self, newy):
         dy = newy - self.y
@@ -352,9 +336,6 @@ class MChar(_Canvas):
         self._bottom += dy
         for A in reversed(self.ancestors): # A are Forms
             A._compute_vsurface()
-            # ~ A._top = A._compute_top()
-            # ~ A._bottom = A._compute_bottom()
-            # ~ A._height = A._compute_height()
     @property
     def top(self): return self._top
     @property
@@ -362,24 +343,23 @@ class MChar(_Canvas):
     @property
     def height(self): return self._height
     def _compute_left(self):
-        return self.x + toplevel_scale(glyph(self.name, self.font)["left"])
+        return self.x + toplevel_scale(self.glyph["left"])
     def _compute_right(self):
-        return self.x + toplevel_scale(glyph(self.name, self.font)["right"])
+        return self.x + toplevel_scale(self.glyph["right"])
     def _compute_width(self):
-        return toplevel_scale(glyph(self.name, self.font)["width"])
+        return toplevel_scale(self.glyph["width"])
     def _compute_top(self):
-        return self.y + toplevel_scale(glyph(self.name, self.font)["top"])
+        return self.y + toplevel_scale(self.glyph["top"])
     def _compute_bottom(self):
-        return self.y + toplevel_scale(glyph(self.name, self.font)["bottom"])
+        return self.y + toplevel_scale(self.glyph["bottom"])
     def _compute_height(self):
-        return toplevel_scale(glyph(self.name, self.font)["height"])
+        return toplevel_scale(self.glyph["height"])
     def _pack_svglst(self):
         # ~ Add bbox rect
         if self.canvas_visible:
             self._svglst.append(_bboxelem(self))
         # ~ Add the music character
-        # ~ print(self.id, self._svglst)
-        self._svglst.append(svgwrite.path.Path(d=glyph(self.name, self.font)["d"],
+        self._svglst.append(svgwrite.path.Path(d=getglyph(self.name, self.font)["d"],
         id_=self.id, fill=self.color, fill_opacity=self.opacity,
         transform="translate({0} {1}) scale(1 -1) scale({2} {3})".format(
         self.x, self.y, self.xscale * _scale(), self.yscale * _scale())))
@@ -397,10 +377,10 @@ class _Form(_Canvas):
         super().__init__(**kwargs)
         self.content = content or []
         # ~ self.id = _id or self.__ + str(_Form.__idcount); _Form.__idcount += 1
-        self.FIXTOP = self.y + toplevel_scale(glyph(STAFF_HEIGHT_REFERENCE_GLYPH, self.font)["top"])
-        self.FIXBOTTOM = self.y + toplevel_scale(glyph(STAFF_HEIGHT_REFERENCE_GLYPH, self.font)["bottom"])
+        self.FIXTOP = self.y + toplevel_scale(getglyph(STAFF_HEIGHT_REFERENCE_GLYPH, self.font)["top"])
+        self.FIXBOTTOM = self.y + toplevel_scale(getglyph(STAFF_HEIGHT_REFERENCE_GLYPH, self.font)["bottom"])
         # ~ Wozu das fixheight??
-        self.FIXHEIGHT = toplevel_scale(glyph(STAFF_HEIGHT_REFERENCE_GLYPH, self.font)["height"])
+        self.FIXHEIGHT = toplevel_scale(getglyph(STAFF_HEIGHT_REFERENCE_GLYPH, self.font)["height"])
         self.uwidth = uwidth
         for D in descendants(self, False):
             D.ancestors.insert(0, self) # Need smteq??
@@ -528,16 +508,14 @@ class HForm(_Form):
             b.left = a.right
 
 
-###### Clocks
-class Clock:
-    def __init__(self, dur):
-        self.dur = dur
-class Pitch:
-    def __init__(self, spn):
-        self.spn = spn
-class Note(SForm, Clock, Pitch):
-    def __init__(self, dur=None, domain=None, **kwargs):
+class Note(SForm):
+    def __init__(self, spn=None, dur=None, domain=None, **kwargs):
         super().__init__(**kwargs)
-        self.dur = dur or 1
-        self.domain = domain or None
+        self.spn = spn
+        self.domain = domain or "treble"
+        self.dur = dur
         self.head = None
+
+
+
+print(MChar(name="clefs.C").glyph["height"])
