@@ -1,4 +1,8 @@
 
+"""
+Semantic Music Typesetting
+"""
+
 import tempfile
 import xml.etree.ElementTree as ET
 import subprocess as sp
@@ -98,7 +102,7 @@ _TOP_MARGIN = mmtopx(56)
 
 
 ##### Score Objects
-class _MeObj:
+class _SmtObj:
     def __init__(self, id_=None, domain=None, tst=None, _rules_applied_to=False):
         self.ancestors = []
         self.id = id_ or self._assign_id()
@@ -197,7 +201,7 @@ def _rule_appl_elig_objs(obj):
     not(O._rules_applied_to), 
     members(obj)))
 
-class _Canvas(_MeObj):
+class _Canvas(_SmtObj):
     def __init__(self, absx=None, absy=None, toplevel=False, font=None,
     canvas_opacity=None, xoff=None, yoff=None, xscale=scale, yscale=scale,
     canvas_visible=True, origin_visible=True,
@@ -426,7 +430,7 @@ class _Form(_Canvas):
     # Children is a sequence. This method modifies only ancestor lists.
     def _establish_parental_relationship(self, children):
         for child in children:
-            assert isinstance(child, _MeObj), "Form can only contain MeObjs!"
+            assert isinstance(child, _SmtObj), "Form can only contain MeObjs!"
             # ~ Tell child & his children about their parents
             child.ancestors.insert(0, self)
             if isinstance(child, _Form):
@@ -440,7 +444,7 @@ class _Form(_Canvas):
     
     # What about insert instead of append???
     def addcont(self, child): # plural?
-        assert isinstance(child, _MeObj), "Form can only contain MeObjs!"
+        assert isinstance(child, _SmtObj), "Form can only contain MeObjs!"
         # ~ Tell child & his children about their parents
         child.ancestors.insert(0, self)
         if isinstance(child, _Form):
