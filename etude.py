@@ -2,6 +2,7 @@ from random import randint
 import engine as E
 
 """
+lineup
 me-lang me-engine
 <hform <id 23> <content <note <spn <f 4>> <duration .5>>
                         <accidental <sharp>>
