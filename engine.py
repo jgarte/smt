@@ -18,7 +18,7 @@ from svgwrite.utils import rgb
     # _ruleregistry.append({"T": targets, "D": domains, "F": fn})
 
 # ~ New rule is by default applicable to all hitherto defined domains
-_ruledomains = set(("stacked", "horizontal"))
+_ruledomains = set()
 _ruletargets = set((object,))
 _ruletable = {}
 
@@ -38,7 +38,7 @@ STAFF_HEIGHT_REFERENCE_GLYPH = "clefs.C"
 
 def _fontdict(fontname): return _fonts[fontname]
 def glyphs(fontname): return _fontdict(fontname).keys()
-def getglyph(name, fontname):
+def _getglyph(name, fontname):
     """Returns glyph's dictionary"""
     return _fontdict(fontname)[name]
 
@@ -90,7 +90,7 @@ def chlapik_staff_space(rastral):
 space = chlapik_staff_space(2)
 scale = 1
 def _scale():
-    return scale * ((4 * space) / getglyph("clefs.C", "Haydn")["height"])
+    return scale * ((4 * space) / _getglyph("clefs.C", "Haydn")["height"])
 def toplevel_scale(R): return R * _scale()
 
 _LEFT_MARGIN = mmtopx(36)
@@ -101,12 +101,24 @@ _TOP_MARGIN = mmtopx(56)
 class _MeObj:
     def __init__(self, id_=None, domain=None, tst=None, _rules_applied_to=False):
         self.ancestors = []
-        self.id = id_ or self.__class__.__name__ + str(self.__class__._idcounter); self.__class__._idcounter += 1
+        self.id = id_ or self._assign_id()
         self._svglst = []
         self.domain = domain
         self._rules_applied_to = _rules_applied_to
         self._tst = tst or []
-    def parent(self): return list(reversed(self.ancestors))[0]
+    
+    def _assign_id(self):
+        self.__class__._idcounter += 1
+        return self.__class__.__name__ + str(self.__class__._idcounter)
+            
+    def parent(self): return self.ancestors[-1]
+    def root(self): return self.ancestors[0]
+    
+    def my_idx_in_parent_content(self):
+        for i, C in enumerate(self.parent().content):
+            if (C is self) and (C.id == self.id):
+                return i
+    
     def render(self):
         D = svgwrite.drawing.Drawing(filename="/tmp/me.svg", size=(pgw,pgh),debug=True)
         self._apply_rules()
@@ -179,9 +191,8 @@ def getallin(typeof, obj):
     return filter(lambda O: isinstance(O, typeof), members(obj))
 
 def _rule_appl_elig_objs(obj):
-    # put in list to get False [] if nothing was filtered. 
-    return list(filter(
-    lambda O: (O.domain in _ruledomains) and
+    # Put in list to get False [] if nothing was filtered. 
+    return list(filter(lambda O: (O.domain in _ruledomains) and
     (isinstance(O, tuple(_ruletargets))) and
     not(O._rules_applied_to), 
     members(obj)))
@@ -192,12 +203,16 @@ class _Canvas(_MeObj):
     canvas_visible=True, origin_visible=True,
     **kwargs):
         super().__init__(**kwargs)
+        # Only the first item in a hform will need _hlineup, for him 
+        # this is set by HForm itself.
+        self._is_hlineup_head = False
         self.font = font or current_font
         self.canvas_opacity = canvas_opacity or 0.3
         self.canvas_visible = canvas_visible
         self.origin_visible = origin_visible
         self.xoff = xoff or 0
         self.yoff = yoff or 0
+        self._dleft = 0
         self.xscale = xscale
         self.yscale = yscale
         self.toplevel = toplevel
@@ -206,20 +221,46 @@ class _Canvas(_MeObj):
         # ~ We need xy at init-time, just make absx 0 above??????
         self._x = (self.absx or 0) + self.xoff
         self._y = (self.absy or 0) + self.yoff
+    
     @property
     def x(self): return self._x
+    
     @property
     def left(self): return self._left
+
+    @left.setter
+    def left(self, newl):
+        # Public x-setter gets DESTINATION & passes (newx-destination - x) to 
+        # the shift_x function (which gets DELTAX as argument).
+        # self.x = self.x + (newl - self.left)
+        deltal = newl - self.left
+        self.x = self.x + deltal
+
+    # This is used eg by h-lineup
+    # def _shift_left(self, newl):
+        # # Shiftx gets the difference to the Destination as argument.
+        # self._shift_x_by(newl - self.left)
+
+    def _shift_left(self, deltal):
+        # Shiftx gets the difference to the Destination as argument.
+        self._shift_x_by(deltal)
+        
+    def _assign_left(self, newl):
+        self._assign_x(self.x + (newl - self.left), False)
+
     @property
     def y(self): return self._y
-    def _compute_hsurface(self):
+
+    def _compute_horizontals(self):
         self._left = self._compute_left()
         self._right = self._compute_right()
         self._width = self._compute_width()
+
     def _compute_vsurface(self):
         self._top = self._compute_top()
         self._bottom = self._compute_bottom()
         self._height = self._compute_height()
+
     def _apply_rules(self):
         """
         Applies rules to OBJ and all it's descendants. 
@@ -230,12 +271,12 @@ class _Canvas(_MeObj):
                 # Must iterate over rules first, then over objs.
                 # It is the order of rules to be applied which matters here! 
                 for order in sorted(_ruletable):
+                    rule = _ruletable[order]
                     for obj in eligible_objs:
-                        rule = _ruletable[order]
                         if isinstance(obj, rule["T"]) and (obj.domain in rule["D"]):
-                            print(obj, rule["T"],rule["F"])
                             rule["F"](obj)
                             obj._rules_applied_to = True
+                # Maybe some rule has created new objs, or even defined new rules!
                 eligible_objs = _rule_appl_elig_objs(self)
             else:
                 break
@@ -267,39 +308,55 @@ def _origelems(obj):
                                         stroke_width=_ORIGIN_LINE_THICKNESS)]
 
 
-class MChar(_Canvas):
-    _idcounter = 0
+class Char(_Canvas):
+    
+    _idcounter = -1
+    
     def __init__(self, name, color=None, opacity=None,
     visible=True, canvas_color=None,
     **kwargs):
         super().__init__(**kwargs)
         self.name = name
-        self.glyph = getglyph(self.name, self.font)
+        self.glyph = _getglyph(self.name, self.font)
         self.color = color or rgb(0, 0, 0)
         self.opacity = opacity or 1
         self.visible = visible
         self.canvas_color = canvas_color or rgb(100, 0, 0, "%")
-        # ~ Compute the surface area
-        self._compute_hsurface()
+        self._compute_horizontals()
         self._compute_vsurface()
-    @_Canvas.left.setter
-    def left(self, newl):
-        dl = newl - self.left
-        self.x += dl
+    
+    # This function is the basis for all horizontal shifting operations.
+    def _assign_x(self, newx, lineup_ancestors):
+        dx = newx - self.x # save before modification!
+        self._x = newx
+        self._left += dx
+        self._right += dx
+        for A in reversed(self.ancestors): # An ancestor is always a Form!!
+            if isinstance(A, HForm) and lineup_ancestors:
+                A._lineup()
+            A._compute_horizontals()
+    
+    # def _shift_x_by(self, deltax):
+        # # Delta x is used for a homogeneous shifting of x, left & right: 
+        # self._x += deltax
+        # self._left += deltax
+        # self._right += deltax
+        # for A in reversed(self.ancestors): # An ancestor is always a Form!!
+            # A._compute_horizontals()
+    
     @property
     def right(self): return self._right
     @property
     def width(self): return self._width
     @property
     def x(self): return self._x
+    
+    # When user assigns x:
     @_Canvas.x.setter
     def x(self, newx):
-        dx = newx - self.x
-        self._x += dx
-        self._left += dx
-        self._right += dx
-        for A in reversed(self.ancestors): # An ancestor IS a Form.
-            A._compute_hsurface()
+        self._is_hlineup_head = True
+        self._assign_x(newx, True)
+    
     @_Canvas.y.setter
     def y(self, newy):
         dy = newy - self.y
@@ -314,10 +371,13 @@ class MChar(_Canvas):
     def bottom(self): return self._bottom
     @property
     def height(self): return self._height
+
     def _compute_left(self):
         return self.x + toplevel_scale(self.glyph["left"])
+
     def _compute_right(self):
         return self.x + toplevel_scale(self.glyph["right"])
+
     def _compute_width(self):
         return toplevel_scale(self.glyph["width"])
     def _compute_top(self):
@@ -327,41 +387,58 @@ class MChar(_Canvas):
     def _compute_height(self):
         return toplevel_scale(self.glyph["height"])
     def _pack_svglst(self):
-        # ~ Add bbox rect
+        # Add bbox rect
         if self.canvas_visible:
             self._svglst.append(_bboxelem(self))
-        # ~ Add the music character
-        self._svglst.append(svgwrite.path.Path(d=getglyph(self.name, self.font)["d"],
+        # Add the music character
+        self._svglst.append(svgwrite.path.Path(d=_getglyph(self.name, self.font)["d"],
         id_=self.id, fill=self.color, fill_opacity=self.opacity,
         transform="translate({0} {1}) scale(1 -1) scale({2} {3})".format(
         self.x, self.y, self.xscale * _scale(), self.yscale * _scale())))
-        # ~ print(self.id, self._svglst)
-        # ~ Origin
+        # Add the origin
         if self.origin_visible:
             for elem in _origelems(self):
                 self._svglst.append(elem)
 
 
 class _Form(_Canvas):
-    # ~ __IDNAME = "Form"
-    _idcounter = 0
+
+    _idcounter = -1
+
     def __init__(self, content=None, uwidth=None, **kwargs):
         super().__init__(**kwargs)
         self.content = content or []
-        # ~ self.id = _id or self.__ + str(_Form.__idcount); _Form.__idcount += 1
-        self.FIXTOP = self.y + toplevel_scale(getglyph(STAFF_HEIGHT_REFERENCE_GLYPH, self.font)["top"])
-        self.FIXBOTTOM = self.y + toplevel_scale(getglyph(STAFF_HEIGHT_REFERENCE_GLYPH, self.font)["bottom"])
+        self.FIXTOP = self.y + toplevel_scale(_getglyph(STAFF_HEIGHT_REFERENCE_GLYPH, self.font)["top"])
+        self.FIXBOTTOM = self.y + toplevel_scale(_getglyph(STAFF_HEIGHT_REFERENCE_GLYPH, self.font)["bottom"])
         # ~ Wozu das fixheight??
-        self.FIXHEIGHT = toplevel_scale(getglyph(STAFF_HEIGHT_REFERENCE_GLYPH, self.font)["height"])
+        self.FIXHEIGHT = toplevel_scale(_getglyph(STAFF_HEIGHT_REFERENCE_GLYPH, self.font)["height"])
         self.uwidth = uwidth
         for D in descendants(self, False):
             D.ancestors.insert(0, self) # Need smteq??
         for C in self.content:
             if not(C.absx):
-                # ~ Call child's setter
-                C.x += self.x
+                # Note that this is happening at init-time! When there is no absolute-x,
+                # C.x is ONLY the amount of it's x-offset (see Canvas' self._x definition).
+                C._assign_x(C.x + self.x, False)
             if not(C.absy):
                 C.y += self.y
+    
+    # Children is a sequence. This method modifies only ancestor lists.
+    def _establish_parental_relationship(self, children):
+        for child in children:
+            assert isinstance(child, _MeObj), "Form can only contain MeObjs!"
+            # ~ Tell child & his children about their parents
+            child.ancestors.insert(0, self)
+            if isinstance(child, _Form):
+                for D in descendants(child, False):
+                    D.ancestors.insert(0, self)
+            for A in reversed(self.ancestors):
+                child.ancestors.insert(0, A)
+                if isinstance(child, _Form):
+                    for D in descendants(child, False):
+                        D.ancestors.insert(0, A)
+    
+    # What about insert instead of append???
     def addcont(self, child): # plural?
         assert isinstance(child, _MeObj), "Form can only contain MeObjs!"
         # ~ Tell child & his children about their parents
@@ -376,42 +453,66 @@ class _Form(_Canvas):
                     D.ancestors.insert(0, A)
         self.content.append(child)
         if not(child.absx):
+            # lineup lazem mishe
             child.x += self.x
+            # child._shift_x_by(child.x + self.x)
         if not(child.absy):
             child.y += self.y
+        self._compute_family_hv_surfaces()
+        print("Adding..", child, child._is_hlineup_head)
+    
+    def _compute_family_hv_surfaces(self):
         for D in descendants(self):
-            D._compute_hsurface()
+            D._compute_horizontals()
             D._compute_vsurface()
-        self._compute_hsurface()
+        self._compute_horizontals()
         self._compute_vsurface()
         for A in reversed(self.ancestors):
-            A._compute_hsurface()
+            A._compute_horizontals()
             A._compute_vsurface()
-        # ~ print("+++++++++", self.id, self.content)
-    
-    @_Canvas.left.setter
-    def left(self, newl):
-        dl = newl - self.left
-        self.x += dl
+        
     
     @property
     def right(self): return self._right
+    
     @property
     def width(self): return self.uwidth or self._width
     
-    
-    @_Canvas.x.setter
-    def x(self, newx):
+    # TODO: Here the case of children with absx MUST be considered, what happens to the dimensions
+    # of the form, if a child is not willing to move due to it's absx?
+    def _assign_x(self, newx, lineup_ancestors):
         dx = newx - self.x
-        self._x += dx
+        self._x = newx
         self._left += dx
         self._right += dx
-        for d in descendants(self, False):
-            d._x += dx
-            d._left += dx
-            d._right += dx
+        for D in descendants(self, False):
+            D._x = newx
+            D._left += dx
+            D._right += dx
         for A in reversed(self.ancestors):
-            A._compute_hsurface()
+            if isinstance(A, HForm) and lineup_ancestors:
+                A._lineup()
+            A._compute_horizontals()
+
+    
+    def _shift_x_by(self, deltax):
+        # dx = newx - self.x
+        self._x += deltax
+        self._left += deltax
+        self._right += deltax
+        for D in descendants(self, False):
+            D._x += deltax
+            D._left += deltax
+            D._right += deltax
+        for A in reversed(self.ancestors):
+            A._compute_horizontals()
+
+    @_Canvas.x.setter
+    def x(self, newx):
+        self._assign_x(newx)
+        # If user shifts x, left, right or changes the width,
+        # new horizontal line-up is required.
+        self._is_hlineup_head = True
 
     @_Canvas.y.setter # move if C.absy check to here
     def y(self, newy):
@@ -432,53 +533,117 @@ class _Form(_Canvas):
     def bottom(self): return self._bottom
     @property
     def height(self): return self._height
+
     def _compute_left(self):
-        return min([self.x] + list(map(lambda c: c.left, self.content)))
+        return min([self.x] + list(map(lambda C: C.left, self.content)))
+
     def _compute_right(self):
-        return max([self.x] + list(map(lambda c: c.right, self.content)))
+        return max([self.x] + list(map(lambda C: C.right, self.content)))
+
     def _compute_width(self): return self.right - self.left
+
     def _compute_top(self):
         return min([self.FIXTOP] + list(map(lambda C: C.top, self.content)))
     def _compute_bottom(self):
         return max([self.FIXBOTTOM] + list(map(lambda C: C.bottom, self.content)))
     def _compute_height(self): return self.bottom - self.top
     def _pack_svglst(self):
-        # ~ Bbox
+        # Bbox
         if self.canvas_visible: self._svglst.append(_bboxelem(self))
-        # ~ Add content
+        # Add content
         for C in self.content:
-            # ~ print(self.id, C.id, self._svglst, C.content if isinstance(C, _Form) else "!")
             C.xscale *= self.xscale
             C.yscale *= self.yscale
             C._pack_svglst() # Recursively gather svg elements
             self._svglst.extend(C._svglst)
-            # ~ print(self.id, C.id, self._svglst)
-        # ~ self._svglst.extend(list(map(lambda C: C._svglst, self.content)))
-            # ~ print(self.id, C.id, self._svglst)
-        # ~ Origin
+        # Origin
         if self.origin_visible: self._svglst.extend(_origelems(self))
 
+
 class SForm(_Form):
+    
+    _idcounter = -1
+    
     def __init__(self, canvas_color=None, **kwargs):
         super().__init__(**kwargs)
         self.canvas_color = canvas_color or rgb(0, 100, 0, "%")
         self.domain = "stacked"
-        self._compute_hsurface()
+        # Content may contain children with absolute x, so compute horizontals with respect to them.
+        # See whats happening in _Form init with children without absx!
+        self._compute_horizontals()
         self._compute_vsurface()
+    
+    # def append(self, *children):
+        # """Appends new children to Form's content list."""
+        # self._establish_parental_relationship(children)
+        # self.content.extend(children)
+        # for child in children:
+            # if not(child.absx):
+                # # child._shift_x_by(self.x - child.x)
+                # child._assign_x(child.xoff + self.x)
+            # if not(child.absy):
+                # child.y += self.y
+        # # Having set the content before would have caused assign_x to trigger computing horizontals for the Form,
+        # # which would have been to early!????
+        # self._compute_horizontals()
+        # # Changes in dimension above?
+        # for A in [self] + list(reversed(self.ancestors)):
+            # if isinstance(A.parent(), HForm):
+                # if A.my_idx_in_parent_content() == 0:
+                    # # self._is_hlineup_head = True
+                    # pass
+                # else:
+                    # A.parent().content[A.my_idx_in_parent_content() - 1]._is_hlineup_head = True
+                # A.parent()._lineup()
+        # self._compute_family_hv_surfaces()
+
 
 class HForm(_Form):
+
     def __init__(self, canvas_color=None, **kwargs):
         super().__init__(**kwargs)
         self.canvas_color = canvas_color or rgb(0, 0, 100, "%")
         self.domain = "horizontal"
-        # ~ First Lineup!
+        # Set the first item as in need of lineup
+        self.content[0]._is_hlineup_head = True
         self._lineup()
-        self._compute_hsurface()
+        # then compute surfaces.
+        self._compute_horizontals()
         self._compute_vsurface()
+    
+    # def append(self, *children):
+        # self._establish_parental_relationship(children)
+        # # We don't know how many new children are going to be appended
+        # # to the content list, so first mark the last of existing content
+        # # as head of a new line-up chunk, then put all new children at the end
+        # # of the contents, then run the lineup operation.
+        # self.content[-1]._is_hlineup_head = True
+        # self.content.extend(children)
+        # self._lineup()
+        # self._compute_family_hv_surfaces()
+    
+    def _lineup_chunks(self):
+        enums = filter(lambda L: L[1]._is_hlineup_head, enumerate(self.content))
+        indices = list(map(lambda L: L[0], enums))
+        indices_tail = indices[1:]
+        chunks = []
+        # Using slicing to shallow copy object instances
+        for i in range(len(indices_tail)):
+            chunks.append(self.content[indices[i]:indices_tail[i] - 1])
+        chunks.append(self.content[indices[-1]:])
+        return chunks
+    
     def _lineup(self):
-        for a, b in zip(self.content[:-1], self.content[1:]):
-            b.left = a.right
-
+        for chunk in self._lineup_chunks():
+            if chunk:
+                chunk[0]._is_hlineup_head = False
+                # The actual lineup operation:
+                for a, b in zip(chunk[:-1], chunk[1:]):
+                    # Use internal assignment to avoid labeling as lineup-needy!
+                    # b._shift_left(a.right - b.left)
+                    b._assign_left(a.right)
+        # for a, b in zip(self.content[:-1], self.content[1:]):
+            # b.left += a.right
 
 class Note(SForm):
     def __init__(self, spn=None, dur=None, domain=None, **kwargs):
