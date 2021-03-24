@@ -57,7 +57,7 @@ def instfont(fontname, srcpath, shrg=STAFF_HEIGHT_REFERENCE_GLYPH):
                 glyph_pathd[E.attrib["glyph-name"]] = "" # An empty string as pathd?????
     temp_bbox_file = tempfile.NamedTemporaryFile(mode="r")
     sp.run(["/usr/bin/fontforge", "-script", 
-            "/home/amir/Work/Python/me/fontinstprep.ff", 
+            "/home/amir/Work/Python/smt/fontinstprep.ff", 
             srcpath, temp_bbox_file.name])
     # ~ Register glyphs and their bboxes
     D = {}
@@ -250,7 +250,7 @@ class _Canvas(_SmtObj):
         self._shift_x_by(deltal)
         
     def _assign_left(self, newl):
-        self._assign_x(self.x + (newl - self.left), False)
+        self._assign_x(self.x + (newl - self.left))
 
     @property
     def y(self): return self._y
@@ -330,14 +330,14 @@ class Char(_Canvas):
         self._compute_vsurface()
     
     # This function is the basis for all horizontal shifting operations.
-    def _assign_x(self, newx, lineup_ancestors):
+    def _assign_x(self, newx):
         dx = newx - self.x # save before modification!
         self._x = newx
         self._left += dx
         self._right += dx
         for A in reversed(self.ancestors): # An ancestor is always a Form!!
-            if isinstance(A, HForm) and lineup_ancestors:
-                A._lineup()
+            # if isinstance(A, HForm) and lineup_ancestors:
+                # A._lineup()
             A._compute_horizontals()
     
     # def _shift_x_by(self, deltax):
@@ -359,7 +359,7 @@ class Char(_Canvas):
     @_Canvas.x.setter
     def x(self, newx):
         self._is_hlineup_head = True
-        self._assign_x(newx, True)
+        self._assign_x(newx)
     
     @_Canvas.y.setter
     def y(self, newy):
@@ -423,7 +423,7 @@ class _Form(_Canvas):
             if not(C.absx):
                 # Note that this is happening at init-time! When there is no absolute-x,
                 # C.x is ONLY the amount of it's x-offset (see Canvas' self._x definition).
-                C._assign_x(C.x + self.x, False)
+                C._assign_x(C.x + self.x)
             if not(C.absy):
                 C.y += self.y
     
@@ -484,7 +484,7 @@ class _Form(_Canvas):
     
     # TODO: Here the case of children with absx MUST be considered, what happens to the dimensions
     # of the form, if a child is not willing to move due to it's absx?
-    def _assign_x(self, newx, lineup_ancestors):
+    def _assign_x(self, newx):
         dx = newx - self.x
         self._x = newx
         self._left += dx
@@ -494,8 +494,8 @@ class _Form(_Canvas):
             D._left += dx
             D._right += dx
         for A in reversed(self.ancestors):
-            if isinstance(A, HForm) and lineup_ancestors:
-                A._lineup()
+            # if isinstance(A, HForm) and lineup_ancestors:
+                # A._lineup()
             A._compute_horizontals()
 
     
@@ -648,6 +648,12 @@ class HForm(_Form):
                     b._assign_left(a.right)
         # for a, b in zip(self.content[:-1], self.content[1:]):
             # b.left += a.right
+            
+    def _lineup(self):
+        for a, b in zip(self.content[:-1], self.content[1:]):
+            # Use internal assignment to avoid labeling as lineup-needy!
+            # b._shift_left(a.right - b.left)
+            b._assign_left(a.right)
 
 class Note(SForm):
     def __init__(self, spn=None, dur=None, domain=None, **kwargs):

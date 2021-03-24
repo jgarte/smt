@@ -39,8 +39,7 @@ def f(x):
 
 def reline(self):
     # h.content[0]._needs_hlineup=True
-    self.content[1].x += 10
-    self.content[2].x += 3
+    self.content[1].x += 100
 
 E.r(3, (E.HForm,), ["horizontal"], reline)
 # E.r(4, (E.HForm,), ["horizontal"], reline)
@@ -52,12 +51,12 @@ E.r(3, (E.HForm,), ["horizontal"], reline)
 # print(E._ruledomains)
 # from random import choice
 # E.r(1, (E.HForm,), ("horizontal",), lambda h: h.add(*[E.Char(name="clefs.{}".format(choice(["C","F","G"]))) for _ in range(10)]))
-# n1 = E.Note(dur="q", content=[E.Char(name="clefs.F")])
-# n2 = E.Note(dur=1, content=[E.Char(name="clefs.G")])
-# n3=E.Note(dur=1, content=[E.Char(name="accidentals.sharp")])
+n1 = E.Note(dur="q", content=[E.Char(name="clefs.F")])
+n2 = E.Note(dur=1, content=[E.Char(name="clefs.G")])
+n3=E.Note(dur=1, content=[E.Char(name="accidentals.sharp")])
 
-h = E.HForm(content=[E.Char(name="clefs.F") for _ in range(4)])
-# h=E.HForm(content=[n1, n2,n3])
+# h = E.HForm(content=[E.Char(name="clefs.F") for _ in range(4)])
+h=E.HForm(content=[n1, n2,n3])
 # h=E.HForm(content=[E.Note(domain="treble") for _ in range(3)])
 # h2=E.HForm(content=[E.HForm(content=[E.Note(domain="treble") for _ in range(3)]) for _ in range(2)])
 # h2=E.HForm(content=[E.HForm(content=[E.Char(name="clefs.F") for _ in range(2)]) for _ in range(3)])
