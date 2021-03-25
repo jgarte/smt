@@ -229,6 +229,7 @@ class _Canvas(_SmtObj):
     def left(self): return self._left
     @property
     def right(self): return self._right
+    
 
     @left.setter
     def left(self, newl):
@@ -237,6 +238,9 @@ class _Canvas(_SmtObj):
         # self.x = self.x + (newl - self.left)
         deltal = newl - self.left
         self.x = self.x + deltal
+    @right.setter
+    def right(self):
+        print("Implement me!")
 
     # This is used eg by h-lineup
     # def _shift_left(self, newl):
@@ -479,6 +483,12 @@ class _Form(_Canvas):
     
     @property
     def width(self): return self.uwidth or self._width
+    @width.setter
+    def width(self, neww):
+        self._right = self._left + neww
+        self._width = neww
+        for A in reversed(self.ancestors):
+            A._compute_horizontals()
     
     # TODO: Here the case of children with absx MUST be considered, what happens to the dimensions
     # of the form, if a child is not willing to move due to it's absx?
