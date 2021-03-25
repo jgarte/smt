@@ -82,14 +82,14 @@ instfont("Haydn", "/home/amir/haydn/svg/haydn-11.svg")
 
 
 ##### Rastral, Dimensions, Margins
-_PXPERMM = 3.7795275591 # Pixel per mm
+_PXLPERMM = 3.7795275591 # Pixel per mm
 
-def mmtopx(mm): return mm * _PXPERMM
+def mmtopxl(mm): return mm * _PXLPERMM
 def chlapik_staff_space(rastral):
     return {
-    2: mmtopx(1.88), 3: mmtopx(1.755), 4: mmtopx(1.6),
-    5: mmtopx(1.532), 6: mmtopx(1.4), 7: mmtopx(1.19),
-    8: mmtopx(1.02)}[rastral]
+    2: mmtopxl(1.88), 3: mmtopxl(1.755), 4: mmtopxl(1.6),
+    5: mmtopxl(1.532), 6: mmtopxl(1.4), 7: mmtopxl(1.19),
+    8: mmtopxl(1.02)}[rastral]
 
 space = chlapik_staff_space(2)
 scale = 1
@@ -97,8 +97,8 @@ def _scale():
     return scale * ((4 * space) / _getglyph("clefs.C", "Haydn")["height"])
 def toplevel_scale(R): return R * _scale()
 
-_LEFT_MARGIN = mmtopx(36)
-_TOP_MARGIN = mmtopx(56)
+_LEFT_MARGIN = mmtopxl(36)
+_TOP_MARGIN = mmtopxl(56)
 
 
 ##### Score Objects
@@ -142,8 +142,8 @@ __orgcrs_len = 20
 __orgcrcl_r = 4
 __orgcrcl_opac = 0.3
 __orgln_thickness = 0.06
-pgw = mmtopx(210)
-pgh =mmtopx(297)
+pgw = mmtopxl(210)
+pgh =mmtopxl(297)
 
 
 # ~ def _descendants(obj, N, D):
@@ -182,9 +182,6 @@ def descendants(obj, lastgen_first=True):
     D = []
     for _, gen in sorted(_descendants(obj, 0, {}).items(), reverse=lastgen_first):
         D.extend(gen)
-    # ~ for i in sorted(d.keys(), reverse=lastgen_first):
-    # ~ for _, gen in sorted(_descendants(obj, 0, {}).items(), reverse=lastgen_first):
-        # ~ D.extend(d[i])
     return D
 
 
@@ -358,7 +355,7 @@ class Char(_Canvas):
     # When user assigns x:
     @_Canvas.x.setter
     def x(self, newx):
-        self._is_hlineup_head = True
+        # self._is_hlineup_head = True
         self._assign_x(newx)
     
     @_Canvas.y.setter
@@ -539,6 +536,8 @@ class _Form(_Canvas):
     def height(self): return self._height
 
     def _compute_left(self):
+        """Determines the left-most of either: form's own x coordinate 
+        or the left-most site of it's direct children."""
         return min([self.x] + list(map(lambda C: C.left, self.content)))
 
     def _compute_right(self):
@@ -577,29 +576,24 @@ class SForm(_Form):
         self._compute_horizontals()
         self._compute_vsurface()
     
-    # def append(self, *children):
-        # """Appends new children to Form's content list."""
-        # self._establish_parental_relationship(children)
-        # self.content.extend(children)
-        # for child in children:
-            # if not(child.absx):
-                # # child._shift_x_by(self.x - child.x)
-                # child._assign_x(child.xoff + self.x)
-            # if not(child.absy):
-                # child.y += self.y
-        # # Having set the content before would have caused assign_x to trigger computing horizontals for the Form,
-        # # which would have been to early!????
-        # self._compute_horizontals()
-        # # Changes in dimension above?
-        # for A in [self] + list(reversed(self.ancestors)):
-            # if isinstance(A.parent(), HForm):
-                # if A.my_idx_in_parent_content() == 0:
-                    # # self._is_hlineup_head = True
-                    # pass
-                # else:
-                    # A.parent().content[A.my_idx_in_parent_content() - 1]._is_hlineup_head = True
-                # A.parent()._lineup()
-        # self._compute_family_hv_surfaces()
+    def append(self, *children):
+        """Appends new children to Form's content list."""
+        self._establish_parental_relationship(children)
+        self.content.extend(children)
+        for child in children:
+            if not(child.absx):
+                # child._shift_x_by(self.x - child.x)
+                child._assign_x(child.x + self.x)
+            if not(child.absy):
+                child.y += self.y
+        # Having set the content before would have caused assign_x to trigger computing horizontals for the Form,
+        # which would have been to early!????
+        self._compute_horizontals()
+        self._is_hlineup_head = True
+        for A in reversed(self.ancestors):
+            if isinstance(A, HForm):
+                A._lineup()
+            A._compute_horizontals()
 
 
 class HForm(_Form):
