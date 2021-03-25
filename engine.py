@@ -225,9 +225,10 @@ class _Canvas(_SmtObj):
     
     @property
     def x(self): return self._x
-    
     @property
     def left(self): return self._left
+    @property
+    def right(self): return self._right
 
     @left.setter
     def left(self, newl):
