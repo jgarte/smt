@@ -1,20 +1,33 @@
 from random import randint, choice
 import engine as E
 
+"""
+[myNote [note
+            [domain treble]
+            [color [rgb 100 10 20]]
+            [absx 100] [absy 100]]]
+[sform [content myNote]]
+[render sform]
+; Here we bind Python code
+[py def double(x): return x * 2]
+[double 4]
+"""
+
 
 def notehead(note):
     if isinstance(note.dur, str):
-        note.append(E.Char(name={
+        note.head = E.Char(name={
             "w": "noteheads.s0",
             "h": "noteheads.s1",
             "q": "noteheads.s2"
-        }[note.dur]))
+        }[note.dur])
     elif isinstance(note.dur, (float, int)):
-        note.append(E.Char(name={
+        note.head = E.Char(name={
             1: "noteheads.s0",
             .5: "noteheads.s1",
             .25: "noteheads.s2"
-        }[note.dur]))
+        }[note.dur])
+    note.append(note.head)
 
 def clock_heads(lst):
     indices = []
@@ -37,6 +50,7 @@ def ufactor(udur, dur2):
     
 def compute_perf_punct(cnt, w):
     clkheads=clock_heads(cnt)
+    # print(clkheads)
     notes=list(filter(lambda x:isinstance(x, E.Note), cnt))
     durs=list(map(lambda x:x.dur, notes))
     dur_counts = []
@@ -48,30 +62,33 @@ def compute_perf_punct(cnt, w):
     uw=w / sum([x[0] * ufactor(udur, x[1]) for x in dur_counts])
     for x in notes:
         x.width += ((uw * ufactor(udur, x.dur)) - x.width)
+        # print(x.content[0].width, x.width)
+        # print("======")
 def f(h):
     compute_perf_punct(h.content, h.width)
     h._lineup()
+    # print("AAA", h.FIXBOTTOM)
 
-# vertical positions
-
-
-
-
+# E.r(1, (E.Note,), ["treble"], notehead)
+# E.r(2, (E.HForm,), ["horizontal"], f)
 
 
 
+# print(E.mmtopxl(180))
+# # 680.3149 pxl
+# h=E.HForm(absx=50,absy=100,
+# uwidth=E.mmtopxl(180),
+# content=[E.Note(
+# canvas_color=E.rgb(randint(0, 101), 0, 0, "%"),spn="F2",dur=choice((1,.5,.25)),  domain="treble") for _ in range(10)])
+# h.render()
 
+    
+    
+# a=E.SForm(absw=10
+# # ,content=[E.Char("clefs.F")]
+# )
+# b=E.HForm(absw=None, absy=100, content=[a])
+# a.width *= 2
+# print(a.width,a.absw, b.width,b.absw)
+# b.render()
 
-
-E.r(1, (E.Note,), ["treble"], notehead)
-E.r(2, (E.HForm,), ["horizontal"], f)
-
-
-
-
-
-print(E.mmtopxl(180))
-h=E.HForm(
-uwidth=E.mmtopxl(180),
-content=[E.Note(domain="treble",dur=choice((1,.5,.25))) for _ in range(20)])
-h.render()
