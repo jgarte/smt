@@ -1,7 +1,9 @@
 from random import randint, choice
 import engine as E
 
-"""
+""".smt File
+[unknownName knownExpression] is an assignment.
+[knownName knownExpression] ?
 [myNote [note
             [domain treble]
             [color [rgb 100 10 20]]
@@ -11,6 +13,14 @@ import engine as E
 ; Here we bind Python code
 [py def double(x): return x * 2]
 [double 4]
+[page1 [page [title [bold Douxe [size [cm 10] Notation]] pour Piano]]]
+Syntax known Names:
+[SIZE Type:Number Type:String] Returns a new String with the size Number.  
+[BOLD Type:String] Returns a new String in bold.
+
+[RGB Type:Number Type:Number Type:Number] Returns an RGB Object for use as the value for the COLOR attribute.
+[COLOR red] Designates the attribute color to be the string value red.
+[LOOP variable Type:Sequence|[RANGE Type:Integer Type:Integer]]
 """
 
 
@@ -22,11 +32,12 @@ def notehead(note):
             "q": "noteheads.s2"
         }[note.dur])
     elif isinstance(note.dur, (float, int)):
-        note.head = E.Char(name={
+        note.head = E.Char(xoff=20, name={
             1: "noteheads.s0",
             .5: "noteheads.s1",
             .25: "noteheads.s2"
         }[note.dur])
+    # note.head.y += randint(-50, 50)
     note.append(note.head)
 
 def clock_heads(lst):
@@ -69,26 +80,20 @@ def f(h):
     h._lineup()
     # print("AAA", h.FIXBOTTOM)
 
-# E.r(1, (E.Note,), ["treble"], notehead)
+E.r(1, (E.Note,), ["treble"], notehead)
 # E.r(2, (E.HForm,), ["horizontal"], f)
 
 
 
-# print(E.mmtopxl(180))
-# # 680.3149 pxl
-# h=E.HForm(absx=50,absy=100,
-# uwidth=E.mmtopxl(180),
-# content=[E.Note(
-# canvas_color=E.rgb(randint(0, 101), 0, 0, "%"),spn="F2",dur=choice((1,.5,.25)),  domain="treble") for _ in range(10)])
-# h.render()
-
+print(E.mmtopxl(100))
+# 680.3149 pxl
+notes=[E.Note(spn="F2",dur=choice((1,.5,.25)),  domain="treble") for _ in range(20)]
+# print(list(map(lambda n:n._fixtop, notes)))
+h=E.HForm(absx=50,absy=100, abswidth=E.mmtopxl(100) ,content=notes)
+# print(list(map(lambda n:n._fixtop, notes)))
+h.render()
     
-    
-# a=E.SForm(absw=10
-# # ,content=[E.Char("clefs.F")]
-# )
-# b=E.HForm(absw=None, absy=100, content=[a])
-# a.width *= 2
-# print(a.width,a.absw, b.width,b.absw)
+# a=E.SForm(xoff=20, content=[E.Char("clefs.F", xoff=50)])
+# b=E.HForm(absy=100, content=[a])
 # b.render()
 

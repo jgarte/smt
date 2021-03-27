@@ -239,11 +239,6 @@ class _Canvas(_SmtObj):
     @property
     def right(self): return self._right
     
-    # @property
-    # def width(self): 
-        # # return self.absw or self._width
-        # return self._width
-    
     @left.setter
     def left(self, newl):
         # Public x-setter gets DESTINATION & passes (newx-destination - x) to 
@@ -421,32 +416,37 @@ class _Form(_Canvas):
 
     _idcounter = -1
 
-    def __init__(self, content=None, absw=None, **kwargs):
+    def __init__(self, content=None, abswidth=None, **kwargs):
         self.content = content or []
-        self.absw = absw
+        self.abswidth = abswidth
         super().__init__(**kwargs)
-        self.FIXTOP = self.y + toplevel_scale(_getglyph(STAFF_HEIGHT_REFERENCE_GLYPH, self.font)["top"])
-        self.FIXBOTTOM = self.y + toplevel_scale(_getglyph(STAFF_HEIGHT_REFERENCE_GLYPH, self.font)["bottom"])
-        # ~ Wozu das fixheight??
+        # These attributes preserve information about the Height of a form object. These info
+        # is interesting eg when doing operations which refer to the height of a staff. These values
+        # should never change, except with when the parent is shifted, they move along of course!
+        # In fix-top & bottom is the values of x-offset and possibly absolute x included (self.y).
+        self._fixtop = self.y + toplevel_scale(_getglyph(STAFF_HEIGHT_REFERENCE_GLYPH, self.font)["top"])
+        self._fixbottom = self.y + toplevel_scale(_getglyph(STAFF_HEIGHT_REFERENCE_GLYPH, self.font)["bottom"])
         self.FIXHEIGHT = toplevel_scale(_getglyph(STAFF_HEIGHT_REFERENCE_GLYPH, self.font)["height"])
         for D in descendants(self, False):
             D.ancestors.insert(0, self) # Need smteq??
         for C in self.content:
-            if not(C.absx):
+            if C.absx == None: # 0 is a legitimate absy!
                 # Note that this is happening at init-time! When there is no absolute-x,
                 # C.x is ONLY the amount of it's x-offset (see Canvas' self._x definition).
-                # C._assign_x(C.x + self.x)
-                C.x = C.x + self.x
-            if not(C.absy):
-                # print(C.id, C.y, C.height,C.top, C.FIXTOP, C.bottom, C.FIXBOTTOM)
+                C.x += self.x
+            if C.absy == None: # 0 is a legitimate absy!
                 C.y += self.y
-                # print(C.id, C.y, C.height,C.top,C.FIXTOP, C.bottom, C.FIXBOTTOM)
+                # If child is to be relocated vertically, their fix-top & bottom can not be
+                # the original values, but must move along with the parent.
+                if isinstance(C, _Form):
+                    C._fixtop += self.y
+                    C._fixbottom += self.y
+                # Fixheight never changes!
     
     # Children is a sequence. This method modifies only ancestor lists.
     def _establish_parental_relationship(self, children):
         for child in children:
             assert isinstance(child, _SmtObj), "Form can only contain MeObjs!"
-            # ~ Tell child & his children about their parents
             child.ancestors.insert(0, self)
             if isinstance(child, _Form):
                 for D in descendants(child, False):
@@ -456,16 +456,6 @@ class _Form(_Canvas):
                 if isinstance(child, _Form):
                     for D in descendants(child, False):
                         D.ancestors.insert(0, A)
-    
-    # def _compute_family_hv_surfaces(self):
-        # for D in descendants(self):
-            # D._compute_horizontals()
-            # D._compute_verticals()
-        # self._compute_horizontals()
-        # self._compute_verticals()
-        # for A in reversed(self.ancestors):
-            # A._compute_horizontals()
-            # A._compute_verticals()
 
     @_Canvas.width.setter
     def width(self, neww):
@@ -510,7 +500,8 @@ class _Form(_Canvas):
         self._left += dx
         self._right += dx
         for D in descendants(self, False):
-            D._x = newx
+            # Descendants' x are shifted by delta-x. 
+            D._x += dx
             D._left += dx
             D._right += dx
         for A in reversed(self.ancestors):
@@ -536,25 +527,19 @@ class _Form(_Canvas):
         return min([self.x] + list(map(lambda C: C.left, self.content)))
 
     def _compute_right(self):
-        if self.absw: # right never changes
-            return self.left + self.absw
+        if self.abswidth: # right never changes
+            return self.left + self.abswidth
         else:
             return max([self.x] + list(map(lambda C: C.right, self.content)))
 
     def _compute_width(self): 
-        return self.absw or (self.right - self.left)
+        return self.abswidth or (self.right - self.left)
 
     def _compute_top(self):
-        return min([self.FIXTOP] + list(map(lambda C: C.top, self.content)))
-        # try:
-            # return min([self.top] + list(map(lambda C: C.top, self.content)))
-        # except AttributeError:
+        return min([self._fixtop] + list(map(lambda C: C.top, self.content)))
     
     def _compute_bottom(self):
-        return max([self.FIXBOTTOM] + list(map(lambda C: C.bottom, self.content)))
-        # try:
-            # return max([self.bottom] + list(map(lambda C: C.bottom, self.content)))
-        # except AttributeError:
+        return max([self._fixbottom] + list(map(lambda C: C.bottom, self.content)))
     
     def _compute_height(self): return self.bottom - self.top
     
@@ -588,12 +573,11 @@ class SForm(_Form):
         self._establish_parental_relationship(children)
         self.content.extend(children)
         for child in children:
-            if not(child.absx): # 0 == False!!!
+            if child.absx == None:
                 # child._shift_x_by(self.x - child.x)
                 # child._assign_x(child.x + self.x)
                 child.x = child.x + self.x
-            if not(child.absy):
-                print("B", child.top, self.FIXTOP,self.top)
+            if child.absy == None:
                 child.y += self.y
         # Having set the content before would have caused assign_x to trigger computing horizontals for the Form,
         # which would have been to early!????
@@ -611,7 +595,7 @@ class HForm(_Form):
 
     def __init__(self, canvas_color=None, **kwargs):
         super().__init__(**kwargs)
-        # self.absw = absw
+        # self.abswidth = abswidth
         self.canvas_color = canvas_color or rgb(0, 0, 100, "%")
         self.domain = kwargs.get("domain", "horizontal")
         # Set the first item as in need of lineup
