@@ -626,9 +626,6 @@ class HForm(_Form):
             
     def _lineup(self):
         for a, b in zip(self.content[:-1], self.content[1:]):
-            # Use internal assignment to avoid labeling as lineup-needy!
-            # b._shift_left(a.right - b.left)
-            # b._assign_left(a.right)
             b.left = a.right
 
 class Clock:
