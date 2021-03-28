@@ -480,19 +480,6 @@ class _Form(_Canvas):
                 # # A._lineup()
             # A._compute_horizontals()
 
-    
-    # def _shift_x_by(self, deltax):
-        # # dx = newx - self.x
-        # self._x += deltax
-        # self._left += deltax
-        # self._right += deltax
-        # for D in descendants(self, False):
-            # D._x += deltax
-            # D._left += deltax
-            # D._right += deltax
-        # for A in reversed(self.ancestors):
-            # A._compute_horizontals()
-
     @_Canvas.x.setter
     def x(self, newx):
         dx = newx - self.x
