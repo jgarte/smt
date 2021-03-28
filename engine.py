@@ -657,9 +657,10 @@ class Note(Clock, Pitch, SForm):
         Clock.__init__(self, dur)
         Pitch.__init__(self, spn)
         SForm.__init__(self, **kwargs)
+        # Head holds the head Char object
         self.head = None
 
-class Accidental(Pitch, SForm):
-    def __init__(self, spn=None, **kwargs):
-        Pitch.__init__(self, spn)
-        SForm.__init__(self, **kwargs)
+# class Accidental(Pitch, SForm):
+    # def __init__(self, spn=None, **kwargs):
+        # Pitch.__init__(self, spn)
+        # SForm.__init__(self, **kwargs)
