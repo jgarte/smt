@@ -32,12 +32,13 @@ def notehead(note):
             "q": "noteheads.s2"
         }[note.dur])
     elif isinstance(note.dur, (float, int)):
-        note.head = E.Char(xoff=20, name={
+        note.head = E.Char(name={
             1: "noteheads.s0",
             .5: "noteheads.s1",
             .25: "noteheads.s2"
         }[note.dur])
-    # note.head.y += randint(-50, 50)
+    note.head.y += randint(-100, 100)
+    # note.head.x = 50
     note.append(note.head)
 
 def clock_heads(lst):
@@ -81,15 +82,17 @@ def f(h):
     # print("AAA", h.FIXBOTTOM)
 
 E.r(1, (E.Note,), ["treble"], notehead)
-# E.r(2, (E.HForm,), ["horizontal"], f)
+E.r(2, (E.HForm,), ["horizontal"], f)
 
 
 
-print(E.mmtopxl(100))
+# print(E.mmtopxl(100))
 # 680.3149 pxl
-notes=[E.Note(spn="F2",dur=choice((1,.5,.25)),  domain="treble") for _ in range(20)]
-# print(list(map(lambda n:n._fixtop, notes)))
-h=E.HForm(absx=50,absy=100, abswidth=E.mmtopxl(100) ,content=notes)
+notes=[E.Note(spn="F2",dur=choice((1,.5,.25)),  domain="treble", canvas_color=E.rgb(randint(0, 100), randint(50, 100), randint(50, 100), "%")) for _ in range(5)]
+# print(notes[0].width, notes[0].content[0].width)
+# print(list(map(lambda n:n.x, notes[0].content)))
+# print(notes[0].width)
+h=E.HForm(content=notes,abswidth=E.mmtopxl(100))
 # print(list(map(lambda n:n._fixtop, notes)))
 h.render()
     

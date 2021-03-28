@@ -441,7 +441,7 @@ class _Form(_Canvas):
                 if isinstance(C, _Form):
                     C._fixtop += self.y
                     C._fixbottom += self.y
-                # Fixheight never changes!
+                    # Fixheight never changes!
     
     # Children is a sequence. This method modifies only ancestor lists.
     def _establish_parental_relationship(self, children):
@@ -514,7 +514,7 @@ class _Form(_Canvas):
         self._top += dy
         self._bottom += dy
         for D in descendants(self, False):
-            D._y = newy
+            D._y += dy
             D._top += dy
             D._bottom += dy
         # Shifting Y might have an impact on ancestor's width!
@@ -574,9 +574,7 @@ class SForm(_Form):
         self.content.extend(children)
         for child in children:
             if child.absx == None:
-                # child._shift_x_by(self.x - child.x)
-                # child._assign_x(child.x + self.x)
-                child.x = child.x + self.x
+                child.x += self.x
             if child.absy == None:
                 child.y += self.y
         # Having set the content before would have caused assign_x to trigger computing horizontals for the Form,
