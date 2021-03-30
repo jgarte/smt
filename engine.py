@@ -630,10 +630,10 @@ class HForm(_Form):
         for a, b in zip(self.content[:-1], self.content[1:]):
             b.left = a.right
 
-class _ScoreObject(SForm):
-    def __init__(self, right_guard, **kwargs):
-        self.right_guard = right_guard
-        SForm.__init__(self, **kwargs)
+# class _ScoreObject(SForm):
+    # def __init__(self, right_guard, **kwargs):
+        # self.right_guard = right_guard
+        # SForm.__init__(self, **kwargs)
 
 class Clock:
     def __init__(self, duration=None):
@@ -654,18 +654,18 @@ class Pitch:
     def __init__(self, pitch):
         self.pitch = pitch
 
-class Note(_ScoreObject, Clock, Pitch):
+class Note(SForm, Clock, Pitch):
     def __init__(self, duration=None, pitch=None, **kwargs):
         Clock.__init__(self, duration)
         Pitch.__init__(self, pitch)
-        _ScoreObject.__init__(self, 0.2, **kwargs)
+        SForm.__init__(self, **kwargs)
         # Head holds the head Char object
         self.head_char = None
         self.flag = None
         self.stem = None
 
-class Accidental(_ScoreObject, Pitch):
-    def __init__(self, pitch=None, right_guard=None, **kwargs):
-        _ScoreObject.__init__(self, 10, **kwargs)
+class Accidental(SForm, Pitch):
+    def __init__(self, pitch=None, **kwargs):
+        SForm.__init__(self, **kwargs)
         Pitch.__init__(self, pitch)
         self.char = Char("accidentals.flat")
