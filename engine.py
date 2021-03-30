@@ -46,7 +46,7 @@ def _getglyph(name, fontname):
     """Returns glyph's dictionary"""
     return _fontdict(fontname)[name]
 
-def instfont(fontname, srcpath, shrg=STAFF_HEIGHT_REFERENCE_GLYPH):
+def install_font(fontname, srcpath, shrg=STAFF_HEIGHT_REFERENCE_GLYPH):
     """"""
     glyph_pathd = {}
     for E in ET.parse(srcpath).iter():
@@ -77,7 +77,7 @@ def instfont(fontname, srcpath, shrg=STAFF_HEIGHT_REFERENCE_GLYPH):
     _fonts[fontname] = D
 
 # ~ Iinstalled fonts
-instfont("Haydn", "/home/amir/haydn/svg/haydn-11.svg")
+install_font("Haydn", "/home/amir/haydn/svg/haydn-11.svg")
 
 
 
@@ -289,6 +289,8 @@ class _Canvas(_SmtObj):
                         if isinstance(obj, rule["T"]) and (obj.domain in rule["D"]):
                             rule["F"](obj)
                             obj._rules_applied_to = True
+                        if isinstance(obj, HForm):
+                            obj._lineup()
                 # Maybe some rule has created new objs, or even defined new rules!
                 eligible_objs = _rule_appl_elig_objs(self)
             else:
