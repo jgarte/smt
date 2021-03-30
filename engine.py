@@ -631,10 +631,10 @@ class HForm(_Form):
             b.left = a.right
 
 class _ScoreObject(SForm):
-    def __init__(self, fspace, **kwargs):
+    def __init__(self, hfspace, **kwargs):
         SForm.__init__(self, **kwargs)
-        # Floating space after each object (or groups of objs?) in pixel.
-        self.fspace = fspace
+        # Horizontal floating space after each object (or groups of objs?) in pixel.
+        self.hfspace = hfspace
 
 class _Clock:
     def __init__(self, dur):
@@ -668,4 +668,4 @@ class Note(_ScoreObject, _Clock, _Pitch):
 class Accidental(_ScoreObject, _Pitch):
     def __init__(self, spn=None, **kwargs):
         _Pitch.__init__(self, spn)
-        _ScoreObject.__init__(self, fspace=3, **kwargs)
+        _ScoreObject.__init__(self, hfspace=3, **kwargs)
