@@ -128,8 +128,8 @@ E.r(2, (E.HForm,), ["horizontal"], f)
 
 print(E.mmtopxl(100))
 # 680.3149 pxl
-gemischt=[E.Note(domain="treble", duration=1), E.Accidental(domain="treble"),E.Accidental(domain="bass"), E.Clef("alto",domain="treble",yoff=-20),E.Accidental(domain="treble"),
-            E.Note(domain="treble", duration=.5), E.Accidental(domain="treble")]
+gemischt=[E.Note(domain="treble", duration=1), E.Accidental(domain="treble"),E.Accidental(domain="bass"), E.Clef("alto",domain="treble"),E.Accidental(domain="treble"),
+            E.Note(domain="treble", duration=.5),E.Clef("bass",domain="treble"), E.Accidental(domain="treble")]
 # gemischt=[E.Note(domain="treble", duration=1) for _ in range(10)]
 # for a in notes:
     # print(a.content)

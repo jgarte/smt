@@ -643,16 +643,16 @@ def allclocks(form):
     """Returns True if form's content is made up of Clocks only."""
     return all(map(lambda C: isinstance(C, Clock), form.content))
 
-def clock_chunks(cnt):
+def clock_chunks(content_list):
     indices = []
-    for i in range(len(cnt)):
-        if isinstance(cnt[i], Clock):
+    for i in range(len(content_list)):
+        if isinstance(content_list[i], Clock):
             indices.append(i)
-    L = []
-    for s, e in zip(indices[:-1], indices[1:]):
-        L.append(cnt[s:e])
-    L.append(cnt[indices[-1]:])
-    return L
+    chunks = []
+    for start, end in zip(indices[:-1], indices[1:]):
+        chunks.append(content_list[start:end])
+    chunks.append(content_list[indices[-1]:])
+    return chunks
 
 class Pitch:
     def __init__(self, pitch):
@@ -664,7 +664,7 @@ class Note(SForm, Clock, Pitch):
         Pitch.__init__(self, pitch)
         SForm.__init__(self, **kwargs)
         # Head holds the head Char object
-        self.head_char = None
+        self.char = None
         self.flag = None
         self.stem = None
 
