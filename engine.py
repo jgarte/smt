@@ -639,6 +639,10 @@ class Clock:
     def __init__(self, duration=None):
         self.duration = duration or 0.25
 
+def allclocks(form):
+    """Returns True if form's content is made up of Clocks only."""
+    return all(map(lambda C: isinstance(C, Clock), form.content))
+
 def clock_chunks(cnt):
     indices = []
     for i in range(len(cnt)):
