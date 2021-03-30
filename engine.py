@@ -102,7 +102,7 @@ _TOP_MARGIN = mmtopxl(56)
 
 
 ##### Score Objects
-class _SmtObj:
+class _SMTObject:
     def __init__(self, id_=None, domain=None, tst=None):
         self.ancestors = []
         self.id = id_ or self._assign_id()
@@ -198,7 +198,7 @@ def _rule_appl_elig_objs(obj):
     not(O._rules_applied_to), 
     members(obj)))
 
-class _Canvas(_SmtObj):
+class _Canvas(_SMTObject):
     def __init__(self, canvas_color=None, absx=None, absy=None, toplevel=False, font=None,
     canvas_opacity=None, xoff=None, yoff=None, xscale=None, yscale=None,
     canvas_visible=True, origin_visible=True, **kwargs):
@@ -448,7 +448,7 @@ class _Form(_Canvas):
     # Children is a sequence. This method modifies only ancestor lists.
     def _establish_parental_relationship(self, children):
         for child in children:
-            assert isinstance(child, _SmtObj), "Form can only contain MeObjs!"
+            assert isinstance(child, _SMTObject), "Form can only contain MeObjs!"
             child.ancestors.insert(0, self)
             if isinstance(child, _Form):
                 for D in descendants(child, False):
@@ -631,19 +631,18 @@ class HForm(_Form):
             b.left = a.right
 
 class _ScoreObject(SForm):
-    def __init__(self, hfspace, **kwargs):
+    def __init__(self, right_guard, **kwargs):
+        self.right_guard = right_guard
         SForm.__init__(self, **kwargs)
-        # Horizontal floating space after each object (or groups of objs?) in pixel.
-        self.hfspace = hfspace
 
-class _Clock:
-    def __init__(self, dur):
-        self.dur = dur
+class Clock:
+    def __init__(self, duration=None):
+        self.duration = duration or 0.25
 
 def clock_chunks(cnt):
     indices = []
     for i in range(len(cnt)):
-        if isinstance(cnt[i], _Clock):
+        if isinstance(cnt[i], Clock):
             indices.append(i)
     L = []
     for s, e in zip(indices[:-1], indices[1:]):
@@ -651,21 +650,22 @@ def clock_chunks(cnt):
     L.append(cnt[indices[-1]:])
     return L
 
-class _Pitch:
-    def __init__(self, spn):
-        self.spn = spn
+class Pitch:
+    def __init__(self, pitch):
+        self.pitch = pitch
 
-class Note(_ScoreObject, _Clock, _Pitch):
-    def __init__(self, dur=None, spn=None, **kwargs):
-        _Clock.__init__(self, dur)
-        _Pitch.__init__(self, spn)
-        _ScoreObject.__init__(self, 2, **kwargs)
+class Note(_ScoreObject, Clock, Pitch):
+    def __init__(self, duration=None, pitch=None, **kwargs):
+        Clock.__init__(self, duration)
+        Pitch.__init__(self, pitch)
+        _ScoreObject.__init__(self, 0.2, **kwargs)
         # Head holds the head Char object
-        self.head = None
+        self.head_char = None
         self.flag = None
         self.stem = None
 
-class Accidental(_ScoreObject, _Pitch):
-    def __init__(self, spn=None, **kwargs):
-        _Pitch.__init__(self, spn)
-        _ScoreObject.__init__(self, hfspace=3, **kwargs)
+class Accidental(_ScoreObject, Pitch):
+    def __init__(self, pitch=None, right_guard=None, **kwargs):
+        _ScoreObject.__init__(self, 10, **kwargs)
+        Pitch.__init__(self, pitch)
+        self.char = Char("accidentals.flat")
