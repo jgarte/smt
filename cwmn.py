@@ -65,7 +65,10 @@ def make_notehead(note):
 def make_accidental_char(accobj):
     accobj.append(E.Char(name="accidentals.sharp"))
 
-
+def make_clef_char(clefobj):
+    clefobj.char = E.Char(name={"treble":"clefs.G",
+    "bass":"clefs.F", "alto":"clefs.C"}[clefobj.pitch])
+    clefobj.append(clefobj.char)
 
 
 def decide_unit_dur(dur_counts):
@@ -95,18 +98,16 @@ def compute_perf_punct(clocks, w):
     return perfwidths
 
 def right_guard(obj):
-    return {E.Accidental: 10}[type(obj)]
+    return {E.Note: 2, E.Clef:4, E.Accidental: 10}[type(obj)]
 
 def f(h):
     clkchunks=E.clock_chunks(h.content)
+    print(clkchunks)
     clocks = list(map(lambda l:l[0], clkchunks))
     perfwidths = compute_perf_punct(clocks, h.width)
     if E.allclocks(h):
         for C, w in zip(h.content, perfwidths):
             C.width += w
-        # for c,w in C_perfwidths:
-            # # print(c, c.fspace)
-            # c.width += w
     else:
         for c,w in zip(clkchunks, perfwidths):
             clock = c[0]
@@ -120,13 +121,14 @@ def f(h):
             
 E.r(1, (E.Note,), ["treble"], make_notehead)
 E.r(1.5, (E.Accidental,), ["treble", "bass"], make_accidental_char)
+E.r(1.6, (E.Clef,),["treble"], make_clef_char)
 E.r(2, (E.HForm,), ["horizontal"], f)
 
 
 
 print(E.mmtopxl(100))
 # 680.3149 pxl
-gemischt=[E.Note(domain="treble", duration=1), E.Accidental(domain="treble"),E.Accidental(domain="bass"), E.Accidental(domain="treble"),
+gemischt=[E.Note(domain="treble", duration=1), E.Accidental(domain="treble"),E.Accidental(domain="bass"), E.Clef("alto",domain="treble",yoff=-20),E.Accidental(domain="treble"),
             E.Note(domain="treble", duration=.5), E.Accidental(domain="treble")]
 # gemischt=[E.Note(domain="treble", duration=1) for _ in range(10)]
 # for a in notes:

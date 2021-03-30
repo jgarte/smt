@@ -672,4 +672,10 @@ class Accidental(SForm, Pitch):
     def __init__(self, pitch=None, **kwargs):
         SForm.__init__(self, **kwargs)
         Pitch.__init__(self, pitch)
-        self.char = Char("accidentals.flat")
+        self.char = None
+
+class Clef(SForm, Pitch):
+    def __init__(self, pitch=None, **kwargs):
+        SForm.__init__(self, **kwargs)
+        Pitch.__init__(self, pitch)
+        self.char = None
