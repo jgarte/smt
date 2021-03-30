@@ -199,10 +199,9 @@ def _rule_appl_elig_objs(obj):
     members(obj)))
 
 class _Canvas(_SmtObj):
-    def __init__(self, absx=None, absy=None, toplevel=False, font=None,
+    def __init__(self, canvas_color=None, absx=None, absy=None, toplevel=False, font=None,
     canvas_opacity=None, xoff=None, yoff=None, xscale=None, yscale=None,
-    canvas_visible=True, origin_visible=True,
-    **kwargs):
+    canvas_visible=True, origin_visible=True, **kwargs):
         super().__init__(**kwargs)
         # Only the first item in a hform will need _hlineup, for him 
         # this is set by HForm itself.
@@ -210,6 +209,7 @@ class _Canvas(_SmtObj):
         self.font = font or current_font
         self.canvas_opacity = canvas_opacity or 0.3
         self.canvas_visible = canvas_visible
+        self.canvas_color = canvas_color
         self.origin_visible = origin_visible
         self.xoff = xoff or 0
         self.yoff = yoff or 0
@@ -328,15 +328,15 @@ class Char(_Canvas):
     _idcounter = -1
     
     def __init__(self, name, color=None, opacity=None,
-    visible=True, canvas_color=None,
+    visible=True,
     **kwargs):
-        super().__init__(**kwargs)
+        _Canvas.__init__(self, **kwargs)
         self.name = name
         self.glyph = _getglyph(self.name, self.font)
         self.color = color or rgb(0, 0, 0)
         self.opacity = opacity or 1
         self.visible = visible
-        self.canvas_color = canvas_color or rgb(100, 0, 0, "%")
+        self.canvas_color = rgb(100, 0, 0, "%")
         self._compute_horizontals()
         self._compute_verticals()
     
@@ -421,7 +421,7 @@ class _Form(_Canvas):
     def __init__(self, content=None, abswidth=None, **kwargs):
         self.content = content or []
         self.abswidth = abswidth
-        super().__init__(**kwargs)
+        _Canvas.__init__(self, **kwargs)
         # These attributes preserve information about the Height of a form object. These info
         # is interesting eg when doing operations which refer to the height of a staff. These values
         # should never change, except with when the parent is shifted, they move along of course!
@@ -547,9 +547,9 @@ class _Form(_Canvas):
 
 class SForm(_Form):
         
-    def __init__(self, canvas_color=None, **kwargs):
-        super().__init__(**kwargs)
-        self.canvas_color = canvas_color or rgb(0, 100, 0, "%")
+    def __init__(self, **kwargs):
+        _Form.__init__(self, **kwargs)
+        self.canvas_color = rgb(0, 100, 0, "%")
         self.domain = kwargs.get("domain", "stacked")
         # Content may contain children with absolute x, so compute horizontals with respect to them.
         # See whats happening in _Form init with children without absx!
@@ -580,10 +580,10 @@ class SForm(_Form):
 
 class HForm(_Form):
 
-    def __init__(self, canvas_color=None, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, **kwargs):
+        _Form.__init__(self, **kwargs)
         # self.abswidth = abswidth
-        self.canvas_color = canvas_color or rgb(0, 0, 100, "%")
+        self.canvas_color = rgb(0, 0, 100, "%")
         self.domain = kwargs.get("domain", "horizontal")
         # Set the first item as in need of lineup
         # self.content[0]._is_hlineup_head = True
@@ -630,23 +630,42 @@ class HForm(_Form):
         for a, b in zip(self.content[:-1], self.content[1:]):
             b.left = a.right
 
-class Clock:
+class _ScoreObject(SForm):
+    def __init__(self, fspace, **kwargs):
+        SForm.__init__(self, **kwargs)
+        # Floating space after each object (or groups of objs?) in pixel.
+        self.fspace = fspace
+
+class _Clock:
     def __init__(self, dur):
         self.dur = dur
 
-class Pitch:
+def clock_chunks(cnt):
+    indices = []
+    for i in range(len(cnt)):
+        if isinstance(cnt[i], _Clock):
+            indices.append(i)
+    L = []
+    for s, e in zip(indices[:-1], indices[1:]):
+        L.append(cnt[s:e])
+    L.append(cnt[indices[-1]:])
+    return L
+
+class _Pitch:
     def __init__(self, spn):
         self.spn = spn
 
-class Note(Clock, Pitch, SForm):
+class Note(_ScoreObject, _Clock, _Pitch):
     def __init__(self, dur=None, spn=None, **kwargs):
-        Clock.__init__(self, dur)
-        Pitch.__init__(self, spn)
-        SForm.__init__(self, **kwargs)
+        _Clock.__init__(self, dur)
+        _Pitch.__init__(self, spn)
+        _ScoreObject.__init__(self, 2, **kwargs)
         # Head holds the head Char object
         self.head = None
+        self.flag = None
+        self.stem = None
 
-# class Accidental(Pitch, SForm):
-    # def __init__(self, spn=None, **kwargs):
-        # Pitch.__init__(self, spn)
-        # SForm.__init__(self, **kwargs)
+class Accidental(_ScoreObject, _Pitch):
+    def __init__(self, spn=None, **kwargs):
+        _Pitch.__init__(self, spn)
+        _ScoreObject.__init__(self, fspace=3, **kwargs)
