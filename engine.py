@@ -632,8 +632,3 @@ class HForm(_Form):
     def _lineup(self):
         for a, b in zip(self.content[:-1], self.content[1:]):
             b.left = a.right
-
-# class _ScoreObject(SForm):
-    # def __init__(self, right_guard, **kwargs):
-        # self.right_guard = right_guard
-        # SForm.__init__(self, **kwargs)
