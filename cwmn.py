@@ -102,7 +102,7 @@ def right_guard(obj):
 
 def f(h):
     clkchunks=E.clock_chunks(h.content)
-    print(clkchunks)
+    # print(clkchunks)
     clocks = list(map(lambda l:l[0], clkchunks))
     perfwidths = compute_perf_punct(clocks, h.width)
     if E.allclocks(h):
@@ -119,14 +119,14 @@ def f(h):
                 for a in nonclocks:
                     a.width += right_guard(a)
             
-E.r(1, (E.Note,), ["treble"], make_notehead)
-E.r(1.5, (E.Accidental,), ["treble", "bass"], make_accidental_char)
-E.r(1.6, (E.Clef,),["treble"], make_clef_char)
-E.r(2, (E.HForm,), ["horizontal"], f)
+E.r((E.Note,), ["treble"], make_notehead)
+E.r((E.Accidental,), ["treble", "bass"], make_accidental_char)
+E.r((E.Clef,),["treble"], make_clef_char)
+E.r((E.HForm,), ["horizontal"], f)
 
 
 
-print(E.mmtopxl(100))
+print(E._ruleorder, E.mmtopxl(100))
 # 680.3149 pxl
 gemischt=[E.Note(domain="treble", duration=1), E.Accidental(domain="treble"),E.Accidental(domain="bass"), E.Clef("alto",domain="treble"),E.Accidental(domain="treble"),
             E.Note(domain="treble", duration=.5),E.Clef("bass",domain="treble"), E.Accidental(domain="treble")]

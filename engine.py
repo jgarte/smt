@@ -25,15 +25,17 @@ from svgwrite.utils import rgb
 _ruledomains = set()
 _ruletargets = set((object,))
 _ruletable = {}
-
-def r(order, targets, domains, func):
-    if order in _ruletable:
-        # ~ raise Exception("Rule order exists")
-        return
-    else:
-        _ruletargets.update(tuple(targets))
-        _ruledomains.update(tuple(domains))
-        _ruletable[order] = {"T": targets, "D": domains, "F": func}
+_ruleorder = 0
+def r(targets, domains, *func):
+    # if order in _ruletable:
+        # # ~ raise Exception("Rule order exists")
+        # return
+    # else:
+    _ruletargets.update(tuple(targets))
+    _ruledomains.update(tuple(domains))
+    global _ruleorder
+    _ruletable[_ruleorder] = {"T": targets, "D": domains, "F": func}
+    _ruleorder += 1
 
 ##### Font
 _fonts = {}
@@ -287,7 +289,8 @@ class _Canvas(_SMTObject):
                     rule = _ruletable[order]
                     for obj in eligible_objs:
                         if isinstance(obj, rule["T"]) and (obj.domain in rule["D"]):
-                            rule["F"](obj)
+                            for fn in rule["F"]:
+                                fn(obj)
                             obj._rules_applied_to = True
                         if isinstance(obj, HForm):
                             obj._lineup()
