@@ -1,6 +1,5 @@
 from random import randint, choice
-import engine as E
-
+from score import *
 """.smt File
 [unknownName knownExpression] is an assignment.
 [knownName knownExpression] ?
@@ -48,13 +47,13 @@ dann wird es geprinted! Also aufpassen mit eckigen Klammern!)
 def make_notehead(note):
     # setter for head? to append automatically
     if isinstance(note.duration, str):
-        note.head_char = E.Char(name={
+        note.head_char = Char(name={
             "w": "noteheads.s0",
             "h": "noteheads.s1",
             "q": "noteheads.s2"
         }[note.duration])
     elif isinstance(note.duration, (float, int)):
-        note.head_char = E.Char(name={
+        note.head_char = Char(name={
             1: "noteheads.s0",
             .5: "noteheads.s1",
             .25: "noteheads.s2"
@@ -63,10 +62,10 @@ def make_notehead(note):
     note.append(note.head_char)
 
 def make_accidental_char(accobj):
-    accobj.append(E.Char(name="accidentals.sharp"))
+    accobj.append(Char(name="accidentals.sharp"))
 
 def make_clef_char(clefobj):
-    clefobj.char = E.Char(name={"treble":"clefs.G",
+    clefobj.char = Char(name={"treble":"clefs.G",
     "bass":"clefs.F", "alto":"clefs.C"}[clefobj.pitch])
     clefobj.append(clefobj.char)
 
@@ -81,7 +80,7 @@ def ufactor(udur, dur2):
     return punct_units[dur2] / punct_units[udur]
     
 def compute_perf_punct(clocks, w):
-    # notes=list(filter(lambda x:isinstance(x, E.Note), clocks))
+    # notes=list(filter(lambda x:isinstance(x, Note), clocks))
     durs=list(map(lambda x:x.duration, clocks))
     dur_counts = []
     for d in set(durs):
@@ -98,14 +97,14 @@ def compute_perf_punct(clocks, w):
     return perfwidths
 
 def right_guard(obj):
-    return {E.Note: 2, E.Clef:4, E.Accidental: 10}[type(obj)]
+    return {Note: 2, Clef:10, Accidental: 1}[type(obj)]
 
 def f(h):
-    clkchunks=E.clock_chunks(h.content)
+    clkchunks=clock_chunks(h.content)
     # print(clkchunks)
     clocks = list(map(lambda l:l[0], clkchunks))
     perfwidths = compute_perf_punct(clocks, h.width)
-    if E.allclocks(h):
+    if allclocks(h):
         for C, w in zip(h.content, perfwidths):
             C.width += w
     else:
@@ -119,18 +118,18 @@ def f(h):
                 for a in nonclocks:
                     a.width += right_guard(a)
             
-E.r((E.Note,), ["treble"], make_notehead)
-E.r((E.Accidental,), ["treble", "bass"], make_accidental_char)
-E.r((E.Clef,),["treble"], make_clef_char)
-E.r((E.HForm,), ["horizontal"], f)
+r((Note,), ["treble"], make_notehead)
+r((Accidental,), ["treble", "bass"], make_accidental_char)
+r((Clef,),["treble"], make_clef_char)
+r((HForm,), ["horizontal"], f)
 
 
 
-print(E._ruleorder, E.mmtopxl(100))
+print(mmtopxl(100))
 # 680.3149 pxl
-gemischt=[E.Note(domain="treble", duration=1), E.Accidental(domain="treble"),E.Accidental(domain="bass"), E.Clef("alto",domain="treble"),E.Accidental(domain="treble"),
-            E.Note(domain="treble", duration=.5),E.Clef("bass",domain="treble"), E.Accidental(domain="treble")]
-# gemischt=[E.Note(domain="treble", duration=1) for _ in range(10)]
+gemischt=[Note(domain="treble", duration=1), Accidental(domain="treble"),Accidental(domain="bass"), Clef("alto",domain="treble"),Accidental(domain="treble"),
+            Note(domain="treble", duration=.5),Clef("bass",domain="treble"), Accidental(domain="treble")]
+# gemischt=[Note(domain="treble", duration=1) for _ in range(10)]
 # for a in notes:
     # print(a.content)
     # for s in a.content:
@@ -139,11 +138,11 @@ gemischt=[E.Note(domain="treble", duration=1), E.Accidental(domain="treble"),E.A
 # print(notes[0].width, notes[0].content[0].width)
 # print(list(map(lambda n:n.x, notes[0].content)))
 # print(notes[0].width)
-h=E.HForm(abswidth=E.mmtopxl(100),content=gemischt, absx=200,absy=200, canvas_opacity=.2)
+h=HForm(abswidth=mmtopxl(100),content=gemischt, absx=200,absy=200, canvas_opacity=.2)
 # print(list(map(lambda n:n._fixtop, notes)))
 h.render()
 # print(h.content[0].content)
-# print(E.mmtopxl(100),sum(list(map(lambda x:x.width, notes))))
-# a=E.SForm(xoff=20, content=[E.Char("clefs.F", xoff=50)])
-# b=E.HForm(absy=100, content=[a])
+# print(mmtopxl(100),sum(list(map(lambda x:x.width, notes))))
+# a=E.SForm(xoff=20, content=[Char("clefs.F", xoff=50)])
+# b=HForm(absy=100, content=[a])
 # b.render()
