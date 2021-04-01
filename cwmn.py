@@ -1,5 +1,6 @@
 from random import randint, choice
 from score import *
+
 """.smt File
 [unknownName knownExpression] is an assignment.
 [knownName knownExpression] ?
@@ -61,25 +62,30 @@ def make_notehead(note):
     # note.head.y += randint(-100, 100)
     note.append(note.head)
 
+def add_stem(self):
+    self.stem = Stem(x=self.left, y=self.top)
+    self._svglist.append(self.stem.svg)
+
 def notehead_vertical_pos(note):
     if isinstance(note.pitch, list):
         p = note.pitch[0]
         okt = note.pitch[1]
-        note.head.y = ((note.fixbottom - {"c":-space, "d":-(.5 * space)}[p]) + ((4 - okt) * 7/8 * note.FIXHEIGHT))
+        note.head.y = ((note.fixbottom - {"c":-STAFF_SPACE, "d":-(.5 * STAFF_SPACE)}[p]) + ((4 - okt) * 7/8 * note.FIXHEIGHT))
+
 def notehead_vertical_pos2(note):
     if isinstance(note.pitch, list):
         p = note.pitch[0]
         okt = note.pitch[1]
-        note.symbol.y = ((note.fixbottom - {"c":-space, "d":-(.5 * space)}[p]) + ((4 - okt) * 7/8 * note.FIXHEIGHT))
+        note.symbol.y = ((note.fixbottom - {"c":-STAFF_SPACE, "d":-(.5 * STAFF_SPACE)}[p]) + ((4 - okt) * 7/8 * note.FIXHEIGHT))
 
-def draw_staff(self):
-    for i in range(-2, 3):
-        y= i *space + self.y
-        self._svglist.append(svg.shapes.Line(start=(self.left, y), end=(self.left+self.width,y),
-        stroke_width=.6, stroke=svg.utils.rgb(0,0,0, "%")))
-        # print(self._svglist)
-        # print("------------")
-
+# def draw_staff(self):
+    # for i in range(-2, 3):
+        # y_= i *space + self.y
+        # l=_VLineSegment(x=self.left, y=y_, length=self.width, thickness=1)
+        # l.angle = 0
+        # self._svglist.append(l.svg)
+        
+        
 def make_accidental_char(accobj):
     accobj.symbol=Char(name="accidentals.sharp")
     accobj.append(accobj.symbol)
@@ -144,7 +150,8 @@ r((Note,), ["treble"], make_notehead, notehead_vertical_pos)
 r((Accidental,), ["treble", "bass"], make_accidental_char,notehead_vertical_pos2)
 r((Clef,),["treble"], make_clef_char)
 r((HForm,), ["horizontal"], f)
-r((Accidental,Note),["treble"], draw_staff)
+r((Note,), ["treble"], add_stem)
+# r((Accidental,),["treble"], draw_staff)
 
 
 

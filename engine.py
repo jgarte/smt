@@ -55,7 +55,7 @@ def install_font(fontname, srcpath, shrg=STAFF_HEIGHT_REFERENCE_GLYPH):
         if "glyph-name" in E.attrib: # An identified glyph?
             try:
                 glyph_pathd[E.attrib["glyph-name"]] = E.attrib["d"]
-            except KeyError: # E.g. space glyph has no pathd in haydn!
+            except KeyError: # E.g. STAFF_SPACE glyph has no pathd in haydn!
                 glyph_pathd[E.attrib["glyph-name"]] = "" # An empty string as pathd?????
     temp_bbox_file = tempfile.NamedTemporaryFile(mode="r")
     sp.run(["/usr/bin/fontforge", "-script", 
@@ -64,7 +64,7 @@ def install_font(fontname, srcpath, shrg=STAFF_HEIGHT_REFERENCE_GLYPH):
     # ~ Register glyphs and their bboxes
     D = {}
     for ln in temp_bbox_file:
-        if not(ln.isspace()): # Auf linien mit NUR space verzichten
+        if not(ln.isspace()): # Auf linien mit NUR STAFF_SPACE verzichten
             name, minx, miny, maxx, maxy, w, h = ln.strip().split(" ")
             # ~ Create glyph's dict
             D[name] = {
@@ -89,14 +89,15 @@ _PXLPERMM = 3.7795275591 # Pixel per mm
 def mmtopxl(mm): return mm * _PXLPERMM
 def chlapik_staff_space(rastral):
     return {
-    2: mmtopxl(1.88), 3: mmtopxl(1.755), 4: mmtopxl(1.6),
+    "zwei": mmtopxl(1.88), 3: mmtopxl(1.755), 4: mmtopxl(1.6),
     5: mmtopxl(1.532), 6: mmtopxl(1.4), 7: mmtopxl(1.19),
     8: mmtopxl(1.02)}[rastral]
 
-space = chlapik_staff_space(2)
-scale = 1
+STAFF_SPACE = chlapik_staff_space("zwei")
+GLOBAL_SCALE = 1.0
+
 def _scale():
-    return scale * ((4 * space) / _getglyph("clefs.C", "Haydn")["height"])
+    return GLOBAL_SCALE * ((4 * STAFF_SPACE) / _getglyph("clefs.C", "Haydn")["height"])
 def toplevel_scale(R): return R * _scale()
 
 _LEFT_MARGIN = mmtopxl(36)
@@ -214,8 +215,8 @@ class _Canvas(_SMTObject):
         self.origin_visible = origin_visible
         self.xoff = xoff or 0
         self.yoff = yoff or 0
-        self.xscale = xscale or scale
-        self.yscale = yscale or scale
+        self.xscale = xscale or GLOBAL_SCALE
+        self.yscale = yscale or GLOBAL_SCALE
         self.toplevel = toplevel
         self.absx = _LEFT_MARGIN if (self.toplevel and not(absx)) else absx
         self.absy = _TOP_MARGIN if (self.toplevel and not(absy)) else absy
@@ -632,6 +633,88 @@ class HForm(_Form):
         for a, b in zip(self.content[:-1], self.content[1:]):
             b.left = a.right
 
+def _hline_segment(x, y, length, angle, thickness, color):
+    return svg.shapes.Line(start=(x, y), end=(x + length, y),
+    transform=f"rotate({angle} {x} {y})", stroke_width=thickness,
+    stroke=color)
 
-class _Line:
-    def __init__(self, x, y, length, slope)
+
+class _LineSegment:
+    
+    """Angle in degrees"""
+    
+    def __init__(self, x, y, length, direction=None, thickness=None, angle=None, color=None):
+        self._x = x
+        self._y = y
+        self._length = length
+        self._direction = direction or 1
+        self._color = color or svg.utils.rgb(0, 0, 0)
+        self._angle = angle or 0
+        self._thickness = thickness or 0
+        self.svg = self._make_svgobj()
+    
+    @property
+    def direction(self): return self._direction
+    
+    @property
+    def length(self): return self._length
+    @length.setter
+    def length(self, new_length):
+        self._length = new_length
+        self._make_svgobj()
+    
+    @property
+    def x(self): return self._x
+    @x.setter
+    def x(self, newx):
+        self._x = newx
+        # There is no access to attribuites of the Line object from svgwrite' side!
+        # So we have to regenerate a new Line object. :-(
+        self.svg = self._make_svgobj()
+    @property
+    def y(self): return self._y
+    @y.setter
+    def y(self, newy):
+        self._y = newy
+        self._svg = self._make_svgobj()
+    @property
+    def thickness(self): return self._thickness
+    @thickness.setter
+    def thickness(self, new_thickness):
+        self._thickness = new_thickness
+        self.svg = self._make_svgobj()
+    @property
+    def angle(self): return self._angle
+    @angle.setter
+    def angle(self, new_angle):
+        self._angle = new_angle
+        self.svg = self._make_svgobj()
+    @property
+    def color(self): return self._color
+    @color.setter
+    def color(self, new_color):
+        self._color = new_color
+        self.svg = self._make_svgobj()
+
+
+class HLineSegment(_LineSegment):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        
+    def _make_svgobj(self):
+        return svg.shapes.Line(start=(self.x, self.y), 
+        end=((self.x + self.length) * self.direction, self.y),
+        transform=f"rotate({self.angle} {self.x} {self.y})",
+        stroke_width=self.thickness, stroke=self.color)
+
+# print(HLineSegment(x=0,y=0,length=0))
+
+class VLineSegment(_LineSegment):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+    
+    def _make_svgobj(self):
+        return svg.shapes.Line(start=(self.x, self.y), 
+        end=(self.x, (self.y + self.length) * self.direction),
+        transform=f"rotate({self.angle} {self.x} {self.y})", 
+        stroke_width=self.thickness, stroke=self.color)

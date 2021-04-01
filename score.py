@@ -24,10 +24,19 @@ class Pitch:
     def __init__(self, pitch):
         self.pitch = pitch
 
-# class _ScoreObject(SForm):
-    # def __init__(self, char=None, **kwargs):
-        # self.char = char # Each score object has a main char or list of chars?
-        # SForm.__init__(self, **kwargs)
+
+STAFF_LINE_THICKNESS = 1.0
+
+class Staff(HLineSegment):
+    LINE_THICKNESS = 1.0
+
+
+class Stem(VLineSegment):
+    def __init__(self, length=None, thickness=None, **kwargs):
+        super().__init__(length=(length or (3.0 * STAFF_SPACE)),
+        thickness=(thickness or Staff.LINE_THICKNESS),
+        **kwargs)
+
 
 class Note(SForm, Clock, Pitch):
     def __init__(self, head=None, flag=None, stem=None, duration=None, pitch=None, **kwargs):
@@ -50,4 +59,3 @@ class Clef(SForm, Pitch):
         SForm.__init__(self, **kwargs)
         Pitch.__init__(self, pitch)
         self.symbol = symbol
-
