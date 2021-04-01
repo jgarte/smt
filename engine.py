@@ -553,6 +553,7 @@ class SForm(_Form):
         self._establish_parental_relationship(children)
         self.content.extend(children)
         for child in children:
+            # Use == since absx could be set.
             if child.absx == None:
                 child.x += self.x
             if child.absy == None:
@@ -627,10 +628,12 @@ def _hline_segment(x, y, length, angle, thickness, color):
     stroke=color)
 
 
-class _LineSegment:
+class _LineSegment(_SMTObject):
     """Angle in degrees"""
     __ENDINGS = ("round", "square", "butt")
-    def __init__(self, x, y, length, ending, thickness=None, angle=None, color=None):
+    _idcounter = -1
+    def __init__(self, x, y, length, ending, thickness=None, angle=None, color=None, **kwargs):
+        super().__init__(**kwargs)
         self._x = x
         self._y = y
         self._length = length
@@ -642,13 +645,16 @@ class _LineSegment:
         _LineSegment.__ENDINGS, ending)
         self._ending = ending
         self._line_element = self._make_line_element()
+    
     @property
     def ending(self): return self._ending
+    
     @property
     def direction(self): return self._direction
     
     @property
     def length(self): return self._length
+    
     @length.setter
     def length(self, new_length):
         self._length = new_length
@@ -656,32 +662,41 @@ class _LineSegment:
     
     @property
     def x(self): return self._x
+    
     @x.setter
     def x(self, newx):
         self._x = newx
         # There is no access to attribuites of the Line object from svgwrite' side!
         # So we have to regenerate a new Line object. :-(
         self._line_element = self._make_line_element()
+    
     @property
     def y(self): return self._y
+    
     @y.setter
     def y(self, newy):
         self._y = newy
         self._line_element = self._make_line_element()
+    
     @property
     def thickness(self): return self._thickness
+    
     @thickness.setter
     def thickness(self, new_thickness):
         self._thickness = new_thickness
         self._line_element = self._make_line_element()
+    
     @property
     def angle(self): return self._angle
+    
     @angle.setter
     def angle(self, new_angle):
         self._angle = new_angle
         self._line_element = self._make_line_element()
+    
     @property
     def color(self): return self._color
+    
     @color.setter
     def color(self, new_color):
         self._color = new_color
@@ -696,7 +711,8 @@ class HLineSegment(_LineSegment):
         HLineSegment.__DIRECTIONS.keys(), direction)
         self._direction = direction
         super().__init__(**kwargs)
-        
+    @property
+    def left(self): return self._x
     def _make_line_element(self):
         return svg.shapes.Line(start=(self.x, self.y), 
         end=(self.x + (self.length * HLineSegment.__DIRECTIONS[self.direction]), self.y),
@@ -713,7 +729,8 @@ class VLineSegment(_LineSegment):
         VLineSegment.__DIRECTIONS.keys(), direction)
         self._direction = direction
         super().__init__(**kwargs)
-    
+    @property
+    def left(self): return self.x - self.thickness * 0.5
     def _make_line_element(self):
         return svg.shapes.Line(start=(self.x, self.y), 
         end=(self.x, self.y + (self.length * VLineSegment.__DIRECTIONS[self.direction])),

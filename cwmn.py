@@ -63,15 +63,18 @@ def make_notehead(note):
     note.append(note.head)
 
 def add_stem(self):
-    self.stem = Stem(x=self.head.left, y=self.head.y,direction="down", ending="round")
-    self._svglist.append(self.stem)
+    self.stem = Stem(x=self.head.left, y=self.head.y,direction="down",
+    thickness=10)
+    self.addsvg(self.stem)
+     # HLineSegment(direction="right",x=self.head.left, y=self.head.y,
+    # thickness=10,ending="square",length=20)
 
 
-print(descendants(Stem(direction="up",x=0,y=0)))
+# print(descendants(Stem(direction="up",x=0,y=0)))
 
 def add_stem_clef(self):
-    self.stem = Stem(x=self.symbol.x, y=self.symbol.y, direction="up")
-    self.addsvg(self.stem)
+    stem = Stem(x=self.symbol.x, y=self.symbol.y, direction="up")
+    self.addsvg(stem)
 
     
 
@@ -161,8 +164,10 @@ r("", (Accidental,), ["treble", "bass"], make_accidental_char,notehead_vertical_
 r("decide clef symbol, add a stem", (Clef,),["treble"], make_clef_char)
 r("", (HForm,), ["horizontal"], f)
 r("Add stems to noteheads, after punctuation computed.", (Note,), ["treble"], add_stem)
-def movex(self): self.x += 10
-# r("Just move note to see if stem moves along?", (Note,), ["treble"], lambda x:print(x))
+def movex(self): 
+    self.stem.color = svg.utils.rgb(100, 0,0,"%")
+    print(self.stem.y, self.stem.left)
+r("Just move note to see if stem moves along?", (Note,), ["treble"], movex)
 # r("Add stem to clef for fun", (Clef,), ["treble"], add_stem_clef)
 # r((Accidental,),["treble"], draw_staff)
 ruledocs()

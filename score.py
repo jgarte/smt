@@ -36,7 +36,7 @@ class Stem(VLineSegment):
         super().__init__(length=(length or (3.0 * STAFF_SPACE)),
         thickness=(thickness or Staff.LINE_THICKNESS), ending=(ending or "square"),
         **kwargs)
-
+# print(Stem(direction="up",x=10,y=0).x)
 
 class Note(SForm, Clock, Pitch):
     def __init__(self, head=None, flag=None, stem=None, duration=None, pitch=None, **kwargs):
