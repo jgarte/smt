@@ -104,71 +104,6 @@ _LEFT_MARGIN = mmtopxl(36)
 _TOP_MARGIN = mmtopxl(56)
 
 
-##### Score Objects
-class _SMTObject:
-    def __init__(self, id_=None, domain=None):
-        self.ancestors = []
-        self.id = id_ or self._assign_id()
-        # self._svglist = []
-        self.domain = domain
-        self._rules_applied_to = False
-    
-    def _assign_id(self):
-        self.__class__._idcounter += 1
-        return self.__class__.__name__ + str(self.__class__._idcounter)
-    
-    def parent(self): return self.ancestors[-1]
-    def root(self): return self.ancestors[0]
-    
-    def my_idx_in_parent_content(self):
-        for i, C in enumerate(self.parent().content):
-            if (C is self) and (C.id == self.id):
-                return i
-    
-    def render(self):
-        D = svg.drawing.Drawing(filename="/tmp/me.svg", size=(pgw,pgh),debug=True)
-        self._apply_rules()
-        # ~ Form's packsvglst will call packsvglst on descendants recursively
-        self._pack_svglist()
-        for elem in self._svglist:
-            if isinstance(elem, _LineSegment):
-                D.add(elem._line_element)
-            else:
-                D.add(elem)
-        D.save(pretty=True)
-    
-# ~ _Canvas, Origin's Circle, Origin's Cross, Origin's Circle Contour
-mchar_cnv = __mchar_orgcrcl = __mchar_orgcrs = __mchar_orgcrcl_cntr = "deeppink"
-__sform_cnv = __sform_orgcrcl = __sform_orgcrs = __sform_orgcrcl_cntr = "tomato"
-__hform_cnv = __hform_orgcrcl = __hform_orgcrs = __hform_orgcrcl_cntr = "green"
-__vform_cnv = __vform_orgcrcl = __vform_orgcrs = __vform_orgcrcl_cntr = "blue"
-__orgcrs_len = 20
-__orgcrcl_r = 4
-__orgcrcl_opac = 0.3
-__orgln_thickness = 0.06
-pgw = mmtopxl(210)
-pgh =mmtopxl(297)
-
-
-# ~ def _descendants(obj, N, D):
-    # ~ """"""
-    # ~ if isinstance(obj, _Form) and obj.content:
-        # ~ if not(N in D):
-            # ~ D[N] = []
-            # ~ for x in obj.content:
-                # ~ D[N].append(x)
-            # ~ D[N] = cp.copy(obj.content)
-        # ~ else:
-            # ~ D[N].extend(obj.content)
-            # ~ for x in obj.content:
-                # ~ D[N].append(x)
-        # ~ # need objs themselves
-        # ~ for child in obj.content:
-            # ~ D[N].append(child)
-        # ~ for child in obj.content:
-            # ~ _descendants(child, N+1, D)
-            # ~ _descendants(child, N+1, D)
-    # ~ return D
 
 # ~ Why am I not writing this as a method to FORM?
 def _descendants(obj, N, D):
@@ -202,6 +137,78 @@ def _rule_appl_elig_objs(obj):
     not(O._rules_applied_to), 
     members(obj)))
 
+class _SMTObject:
+    def __init__(self, id_=None, domain=None):
+        self.ancestors = []
+        self.id = id_ or self._assign_id()
+        self._svglist = []
+        self.domain = domain
+        self._rules_applied_to = False
+    
+    def _assign_id(self):
+        self.__class__._idcounter += 1
+        return self.__class__.__name__ + str(self.__class__._idcounter)
+
+    def addsvg(self, *elements):
+        self._svglist.extend(elements)
+
+    def parent(self): return self.ancestors[-1]
+    def root(self): return self.ancestors[0]
+    
+    def my_idx_in_parent_content(self):
+        for i, C in enumerate(self.parent().content):
+            if (C is self) and (C.id == self.id):
+                return i
+
+    def _apply_rules(self):
+        """
+        Applies rules to OBJ and all it's descendants. 
+        """
+        eligible_objs = _rule_appl_elig_objs(self)
+        while True:
+            if eligible_objs:
+                # Must iterate over rules first, then over objs.
+                # It is the order of rules to be applied which matters here! 
+                for order in sorted(_ruletable):
+                    rule = _ruletable[order]
+                    for obj in eligible_objs:
+                        if isinstance(obj, rule["T"]) and (obj.domain in rule["D"]):
+                            for fn in rule["F"]:
+                                fn(obj)
+                            obj._rules_applied_to = True
+                        if isinstance(obj, HForm):
+                            obj._lineup()
+                # Maybe some rule has created new objs, or even defined new rules!
+                eligible_objs = _rule_appl_elig_objs(self)
+            else:
+                break
+    
+def render(obj):
+    D = svg.drawing.Drawing(filename="/tmp/me.svg", size=(pgw,pgh), debug=True)
+    obj._apply_rules()
+    # ~ Form's packsvglst will call packsvglst on descendants recursively
+    obj._pack_svglist()
+    for elem in obj._svglist:
+        if isinstance(elem, _LineSegment):
+            D.add(elem._line_element)
+        else:
+            D.add(elem)
+    D.save(pretty=True)
+
+
+# ~ _Canvas, Origin's Circle, Origin's Cross, Origin's Circle Contour
+mchar_cnv = __mchar_orgcrcl = __mchar_orgcrs = __mchar_orgcrcl_cntr = "deeppink"
+__sform_cnv = __sform_orgcrcl = __sform_orgcrs = __sform_orgcrcl_cntr = "tomato"
+__hform_cnv = __hform_orgcrcl = __hform_orgcrs = __hform_orgcrcl_cntr = "green"
+__vform_cnv = __vform_orgcrcl = __vform_orgcrs = __vform_orgcrcl_cntr = "blue"
+__orgcrs_len = 20
+__orgcrcl_r = 4
+__orgcrcl_opac = 0.3
+__orgln_thickness = 0.06
+pgw = mmtopxl(210)
+pgh =mmtopxl(297)
+
+
 class _Canvas(_SMTObject):
     def __init__(self, canvas_color=None, absx=None, absy=None, toplevel=False, font=None,
     canvas_opacity=None, xoff=None, yoff=None, xscale=None, yscale=None,
@@ -209,7 +216,6 @@ class _Canvas(_SMTObject):
         super().__init__(**kwargs)
         # Only the first item in a hform will need _hlineup, for him 
         # this is set by HForm itself.
-        self._svglist = []
         self._is_hlineup_head = False
         self.font = font or current_font
         self.canvas_opacity = canvas_opacity or 0.3
@@ -226,10 +232,7 @@ class _Canvas(_SMTObject):
         # ~ We need xy at init-time, just make absx 0 above??????
         self._x = (self.absx or 0) + self.xoff
         self._y = (self.absy or 0) + self.yoff
-    
-    def addsvg(self, *elements):
-        self._svglist.extend(elements)
-    
+        
     @property
     def x(self): return self._x
     @property
@@ -282,28 +285,7 @@ class _Canvas(_SMTObject):
         self._bottom = self._compute_bottom()
         self._height = self._compute_height()
 
-    def _apply_rules(self):
-        """
-        Applies rules to OBJ and all it's descendants. 
-        """
-        eligible_objs = _rule_appl_elig_objs(self)
-        while True:
-            if eligible_objs:
-                # Must iterate over rules first, then over objs.
-                # It is the order of rules to be applied which matters here! 
-                for order in sorted(_ruletable):
-                    rule = _ruletable[order]
-                    for obj in eligible_objs:
-                        if isinstance(obj, rule["T"]) and (obj.domain in rule["D"]):
-                            for fn in rule["F"]:
-                                fn(obj)
-                            obj._rules_applied_to = True
-                        if isinstance(obj, HForm):
-                            obj._lineup()
-                # Maybe some rule has created new objs, or even defined new rules!
-                eligible_objs = _rule_appl_elig_objs(self)
-            else:
-                break
+    
 
     
 def _bboxelem(obj): 
