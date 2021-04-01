@@ -106,20 +106,16 @@ _TOP_MARGIN = mmtopxl(56)
 
 ##### Score Objects
 class _SMTObject:
-    def __init__(self, id_=None, domain=None, tst=None):
+    def __init__(self, id_=None, domain=None):
         self.ancestors = []
         self.id = id_ or self._assign_id()
-        self._svglist = []
+        # self._svglist = []
         self.domain = domain
         self._rules_applied_to = False
-        self._tst = tst or []
     
     def _assign_id(self):
         self.__class__._idcounter += 1
         return self.__class__.__name__ + str(self.__class__._idcounter)
-    
-    def addsvg(self, *elements):
-        self._svglist.extend(elements)
     
     def parent(self): return self.ancestors[-1]
     def root(self): return self.ancestors[0]
@@ -213,6 +209,7 @@ class _Canvas(_SMTObject):
         super().__init__(**kwargs)
         # Only the first item in a hform will need _hlineup, for him 
         # this is set by HForm itself.
+        self._svglist = []
         self._is_hlineup_head = False
         self.font = font or current_font
         self.canvas_opacity = canvas_opacity or 0.3
@@ -229,6 +226,9 @@ class _Canvas(_SMTObject):
         # ~ We need xy at init-time, just make absx 0 above??????
         self._x = (self.absx or 0) + self.xoff
         self._y = (self.absy or 0) + self.yoff
+    
+    def addsvg(self, *elements):
+        self._svglist.extend(elements)
     
     @property
     def x(self): return self._x
@@ -659,7 +659,6 @@ class _LineSegment:
         assert ending in _LineSegment.__ENDINGS, "Line's ending must be one of {0}, {1} was given instead!".format(
         _LineSegment.__ENDINGS, ending)
         self._ending = ending
-        # self._endshape = endshape or "round"
         self._line_element = self._make_line_element()
     @property
     def ending(self): return self._ending
