@@ -63,8 +63,11 @@ def make_notehead(note):
     note.append(note.head)
 
 def add_stem(self):
-    self.stem = Stem(x=self.head.left, y=self.head.y, direction="down")
+    self.stem = Stem(x=self.head.left, y=self.head.y,direction="down", ending="round")
     self._svglist.append(self.stem)
+
+
+
 
 def add_stem_clef(self):
     self.stem = Stem(x=self.symbol.x, y=self.symbol.y, direction="up")
@@ -158,7 +161,9 @@ r("", (Accidental,), ["treble", "bass"], make_accidental_char,notehead_vertical_
 r("decide clef symbol, add a stem", (Clef,),["treble"], make_clef_char)
 r("", (HForm,), ["horizontal"], f)
 r("Add stems to noteheads, after punctuation computed.", (Note,), ["treble"], add_stem)
-r("Add stem to clef for fun", (Clef,), ["treble"], add_stem_clef)
+def movex(self): self.x += 10
+r("Just move note to see if stem moves along?", (Note,), ["treble"], lambda x:print(x))
+# r("Add stem to clef for fun", (Clef,), ["treble"], add_stem_clef)
 # r((Accidental,),["treble"], draw_staff)
 ruledocs()
 

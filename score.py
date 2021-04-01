@@ -32,9 +32,9 @@ class Staff(HLineSegment):
 
 
 class Stem(VLineSegment):
-    def __init__(self, length=None, thickness=None, **kwargs):
+    def __init__(self, length=None, thickness=None, ending=None, **kwargs):
         super().__init__(length=(length or (3.0 * STAFF_SPACE)),
-        thickness=(thickness or Staff.LINE_THICKNESS),
+        thickness=(thickness or Staff.LINE_THICKNESS), ending=(ending or "square"),
         **kwargs)
 
 

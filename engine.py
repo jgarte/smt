@@ -646,10 +646,9 @@ def _hline_segment(x, y, length, angle, thickness, color):
 
 
 class _LineSegment:
-    
     """Angle in degrees"""
-    
-    def __init__(self, x, y, length, thickness=None, angle=None, color=None):
+    __ENDINGS = ("round", "square", "butt")
+    def __init__(self, x, y, length, ending, thickness=None, angle=None, color=None):
         self._x = x
         self._y = y
         self._length = length
@@ -657,8 +656,13 @@ class _LineSegment:
         self._color = color or svg.utils.rgb(0, 0, 0)
         self._angle = angle or 0
         self._thickness = thickness or 0
+        assert ending in _LineSegment.__ENDINGS, "Line's ending must be one of {0}, {1} was given instead!".format(
+        _LineSegment.__ENDINGS, ending)
+        self._ending = ending
+        # self._endshape = endshape or "round"
         self._line_element = self._make_line_element()
-    
+    @property
+    def ending(self): return self._ending
     @property
     def direction(self): return self._direction
     
@@ -705,6 +709,7 @@ class _LineSegment:
 
 class HLineSegment(_LineSegment):
     __DIRECTIONS = {"left": -1, "right": 1}
+    
     def __init__(self, direction, **kwargs):
         assert direction in HLineSegment.__DIRECTIONS, "Horizontal line's direction must be one of {0}, {1} was given instead!".format(
         HLineSegment.__DIRECTIONS.keys(), direction)
@@ -721,6 +726,7 @@ class HLineSegment(_LineSegment):
 
 class VLineSegment(_LineSegment):
     __DIRECTIONS = {"up": -1, "down": 1}
+    
     def __init__(self, direction, **kwargs):
         assert direction in VLineSegment.__DIRECTIONS, "Vertical line's direction must be one of {0}, {1} was given instead!".format(
         VLineSegment.__DIRECTIONS.keys(), direction)
@@ -730,5 +736,5 @@ class VLineSegment(_LineSegment):
     def _make_line_element(self):
         return svg.shapes.Line(start=(self.x, self.y), 
         end=(self.x, self.y + (self.length * VLineSegment.__DIRECTIONS[self.direction])),
-        transform=f"rotate({self.angle} {self.x} {self.y})", 
+        transform=f"rotate({self.angle} {self.x} {self.y})", stroke_linecap=self.ending,
         stroke_width=self.thickness, stroke=self.color)
