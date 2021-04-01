@@ -117,7 +117,10 @@ class _SMTObject:
     def _assign_id(self):
         self.__class__._idcounter += 1
         return self.__class__.__name__ + str(self.__class__._idcounter)
-            
+    
+    def addsvg(self, *elements):
+        self._svglist.extend(elements)
+    
     def parent(self): return self.ancestors[-1]
     def root(self): return self.ancestors[0]
     

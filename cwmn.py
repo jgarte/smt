@@ -67,8 +67,8 @@ def add_stem(self):
     self._svglist.append(self.stem)
 
 def add_stem_clef(self):
-    self.stem = Stem(x=self.symbol.x, y=self.symbol.y, direction="down")
-    self._svglist.append(self.stem)
+    self.stem = Stem(x=self.symbol.x, y=self.symbol.y, direction="up")
+    self.addsvg(self.stem)
 
     
 

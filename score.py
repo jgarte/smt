@@ -47,6 +47,10 @@ class Note(SForm, Clock, Pitch):
         self.head = head
         self.flag = flag
         self.stem = stem
+    # @property
+    # def stem(self): return self._stem
+    # @stem.setter
+    # def stem(self, new_stem_obj):
 
 class Accidental(SForm, Pitch):
     def __init__(self, symbol=None, pitch=None, **kwargs):
