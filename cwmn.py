@@ -63,8 +63,14 @@ def make_notehead(note):
     note.append(note.head)
 
 def add_stem(self):
-    self.stem = Stem(x=self.left, y=self.top)
-    self._svglist.append(self.stem.svg)
+    self.stem = Stem(x=self.head.left, y=self.head.y, direction="down")
+    self._svglist.append(self.stem)
+
+def add_stem_clef(self):
+    self.stem = Stem(x=self.symbol.x, y=self.symbol.y, direction="down")
+    self._svglist.append(self.stem)
+
+    
 
 def notehead_vertical_pos(note):
     if isinstance(note.pitch, list):
@@ -146,16 +152,17 @@ def f(h):
 
 
 # Rules ordered:    
-r((Note,), ["treble"], make_notehead, notehead_vertical_pos)
-r((Accidental,), ["treble", "bass"], make_accidental_char,notehead_vertical_pos2)
-r((Clef,),["treble"], make_clef_char)
-r((HForm,), ["horizontal"], f)
-r((Note,), ["treble"], add_stem)
+r("1: make noteheads, 2. position vertically",
+    (Note,), ["treble"], make_notehead)
+r("", (Accidental,), ["treble", "bass"], make_accidental_char,notehead_vertical_pos2)
+r("decide clef symbol, add a stem", (Clef,),["treble"], make_clef_char)
+r("", (HForm,), ["horizontal"], f)
+r("Add stems to noteheads, after punctuation computed.", (Note,), ["treble"], add_stem)
+r("Add stem to clef for fun", (Clef,), ["treble"], add_stem_clef)
 # r((Accidental,),["treble"], draw_staff)
+ruledocs()
 
-
-
-print(mmtopxl(100))
+# print(mmtopxl(100))
 # 680.3149 pxl
 gemischt=[
 Note(domain="treble", duration=1, pitch=["c",4]),

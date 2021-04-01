@@ -26,17 +26,17 @@ _ruledomains = set()
 _ruletargets = set((object,))
 _ruletable = {}
 _ruleorder = 0
-def r(targets, domains, *func):
-    # if order in _ruletable:
-        # # ~ raise Exception("Rule order exists")
-        # return
-    # else:
+def r(doc, targets, domains, *funcs):
+    assert isinstance(doc, str), "Rule's documentation must be a str."
     _ruletargets.update(tuple(targets))
     _ruledomains.update(tuple(domains))
     global _ruleorder
-    _ruletable[_ruleorder] = {"T": targets, "D": domains, "F": func}
+    _ruletable[_ruleorder] = {"T": targets, "D": domains, "F": funcs, "doc": doc}
     _ruleorder += 1
 
+def ruledocs():
+    for order, ruledict in _ruletable.items():
+        print(order, ruledict["doc"])
 ##### Font
 _fonts = {}
 current_font = "Haydn"
@@ -132,7 +132,10 @@ class _SMTObject:
         # ~ Form's packsvglst will call packsvglst on descendants recursively
         self._pack_svglist()
         for elem in self._svglist:
-            D.add(elem)
+            if isinstance(elem, _LineSegment):
+                D.add(elem._line_element)
+            else:
+                D.add(elem)
         D.save(pretty=True)
     
 # ~ _Canvas, Origin's Circle, Origin's Cross, Origin's Circle Contour
@@ -429,7 +432,7 @@ class _Form(_Canvas):
         # is interesting eg when doing operations which refer to the height of a staff. These values
         # should never change, except with when the parent is shifted, they move along of course!
         # In fix-top & bottom is the values of x-offset and possibly absolute x included (self.y).
-        self._fixtop = self.y + toplevel_scale(_getglyph(STAFF_HEIGHT_REFERENCE_GLYPH, self.font)["top"])
+        self.fixtop = self.y + toplevel_scale(_getglyph(STAFF_HEIGHT_REFERENCE_GLYPH, self.font)["top"])
         self.fixbottom = self.y + toplevel_scale(_getglyph(STAFF_HEIGHT_REFERENCE_GLYPH, self.font)["bottom"])
         self.FIXHEIGHT = toplevel_scale(_getglyph(STAFF_HEIGHT_REFERENCE_GLYPH, self.font)["height"])
         for D in descendants(self, False):
@@ -444,7 +447,7 @@ class _Form(_Canvas):
                 # If child is to be relocated vertically, their fix-top & bottom can not be
                 # the original values, but must move along with the parent.
                 if isinstance(C, _Form):
-                    C._fixtop += self.y
+                    C.fixtop += self.y
                     C.fixbottom += self.y
                     # Fixheight never changes!
     
@@ -528,7 +531,7 @@ class _Form(_Canvas):
         return self.abswidth or (self.right - self.left)
 
     def _compute_top(self):
-        return min([self._fixtop] + list(map(lambda C: C.top, self.content)))
+        return min([self.fixtop] + list(map(lambda C: C.top, self.content)))
     
     def _compute_bottom(self):
         return max([self.fixbottom] + list(map(lambda C: C.bottom, self.content)))
@@ -643,15 +646,15 @@ class _LineSegment:
     
     """Angle in degrees"""
     
-    def __init__(self, x, y, length, direction=None, thickness=None, angle=None, color=None):
+    def __init__(self, x, y, length, thickness=None, angle=None, color=None):
         self._x = x
         self._y = y
         self._length = length
-        self._direction = direction or 1
+        # self._direction = direction or 1
         self._color = color or svg.utils.rgb(0, 0, 0)
         self._angle = angle or 0
         self._thickness = thickness or 0
-        self.svg = self._make_svgobj()
+        self._line_element = self._make_line_element()
     
     @property
     def direction(self): return self._direction
@@ -661,7 +664,7 @@ class _LineSegment:
     @length.setter
     def length(self, new_length):
         self._length = new_length
-        self._make_svgobj()
+        self._line_element = self._make_line_element()
     
     @property
     def x(self): return self._x
@@ -670,51 +673,59 @@ class _LineSegment:
         self._x = newx
         # There is no access to attribuites of the Line object from svgwrite' side!
         # So we have to regenerate a new Line object. :-(
-        self.svg = self._make_svgobj()
+        self._line_element = self._make_line_element()
     @property
     def y(self): return self._y
     @y.setter
     def y(self, newy):
         self._y = newy
-        self._svg = self._make_svgobj()
+        self._line_element = self._make_line_element()
     @property
     def thickness(self): return self._thickness
     @thickness.setter
     def thickness(self, new_thickness):
         self._thickness = new_thickness
-        self.svg = self._make_svgobj()
+        self._line_element = self._make_line_element()
     @property
     def angle(self): return self._angle
     @angle.setter
     def angle(self, new_angle):
         self._angle = new_angle
-        self.svg = self._make_svgobj()
+        self._line_element = self._make_line_element()
     @property
     def color(self): return self._color
     @color.setter
     def color(self, new_color):
         self._color = new_color
-        self.svg = self._make_svgobj()
+        self._line_element = self._make_line_element()
 
 
 class HLineSegment(_LineSegment):
-    def __init__(self, **kwargs):
+    __DIRECTIONS = {"left": -1, "right": 1}
+    def __init__(self, direction, **kwargs):
+        assert direction in HLineSegment.__DIRECTIONS, "Horizontal line's direction must be one of {0}, {1} was given instead!".format(
+        HLineSegment.__DIRECTIONS.keys(), direction)
+        self._direction = direction
         super().__init__(**kwargs)
         
-    def _make_svgobj(self):
+    def _make_line_element(self):
         return svg.shapes.Line(start=(self.x, self.y), 
-        end=((self.x + self.length) * self.direction, self.y),
+        end=(self.x + (self.length * HLineSegment.__DIRECTIONS[self.direction]), self.y),
         transform=f"rotate({self.angle} {self.x} {self.y})",
         stroke_width=self.thickness, stroke=self.color)
 
 # print(HLineSegment(x=0,y=0,length=0))
 
 class VLineSegment(_LineSegment):
-    def __init__(self, **kwargs):
+    __DIRECTIONS = {"up": -1, "down": 1}
+    def __init__(self, direction, **kwargs):
+        assert direction in VLineSegment.__DIRECTIONS, "Vertical line's direction must be one of {0}, {1} was given instead!".format(
+        VLineSegment.__DIRECTIONS.keys(), direction)
+        self._direction = direction
         super().__init__(**kwargs)
     
-    def _make_svgobj(self):
+    def _make_line_element(self):
         return svg.shapes.Line(start=(self.x, self.y), 
-        end=(self.x, (self.y + self.length) * self.direction),
+        end=(self.x, self.y + (self.length * VLineSegment.__DIRECTIONS[self.direction])),
         transform=f"rotate({self.angle} {self.x} {self.y})", 
         stroke_width=self.thickness, stroke=self.color)
