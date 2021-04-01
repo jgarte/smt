@@ -7,9 +7,9 @@ import tempfile
 import xml.etree.ElementTree as ET
 import subprocess as sp
 import copy as cp
-import svgwrite
-# ~ Alias name
-from svgwrite.utils import rgb
+import svgwrite as svg
+# from svgwrite.shapes import Line as svgline
+# from svgwrite.utils import svg.utils.rgb
 
 
 ############### rules
@@ -108,7 +108,7 @@ class _SMTObject:
     def __init__(self, id_=None, domain=None, tst=None):
         self.ancestors = []
         self.id = id_ or self._assign_id()
-        self._svglst = []
+        self._svglist = []
         self.domain = domain
         self._rules_applied_to = False
         self._tst = tst or []
@@ -126,12 +126,11 @@ class _SMTObject:
                 return i
     
     def render(self):
-        D = svgwrite.drawing.Drawing(filename="/tmp/me.svg", size=(pgw,pgh),debug=True)
+        D = svg.drawing.Drawing(filename="/tmp/me.svg", size=(pgw,pgh),debug=True)
         self._apply_rules()
         # ~ Form's packsvglst will call packsvglst on descendants recursively
-        self._pack_svglst()
-        # ~ print(self._svglst)
-        for elem in self._svglst:
+        self._pack_svglist()
+        for elem in self._svglist:
             D.add(elem)
         D.save(pretty=True)
     
@@ -301,7 +300,7 @@ class _Canvas(_SMTObject):
 
     
 def _bboxelem(obj): 
-    return svgwrite.shapes.Rect(insert=(obj.left, obj.top),
+    return svg.shapes.Rect(insert=(obj.left, obj.top),
                                 size=(obj.width, obj.height), 
                                 fill=obj.canvas_color,
                                 fill_opacity=obj.canvas_opacity, 
@@ -312,17 +311,17 @@ _ORIGIN_CIRCLE_R = 4
 _ORIGIN_LINE_THICKNESS = 0.06
 def _origelems(obj):
     halfln = _ORIGIN_CROSS_LEN / 2
-    return [svgwrite.shapes.Circle(center=(obj.x, obj.y), r=_ORIGIN_CIRCLE_R,
+    return [svg.shapes.Circle(center=(obj.x, obj.y), r=_ORIGIN_CIRCLE_R,
                                     id_=obj.id + "OriginCircle",
-                                    stroke=rgb(87, 78, 55), fill="none",
+                                    stroke=svg.utils.rgb(87, 78, 55), fill="none",
                                     stroke_width=_ORIGIN_LINE_THICKNESS),
-            svgwrite.shapes.Line(start=(obj.x-halfln, obj.y), end=(obj.x+halfln, obj.y),
+            svg.shapes.Line(start=(obj.x-halfln, obj.y), end=(obj.x+halfln, obj.y),
                                         id_=obj.id + "OriginHLine",
-                                        stroke=rgb(87, 78, 55), 
+                                        stroke=svg.utils.rgb(87, 78, 55), 
                                         stroke_width=_ORIGIN_LINE_THICKNESS),
-            svgwrite.shapes.Line(start=(obj.x, obj.y-halfln), end=(obj.x, obj.y+halfln),
+            svg.shapes.Line(start=(obj.x, obj.y-halfln), end=(obj.x, obj.y+halfln),
                                         id_=obj.id + "OriginVLine",
-                                        stroke=rgb(87, 78, 55), 
+                                        stroke=svg.utils.rgb(87, 78, 55), 
                                         stroke_width=_ORIGIN_LINE_THICKNESS)]
 
 
@@ -336,10 +335,10 @@ class Char(_Canvas):
         _Canvas.__init__(self, **kwargs)
         self.name = name
         self.glyph = _getglyph(self.name, self.font)
-        self.color = color or rgb(0, 0, 0)
+        self.color = color or svg.utils.rgb(0, 0, 0)
         self.opacity = opacity or 1
         self.visible = visible
-        self.canvas_color = rgb(100, 0, 0, "%")
+        self.canvas_color = svg.utils.rgb(100, 0, 0, "%")
         self._compute_horizontals()
         self._compute_verticals()
     
@@ -402,19 +401,19 @@ class Char(_Canvas):
     def _compute_height(self):
         return toplevel_scale(self.glyph["height"])
     
-    def _pack_svglst(self):
+    def _pack_svglist(self):
         # Add bbox rect
         if self.canvas_visible:
-            self._svglst.append(_bboxelem(self))
+            self._svglist.append(_bboxelem(self))
         # Add the music character
-        self._svglst.append(svgwrite.path.Path(d=_getglyph(self.name, self.font)["d"],
+        self._svglist.append(svg.path.Path(d=_getglyph(self.name, self.font)["d"],
         id_=self.id, fill=self.color, fill_opacity=self.opacity,
         transform="translate({0} {1}) scale(1 -1) scale({2} {3})".format(
         self.x, self.y, self.xscale * _scale(), self.yscale * _scale())))
         # Add the origin
         if self.origin_visible:
             for elem in _origelems(self):
-                self._svglst.append(elem)
+                self._svglist.append(elem)
 
 
 class _Form(_Canvas):
@@ -430,7 +429,7 @@ class _Form(_Canvas):
         # should never change, except with when the parent is shifted, they move along of course!
         # In fix-top & bottom is the values of x-offset and possibly absolute x included (self.y).
         self._fixtop = self.y + toplevel_scale(_getglyph(STAFF_HEIGHT_REFERENCE_GLYPH, self.font)["top"])
-        self._fixbottom = self.y + toplevel_scale(_getglyph(STAFF_HEIGHT_REFERENCE_GLYPH, self.font)["bottom"])
+        self.fixbottom = self.y + toplevel_scale(_getglyph(STAFF_HEIGHT_REFERENCE_GLYPH, self.font)["bottom"])
         self.FIXHEIGHT = toplevel_scale(_getglyph(STAFF_HEIGHT_REFERENCE_GLYPH, self.font)["height"])
         for D in descendants(self, False):
             D.ancestors.insert(0, self) # Need smteq??
@@ -445,7 +444,7 @@ class _Form(_Canvas):
                 # the original values, but must move along with the parent.
                 if isinstance(C, _Form):
                     C._fixtop += self.y
-                    C._fixbottom += self.y
+                    C.fixbottom += self.y
                     # Fixheight never changes!
     
     # Children is a sequence. This method modifies only ancestor lists.
@@ -531,28 +530,28 @@ class _Form(_Canvas):
         return min([self._fixtop] + list(map(lambda C: C.top, self.content)))
     
     def _compute_bottom(self):
-        return max([self._fixbottom] + list(map(lambda C: C.bottom, self.content)))
+        return max([self.fixbottom] + list(map(lambda C: C.bottom, self.content)))
     
     def _compute_height(self): return self.bottom - self.top
     
-    def _pack_svglst(self):
+    def _pack_svglist(self):
         # Bbox
-        if self.canvas_visible: self._svglst.append(_bboxelem(self))
+        if self.canvas_visible: self._svglist.append(_bboxelem(self))
         # Add content
         for C in self.content:
             C.xscale *= self.xscale
             C.yscale *= self.yscale
-            C._pack_svglst() # Recursively gather svg elements
-            self._svglst.extend(C._svglst)
+            C._pack_svglist() # Recursively gather svg elements
+            self._svglist.extend(C._svglist)
         # Origin
-        if self.origin_visible: self._svglst.extend(_origelems(self))
+        if self.origin_visible: self._svglist.extend(_origelems(self))
 
 
 class SForm(_Form):
         
     def __init__(self, **kwargs):
         _Form.__init__(self, **kwargs)
-        self.canvas_color = rgb(0, 100, 0, "%")
+        self.canvas_color = svg.utils.rgb(0, 100, 0, "%")
         self.domain = kwargs.get("domain", "stacked")
         # Content may contain children with absolute x, so compute horizontals with respect to them.
         # See whats happening in _Form init with children without absx!
@@ -586,7 +585,7 @@ class HForm(_Form):
     def __init__(self, **kwargs):
         _Form.__init__(self, **kwargs)
         # self.abswidth = abswidth
-        self.canvas_color = rgb(0, 0, 100, "%")
+        self.canvas_color = svg.utils.rgb(0, 0, 100, "%")
         self.domain = kwargs.get("domain", "horizontal")
         # Set the first item as in need of lineup
         # self.content[0]._is_hlineup_head = True
@@ -632,3 +631,7 @@ class HForm(_Form):
     def _lineup(self):
         for a, b in zip(self.content[:-1], self.content[1:]):
             b.left = a.right
+
+
+class _Line:
+    def __init__(self, x, y, length, slope)

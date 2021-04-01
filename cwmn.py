@@ -47,27 +47,47 @@ dann wird es geprinted! Also aufpassen mit eckigen Klammern!)
 def make_notehead(note):
     # setter for head? to append automatically
     if isinstance(note.duration, str):
-        note.head_char = Char(name={
+        note.head = Char(name={
             "w": "noteheads.s0",
             "h": "noteheads.s1",
             "q": "noteheads.s2"
         }[note.duration])
     elif isinstance(note.duration, (float, int)):
-        note.head_char = Char(name={
+        note.head = Char(name={
             1: "noteheads.s0",
             .5: "noteheads.s1",
             .25: "noteheads.s2"
         }[note.duration])
     # note.head.y += randint(-100, 100)
-    note.append(note.head_char)
+    note.append(note.head)
+
+def notehead_vertical_pos(note):
+    if isinstance(note.pitch, list):
+        p = note.pitch[0]
+        okt = note.pitch[1]
+        note.head.y = ((note.fixbottom - {"c":-space, "d":-(.5 * space)}[p]) + ((4 - okt) * 7/8 * note.FIXHEIGHT))
+def notehead_vertical_pos2(note):
+    if isinstance(note.pitch, list):
+        p = note.pitch[0]
+        okt = note.pitch[1]
+        note.symbol.y = ((note.fixbottom - {"c":-space, "d":-(.5 * space)}[p]) + ((4 - okt) * 7/8 * note.FIXHEIGHT))
+
+def draw_staff(self):
+    for i in range(-2, 3):
+        y= i *space + self.y
+        self._svglist.append(svg.shapes.Line(start=(self.left, y), end=(self.left+self.width,y),
+        stroke_width=.6, stroke=svg.utils.rgb(0,0,0, "%")))
+        # print(self._svglist)
+        # print("------------")
 
 def make_accidental_char(accobj):
-    accobj.append(Char(name="accidentals.sharp"))
+    accobj.symbol=Char(name="accidentals.sharp")
+    accobj.append(accobj.symbol)
 
 def make_clef_char(clefobj):
-    clefobj.char = Char(name={"treble":"clefs.G",
+    clefobj.symbol = Char(name={"treble":"clefs.G", "g": "clefs.G",
     "bass":"clefs.F", "alto":"clefs.C"}[clefobj.pitch])
-    clefobj.append(clefobj.char)
+    clefobj.append(clefobj.symbol)
 
 
 def decide_unit_dur(dur_counts):
@@ -117,18 +137,28 @@ def f(h):
                 clock.width += (w - s)
                 for a in nonclocks:
                     a.width += right_guard(a)
-            
-r((Note,), ["treble"], make_notehead)
-r((Accidental,), ["treble", "bass"], make_accidental_char)
+
+
+# Rules ordered:    
+r((Note,), ["treble"], make_notehead, notehead_vertical_pos)
+r((Accidental,), ["treble", "bass"], make_accidental_char,notehead_vertical_pos2)
 r((Clef,),["treble"], make_clef_char)
 r((HForm,), ["horizontal"], f)
+r((Accidental,Note),["treble"], draw_staff)
 
 
 
 print(mmtopxl(100))
 # 680.3149 pxl
-gemischt=[Note(domain="treble", duration=1), Accidental(domain="treble"),Accidental(domain="bass"), Clef("alto",domain="treble"),Accidental(domain="treble"),
-            Note(domain="treble", duration=.5),Clef("bass",domain="treble"), Accidental(domain="treble")]
+gemischt=[
+Note(domain="treble", duration=1, pitch=["c",4]),
+Accidental(pitch=["c", 4],domain="treble"),
+Accidental(domain="bass"), 
+Clef(pitch="g",domain="treble"),
+Accidental(domain="treble"),
+Note(pitch=["d",4],domain="treble", duration=.5),
+Clef(domain="treble",pitch="bass"),
+Accidental(domain="treble",pitch=["d",4])]
 # gemischt=[Note(domain="treble", duration=1) for _ in range(10)]
 # for a in notes:
     # print(a.content)
@@ -141,8 +171,3 @@ gemischt=[Note(domain="treble", duration=1), Accidental(domain="treble"),Acciden
 h=HForm(abswidth=mmtopxl(100),content=gemischt, absx=200,absy=200, canvas_opacity=.2)
 # print(list(map(lambda n:n._fixtop, notes)))
 h.render()
-# print(h.content[0].content)
-# print(mmtopxl(100),sum(list(map(lambda x:x.width, notes))))
-# a=E.SForm(xoff=20, content=[Char("clefs.F", xoff=50)])
-# b=HForm(absy=100, content=[a])
-# b.render()

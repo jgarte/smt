@@ -23,4 +23,11 @@ instead use the set operator
 	   [set [xscale parent] [* 3 4 .5 2]]]
 ]]
 
+A named function:
+
+[set funcname [function [x y] [print [* x y]]]]
+
+vs. anonymus function:
+
+[function [x y] a doc string? [print [list x y]]]
 """

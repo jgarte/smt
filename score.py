@@ -24,25 +24,30 @@ class Pitch:
     def __init__(self, pitch):
         self.pitch = pitch
 
+# class _ScoreObject(SForm):
+    # def __init__(self, char=None, **kwargs):
+        # self.char = char # Each score object has a main char or list of chars?
+        # SForm.__init__(self, **kwargs)
+
 class Note(SForm, Clock, Pitch):
-    def __init__(self, duration=None, pitch=None, **kwargs):
+    def __init__(self, head=None, flag=None, stem=None, duration=None, pitch=None, **kwargs):
         Clock.__init__(self, duration)
         Pitch.__init__(self, pitch)
         SForm.__init__(self, **kwargs)
         # Head holds the head Char object
-        self.char = None
-        self.flag = None
-        self.stem = None
+        self.head = head
+        self.flag = flag
+        self.stem = stem
 
 class Accidental(SForm, Pitch):
-    def __init__(self, pitch=None, **kwargs):
+    def __init__(self, symbol=None, pitch=None, **kwargs):
         SForm.__init__(self, **kwargs)
         Pitch.__init__(self, pitch)
-        self.char = None
+        self.symbol = symbol
 
 class Clef(SForm, Pitch):
-    def __init__(self, pitch=None, **kwargs):
+    def __init__(self, symbol=None, pitch=None, **kwargs):
         SForm.__init__(self, **kwargs)
         Pitch.__init__(self, pitch)
-        self.char = None
+        self.symbol = symbol
 
