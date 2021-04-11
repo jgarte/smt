@@ -38,6 +38,49 @@ def ruledocs():
     for order, ruledict in _ruletable.items():
         print(order, ruledict["doc"])
 ##### Font
+
+_SVGNS = {"ns": "http://www.w3.org/2000/svg"}
+_fontsdict = {}
+installed_fonts = []
+def install_font1(src):
+    name, ext = os.path.splitext(os.path.basename(src))
+    installed_fonts.append(name)
+    _fontsdict[name] = {}
+    if ext == ".svg":
+        # root = ET.parse(src).getroot()
+        font = ET.parse(src).getroot().find("ns:defs", _SVGNS).find("ns:font", _SVGNS)
+        for glyph in font.findall("ns:glyph", _SVGNS):
+            _fontsdict[name][glyph.get("glyph-name")] = glyph.attrib
+            # glyph.attrib["d"]
+            print(glyph)
+            try:
+                path = SE.Path(glyph.attrib["d"], transform="scale(1 -1)")
+                # .scaled(sx=1, sy=-1)
+                # print(path.continuous_subpaths())
+                xmin, ymin, xmax, ymax = path.bbox()
+                _fontsdict[name][glyph.get("glyph-name")].update({
+                    "original_path_d": glyph.attrib["d"], "path": path,
+                    "left": xmin, "right": xmax,
+                    "top": ymin, "bottom": ymax, "width": xmax - xmin,
+                    "height": ymax - ymin
+                })
+            except KeyError:
+                """
+                _fontsdict[name][glyph["glyph-name"]].update(
+                    {
+                        "path": ?, "left": 0, "height": 0, ...
+                    }
+                )
+                """
+                pass
+    else:
+        raise NotImplementedError("Non-svg fonts are not supported!")
+
+def getglyph(name, font): return _fontsdict[font][name]    
+
+# install_font("/home/amir/haydn/svg/haydn-11.svg")
+
+
 _fonts = {}
 current_font = "Haydn"
 STAFF_HEIGHT_REFERENCE_GLYPH = "clefs.C"
@@ -416,9 +459,10 @@ class _Form(_Canvas):
 
     _idcounter = -1
 
-    def __init__(self, content=None, abswidth=None, **kwargs):
+    def __init__(self, content=None, W=None, **kwargs):
         self.content = content or []
-        self.abswidth = abswidth
+        # self.abswidth = abswidth
+        self.W = W
         _Canvas.__init__(self, **kwargs)
         # These attributes preserve information about the Height of a form object. These info
         # is interesting eg when doing operations which refer to the height of a staff. These values
@@ -518,13 +562,13 @@ class _Form(_Canvas):
         return min([self.x] + list(map(lambda C: C.left, self.content)))
 
     def _compute_right(self):
-        if self.abswidth: # right never changes
-            return self.left + self.abswidth
+        if self.W: # right never changes
+            return self.left + self.W
         else:
             return max([self.x] + list(map(lambda C: C.right, self.content)))
 
     def _compute_width(self): 
-        return self.abswidth or (self.right - self.left)
+        return self.W or (self.right - self.left)
 
     def _compute_top(self):
         return min([self.fixtop] + list(map(lambda C: C.top, self.content)))
