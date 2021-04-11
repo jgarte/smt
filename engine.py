@@ -212,6 +212,7 @@ pgh =mmtopxl(297)
 class _Canvas(_SMTObject):
     def __init__(self, canvas_color=None, absx=None, absy=None, toplevel=False, font=None,
     canvas_opacity=None, xoff=None, yoff=None, xscale=None, yscale=None,
+    x=None, y=None, xlocked=False, ylocked=False,
     canvas_visible=True, origin_visible=True, **kwargs):
         super().__init__(**kwargs)
         # Only the first item in a hform will need _hlineup, for him 
@@ -230,8 +231,12 @@ class _Canvas(_SMTObject):
         self.absx = _LEFT_MARGIN if (self.toplevel and not(absx)) else absx
         self.absy = _TOP_MARGIN if (self.toplevel and not(absy)) else absy
         # ~ We need xy at init-time, just make absx 0 above??????
-        self._x = (self.absx or 0) + self.xoff
-        self._y = (self.absy or 0) + self.yoff
+        # self._x = (self.absx or 0) + self.xoff
+        # self._y = (self.absy or 0) + self.yoff
+        self._x = x or 0
+        self._y = y or 0
+        self.xlocked = xlocked
+        self.ylocked = ylocked
         
     @property
     def x(self): return self._x
@@ -352,21 +357,23 @@ class Char(_Canvas):
     
     @_Canvas.x.setter
     def x(self, newx):
-        dx = newx - self.x # save before modification!
-        self._x = newx
-        self._left += dx
-        self._right += dx
-        for A in reversed(self.ancestors): # An ancestor is always a Form!!
-            A._compute_horizontals()
+        if not self.xlocked:
+            dx = newx - self.x # save before modification!
+            self._x = newx
+            self._left += dx
+            self._right += dx
+            for A in reversed(self.ancestors): # An ancestor is always a Form!!
+                A._compute_horizontals()
     
     @_Canvas.y.setter
     def y(self, newy):
-        dy = newy - self.y
-        self._y = newy
-        self._top += dy
-        self._bottom += dy
-        for A in reversed(self.ancestors): # A are Forms
-            A._compute_verticals()
+        if not self.ylocked:
+            dy = newy - self.y
+            self._y = newy
+            self._top += dy
+            self._bottom += dy
+            for A in reversed(self.ancestors): # A are Forms
+                A._compute_verticals()
             
     @_Canvas.width.setter
     def width(self, neww):
@@ -423,11 +430,13 @@ class _Form(_Canvas):
         for D in descendants(self, False):
             D.ancestors.insert(0, self) # Need smteq??
         for C in self.content:
-            if C.absx == None: # 0 is a legitimate absy!
+            if not C.xlocked:
+            # if C.absx == None: # 0 is a legitimate absy!
                 # Note that this is happening at init-time! When there is no absolute-x,
                 # C.x is ONLY the amount of it's x-offset (see Canvas' self._x definition).
                 C.x += self.x
-            if C.absy == None: # 0 is a legitimate absy!
+            if not C.ylocked:
+            # if C.absy == None: # 0 is a legitimate absy!
                 C.y += self.y
                 # If child is to be relocated vertically, their fix-top & bottom can not be
                 # the original values, but must move along with the parent.
@@ -475,32 +484,34 @@ class _Form(_Canvas):
 
     @_Canvas.x.setter
     def x(self, newx):
-        dx = newx - self.x
-        self._x = newx
-        self._left += dx
-        self._right += dx
-        for D in descendants(self, False):
-            # Descendants' x are shifted by delta-x. 
-            D._x += dx
-            D._left += dx
-            D._right += dx
-        for A in reversed(self.ancestors):
-            A._compute_horizontals()
+        if not self.xlocked:
+            dx = newx - self.x
+            self._x = newx
+            self._left += dx
+            self._right += dx
+            for D in descendants(self, False):
+                # Descendants' x are shifted by delta-x. 
+                D._x += dx
+                D._left += dx
+                D._right += dx
+            for A in reversed(self.ancestors):
+                A._compute_horizontals()
 
     @_Canvas.y.setter
     def y(self, newy):
-        dy = newy - self.y
-        self._y = newy
-        self._top += dy
-        self._bottom += dy
-        for D in descendants(self, False):
-            D._y += dy
-            D._top += dy
-            D._bottom += dy
-        # Shifting Y might have an impact on ancestor's width!
-        for A in reversed(self.ancestors):
-            A._compute_verticals()
-
+        if not self.ylocked:
+            dy = newy - self.y
+            self._y = newy
+            self._top += dy
+            self._bottom += dy
+            for D in descendants(self, False):
+                D._y += dy
+                D._top += dy
+                D._bottom += dy
+            # Shifting Y might have an impact on ancestor's width!
+            for A in reversed(self.ancestors):
+                A._compute_verticals()
+    
     def _compute_left(self):
         """Determines the left-most of either: form's own x coordinate 
         or the left-most site of it's direct children."""
@@ -552,12 +563,14 @@ class SForm(_Form):
         """Appends new children to Form's content list."""
         self._establish_parental_relationship(children)
         self.content.extend(children)
-        for child in children:
+        for C in children:
             # Use == since absx could be set.
-            if child.absx == None:
-                child.x += self.x
-            if child.absy == None:
-                child.y += self.y
+            # if child.absx == None:
+            if not C.xlocked:
+                C.x += self.x
+            # if C.absy == None:
+            if not C.ylocked:
+                C.y += self.y
         # Having set the content before would have caused assign_x to trigger computing horizontals for the Form,
         # which would have been to early!????
         self._compute_horizontals()
