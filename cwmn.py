@@ -48,19 +48,19 @@ dann wird es geprinted! Also aufpassen mit eckigen Klammern!)
 def make_notehead(note):
     # setter for head? to append automatically
     if isinstance(note.duration, str):
-        note.head = Char(name={
+        note.headsymbol = Char(name={
             "w": "noteheads.s0",
             "h": "noteheads.s1",
             "q": "noteheads.s2"
         }[note.duration])
     elif isinstance(note.duration, (float, int)):
-        note.head = Char(name={
+        note.headsymbol = Char(name={
             1: "noteheads.s0",
             .5: "noteheads.s1",
             .25: "noteheads.s2"
         }[note.duration])
     # note.head.y += randint(-100, 100)
-    note.append(note.head)
+    note.append(note.headsymbol)
 
 def add_stem(self):
     self.stem = Stem(x=self.head.left, y=self.head.y,direction="down",
@@ -82,13 +82,7 @@ def notehead_vertical_pos(note):
     if isinstance(note.pitch, list):
         p = note.pitch[0]
         okt = note.pitch[1]
-        note.head.y = ((note.fixbottom - {"c":-STAFF_SPACE, "d":-(.5 * STAFF_SPACE)}[p]) + ((4 - okt) * 7/8 * note.FIXHEIGHT))
-
-def notehead_vertical_pos2(note):
-    if isinstance(note.pitch, list):
-        p = note.pitch[0]
-        okt = note.pitch[1]
-        note.symbol.y = ((note.fixbottom - {"c":-STAFF_SPACE, "d":-(.5 * STAFF_SPACE)}[p]) + ((4 - okt) * 7/8 * note.FIXHEIGHT))
+        note.headsymbol.y = ((note.fixbottom - {"c":-STAFF_SPACE, "d":-(.5 * STAFF_SPACE)}[p]) + ((4 - okt) * 7/8 * note.FIXHEIGHT))
 
 # def draw_staff(self):
     # for i in range(-2, 3):
@@ -160,14 +154,14 @@ def f(h):
 # Rules ordered:    
 r("1: make noteheads, 2. position vertically",
     (Note,), ["treble"], make_notehead)
-r("", (Accidental,), ["treble", "bass"], make_accidental_char,notehead_vertical_pos2)
+r("", (Accidental,), ["treble", "bass"], make_accidental_char)
 r("decide clef symbol, add a stem", (Clef,),["treble"], make_clef_char)
 r("", (HForm,), ["horizontal"], f)
-r("Add stems to noteheads, after punctuation computed.", (Note,), ["treble"], add_stem)
+# r("Add stems to noteheads, after punctuation computed.", (Note,), ["treble"], add_stem)
 def movex(self): 
     self.stem.color = svg.utils.rgb(100, 0,0,"%")
     print(self.stem.y, self.stem.left)
-r("Just move note to see if stem moves along?", (Note,), ["treble"], movex)
+# r("Just move note to see if stem moves along?", (Note,), ["treble"], movex)
 # r("Add stem to clef for fun", (Clef,), ["treble"], add_stem_clef)
 # r((Accidental,),["treble"], draw_staff)
 ruledocs()

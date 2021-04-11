@@ -39,14 +39,14 @@ class Stem(VLineSegment):
 # print(Stem(direction="up",x=10,y=0).x)
 
 class Note(SForm, Clock, Pitch):
-    def __init__(self, head=None, flag=None, stem=None, duration=None, pitch=None, **kwargs):
+    def __init__(self, headsymbol=None, flagsymbol=None, stemsymbol=None, duration=None, pitch=None, **kwargs):
         Clock.__init__(self, duration)
         Pitch.__init__(self, pitch)
         SForm.__init__(self, **kwargs)
         # Head holds the head Char object
-        self.head = head
-        self.flag = flag
-        self.stem = stem
+        self.headsymbol = headsymbol
+        self.flagsymbol = flagsymbol
+        self.stemsymbol = stemsymbol
     # @property
     # def stem(self): return self._stem
     # @stem.setter
