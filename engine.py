@@ -184,16 +184,20 @@ class _SMTObject:
     def __init__(self, id_=None, domain=None):
         self.ancestors = []
         self.id = id_ or self._assign_id()
-        self._svglist = []
+        self._svg_list = []
         self.domain = domain
         self._rules_applied_to = False
+        
+    def _pack_svg_list(self):
+        """Makes sure the derived class has implemented this method!"""
+        raise NotImplementedError(f"_pack_svg_list not overriden by {self.__class__.__name__}!")
     
     def _assign_id(self):
         self.__class__._idcounter += 1
         return self.__class__.__name__ + str(self.__class__._idcounter)
 
     def addsvg(self, *elements):
-        self._svglist.extend(elements)
+        self._svg_list.extend(elements)
 
     def parent(self): return self.ancestors[-1]
     def root(self): return self.ancestors[0]
@@ -230,8 +234,8 @@ def render(obj):
     D = SW.drawing.Drawing(filename="/tmp/me.svg", size=(pgw,pgh), debug=True)
     obj._apply_rules()
     # ~ Form's packsvglst will call packsvglst on descendants recursively
-    obj._pack_svglist()
-    for elem in obj._svglist:
+    obj._pack_svg_list()
+    for elem in obj._svg_list:
         if isinstance(elem, _LineSegment):
             D.add(elem._line_element)
         else:
@@ -437,19 +441,19 @@ class Char(_Canvas, _Font):
     def _compute_height(self):
         return toplevel_scale(self.glyph["height"])
     
-    def _pack_svglist(self):
+    def _pack_svg_list(self):
         # Add bbox rect
         if self.canvas_visible:
-            self._svglist.append(_bboxelem(self))
+            self._svg_list.append(_bboxelem(self))
         # Add the music character
-        self._svglist.append(SW.path.Path(d=_getglyph(self.name, self.font)["d"],
+        self._svg_list.append(SW.path.Path(d=_getglyph(self.name, self.font)["d"],
         id_=self.id, fill=self.color, fill_opacity=self.opacity,
         transform="translate({0} {1}) scale(1 -1) scale({2} {3})".format(
         self.x, self.y, self.xscale * _scale(), self.yscale * _scale())))
         # Add the origin
         if self.origin_visible:
             for elem in _origelems(self):
-                self._svglist.append(elem)
+                self._svg_list.append(elem)
 
 
 class _Form(_Canvas, _Font):
@@ -576,17 +580,17 @@ class _Form(_Canvas, _Font):
     
     def _compute_height(self): return self.bottom - self.top
     
-    def _pack_svglist(self):
+    def _pack_svg_list(self):
         # Bbox
-        if self.canvas_visible: self._svglist.append(_bboxelem(self))
+        if self.canvas_visible: self._svg_list.append(_bboxelem(self))
         # Add content
         for C in self.content:
             C.xscale *= self.xscale
             C.yscale *= self.yscale
-            C._pack_svglist() # Recursively gather svg elements
-            self._svglist.extend(C._svglist)
+            C._pack_svg_list() # Recursively gather svg elements
+            self._svg_list.extend(C._svg_list)
         # Origin
-        if self.origin_visible: self._svglist.extend(_origelems(self))
+        if self.origin_visible: self._svg_list.extend(_origelems(self))
 
 
 class SForm(_Form):
@@ -687,12 +691,9 @@ class _LineSegment(_Canvas):
     """Angle in degrees"""
     __ENDINGS = ("round", "square", "butt")
     _idcounter = -1
-    def __init__(self, x, y, length, ending, thickness=None, angle=None, color=None, **kwargs):
+    def __init__(self, length, ending, thickness=None, angle=None, color=None, **kwargs):
         super().__init__(**kwargs)
-        self._x = x
-        self._y = y
-        self._length = length
-        # self._direction = direction or 1
+        self._length = length or 0
         self._color = color or SW.utils.rgb(0, 0, 0)
         self._angle = angle or 0
         self._thickness = thickness or 0
