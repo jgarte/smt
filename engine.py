@@ -252,8 +252,9 @@ pgw = mmtopxl(210)
 pgh =mmtopxl(297)
 
 
+
 class _Canvas(_SMTObject):
-    def __init__(self, canvas_color=None, absx=None, absy=None, toplevel=False, font=None,
+    def __init__(self, canvas_color=None, absx=None, absy=None, toplevel=False,
     canvas_opacity=None, xoff=None, yoff=None, xscale=None, yscale=None,
     x=None, y=None, xlocked=False, ylocked=False,
     canvas_visible=True, origin_visible=True, **kwargs):
@@ -261,7 +262,7 @@ class _Canvas(_SMTObject):
         # Only the first item in a hform will need _hlineup, for him 
         # this is set by HForm itself.
         self._is_hlineup_head = False
-        self.font = font or current_font
+        # self.font = font or current_font
         self.canvas_opacity = canvas_opacity or 0.3
         self.canvas_visible = canvas_visible
         self.canvas_color = canvas_color
@@ -361,15 +362,20 @@ def _origelems(obj):
                                         stroke=svg.utils.rgb(87, 78, 55), 
                                         stroke_width=_ORIGIN_LINE_THICKNESS)]
 
+class _Font:
+    """Adds font feature to Char & Form"""
+    def __init__(self, font=None):
+        self.font = current_font if font is None else font
 
-class Char(_Canvas):
+class Char(_Canvas, _Font):
     
     _idcounter = -1
     
     def __init__(self, name, color=None, opacity=None,
-    visible=True,
+    visible=True, font=None,
     **kwargs):
         _Canvas.__init__(self, **kwargs)
+        _Font.__init__(self, font)
         self.name = name
         self.glyph = _getglyph(self.name, self.font)
         self.color = color or svg.utils.rgb(0, 0, 0)
@@ -455,15 +461,16 @@ class Char(_Canvas):
                 self._svglist.append(elem)
 
 
-class _Form(_Canvas):
+class _Form(_Canvas, _Font):
 
     _idcounter = -1
 
-    def __init__(self, content=None, width=None, **kwargs):
+    def __init__(self, font=None, content=None, width=None, **kwargs):
         self.content = content or []
         # self.abswidth = abswidth
         self._fixwidth = width
         _Canvas.__init__(self, **kwargs)
+        _Font.__init__(self, font)
         # These attributes preserve information about the Height of a form object. These info
         # is interesting eg when doing operations which refer to the height of a staff. These values
         # should never change, except with when the parent is shifted, they move along of course!
