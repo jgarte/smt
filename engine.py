@@ -21,22 +21,40 @@ import svgwrite as SW
             # return
     # _ruleregistry.append({"T": targets, "D": domains, "F": fn})
 
-# ~ New rule is by default applicable to all hitherto defined domains
-_ruledomains = set()
-_ruletargets = set((object,))
-_ruletable = {}
-_ruleorder = 0
-def r(doc, targets, domains, *funcs):
-    assert isinstance(doc, str), "Rule's documentation must be a str."
-    _ruletargets.update(tuple(targets))
-    _ruledomains.update(tuple(domains))
-    global _ruleorder
-    _ruletable[_ruleorder] = {"T": targets, "D": domains, "F": funcs, "doc": doc}
-    _ruleorder += 1
+class RuleTable:
+    
+    def __init__(self):
+        self.domains = set()
+        self.targets = set((object,))
+        self.rules = {}
+        self._order = 0
+    
+    def add(self, hook, targets, domains):
+        self.targets.update(tuple(targets))
+        self.domains.update(tuple(domains))
+        self.rules[self._order] = {"targets": targets, "domains": domains, "hook": hook}
+        self._order += 1
 
-def ruledocs():
-    for order, ruledict in _ruletable.items():
-        print(order, ruledict["doc"])
+# # ~ New rule is by default applicable to all hitherto defined domains
+# _ruledomains = set()
+# _ruletargets = set((object,))
+# _ruletable = {}
+# _ruleorder = 0
+# def r(doc, targets, domains, *funcs):
+    # assert isinstance(doc, str), "Rule's documentation must be a str."
+    # _ruletargets.update(tuple(targets))
+    # _ruledomains.update(tuple(domains))
+    # global _ruleorder
+    # _ruletable[_ruleorder] = {"T": targets, "D": domains, "F": funcs, "doc": doc}
+    # _ruleorder += 1
+
+# def ruledocs():
+    # for order, ruledict in _ruletable.items():
+        # print(order, ruledict["doc"])
+
+
+
+
 ##### Font
 
 _SVGNS = {"ns": "http://www.w3.org/2000/svg"}
@@ -173,20 +191,28 @@ def getallin(typeof, obj):
     """Returns an iterable of all types in obj."""
     return filter(lambda O: isinstance(O, typeof), members(obj))
 
-def _rule_application_eligibles(obj):
-    # Put in list to get False [] if nothing was filtered. 
-    return list(filter(lambda O: (O.domain in _ruledomains) and
-    (isinstance(O, tuple(_ruletargets))) and not(O._rules_applied_to), 
-    members(obj))
-    )
+# def _rule_application_eligibles(obj):
+    # # Put in list to get False [] if nothing was filtered. 
+    # return list(filter(lambda O: (O.domain in _ruledomains) and
+    # (isinstance(O, tuple(_ruletargets))) and not(O._rules_applied_to), 
+    # members(obj))
+    # )
 
 class _SMTObject:
-    def __init__(self, id_=None, domain=None):
+    def __init__(self, id_=None, domain=None, ruletable=None):
         self.ancestors = []
         self.id = id_ or self._assign_id()
         self._svg_list = []
         self.domain = domain
         self._rules_applied_to = False
+        self.ruletable = ruletable
+    
+    def _rule_application_eligibles(self):
+        # Put in list to get False [] if nothing was filtered. 
+        return list(filter(lambda O: (O.domain in self.ruletable.domains) and
+        (isinstance(O, tuple(self.ruletable.targets))) and not(O._rules_applied_to), 
+        members(self))
+        )
         
     def _pack_svg_list(self):
         """Makes sure the derived class has implemented this method!"""
@@ -211,23 +237,27 @@ class _SMTObject:
         """
         Applies rules to this object and all it's descendants. 
         """
-        eligibles = _rule_application_eligibles(self)
+        eligibles = self._rule_application_eligibles()
         while True:
             if eligibles:
                 # Must iterate over rules first, then over objs.
                 # It is the order of rules to be applied which matters here! 
-                for order in sorted(_ruletable):
-                    rule = _ruletable[order]
+                # for order in sorted(_ruletable):
+                for order in sorted(self.ruletable.rules):
+                    # rule = _ruletable[order]
+                    rule = self.ruletable.rules[order]
                     for obj in eligibles:
-                        if isinstance(obj, rule["T"]) and (obj.domain in rule["D"]):
-                            for hook in rule["F"]: hook(obj)
+                        # if isinstance(obj, rule["T"]) and (obj.domain in rule["D"]):
+                        if isinstance(obj, rule["targets"]) and (obj.domain in rule["domains"]):
+                            # for hook in rule["hooks"]: hook(obj)
+                            rule["hook"](obj)
                             obj._rules_applied_to = True
                         if isinstance(obj, HForm):
-                            print([a.x for a in obj.content])
+                            print("1",[a.x for a in obj.content])
                             obj._lineup()
-                            print([a.x for a in obj.content])
+                            print("2",[a.x for a in obj.content])
                 # Maybe some rule has created new objs, or even defined new rules!
-                eligibles = _rule_application_eligibles(self)
+                eligibles = self._rule_application_eligibles()
             else:
                 break
     

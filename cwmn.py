@@ -60,8 +60,8 @@ def make_notehead(note):
             .25: "noteheads.s2"
         }[note.duration])
 
-def add_stem(self):
-    self.stem = Stem(x=self.x+.5, y=self.y,length=10,thickness=1,endxr=1,endyr=3)
+def setstem(self):
+    self.stem = Stem(x=self.x+.5, y=self.y,length=10,thickness=1,endxr=10,endyr=10)
     
 
 def notehead_vertical_pos(note):
@@ -138,22 +138,24 @@ def f(h):
                     a.width += right_guard(a)
     # print([(a.left, a.width) for a in h.content])
 
+cwmn = RuleTable()
+cwmn.add(make_notehead, (Note,), ["treble"])
+# cwmn.new((Accidental,), ["treble", "bass"], make_accidental_char)
+cwmn.add(setstem, (Note,), ["treble"])
+cwmn.add(f, (HForm,), ["horizontal"])
 
-# Rules ordered:    
-r("1: make noteheads, 2. position vertically",
-    (Note,), ["treble"], make_notehead, 
-    # notehead_vertical_pos
-    )
-r("", (Accidental,), ["treble", "bass"], make_accidental_char)
-# r("Add stems to noteheads, after punctuation computed.", (Note,), ["treble"], add_stem)
-r("decide clef symbol, add a stem", (Clef,),["treble"], make_clef_char)
-r("punct", (HForm,), ["horizontal"], f)
-r("Add stems to noteheads, after punctuation computed.", (Note,), ["treble"], add_stem)
 
-# r("Just move note to see if stem moves along?", (Note,), ["treble"], movex)
-# r("Add stem to clef for fun", (Clef,), ["treble"], add_stem_clef)
-# r((Accidental,),["treble"], draw_staff)
-ruledocs()
+# # Rules ordered:    
+# r("1: make noteheads, 2. position vertically",
+    # (Note,), ["treble"], make_notehead, 
+    # # notehead_vertical_pos
+    # )
+# r("", (Accidental,), ["treble", "bass"], make_accidental_char)
+# # r("Add stems to noteheads, after punctuation computed.", (Note,), ["treble"], setstem)
+# r("decide clef symbol, add a stem", (Clef,),["treble"], make_clef_char)
+# r("punct", (HForm,), ["horizontal"], f)
+# r("Add stems to noteheads, after punctuation computed.", (Note,), ["treble"], setstem)
+# ruledocs()
 
 # 680.3149 pxl
 gemischt=[
@@ -177,5 +179,5 @@ Note(pitch=["d",4],domain="treble", duration=.5),
 # print(notes[0].width, notes[0].content[0].width)
 # print(list(map(lambda n:n.x, notes[0].content)))
 # print(notes[0].width)
-h=HForm(content=gemischt, width=mmtopxl(50),x=10,y=200, canvas_opacity=.2)
+h=HForm(ruletable=cwmn, content=gemischt, width=mmtopxl(50),x=10,y=200, canvas_opacity=.2)
 render(h)
