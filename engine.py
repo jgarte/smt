@@ -266,13 +266,13 @@ class _Canvas(_SMTObject):
         self.canvas_visible = canvas_visible
         self.canvas_color = canvas_color
         self.origin_visible = origin_visible
-        self.xoff = xoff or 0
-        self.yoff = yoff or 0
+        # self.xoff = xoff or 0
+        # self.yoff = yoff or 0
         self.xscale = xscale or GLOBAL_SCALE
         self.yscale = yscale or GLOBAL_SCALE
-        self.toplevel = toplevel
-        self.absx = _LEFT_MARGIN if (self.toplevel and not(absx)) else absx
-        self.absy = _TOP_MARGIN if (self.toplevel and not(absy)) else absy
+        # self.toplevel = toplevel
+        # self.absx = _LEFT_MARGIN if (self.toplevel and not(absx)) else absx
+        # self.absy = _TOP_MARGIN if (self.toplevel and not(absy)) else absy
         # ~ We need xy at init-time, just make absx 0 above??????
         # self._x = (self.absx or 0) + self.xoff
         # self._y = (self.absy or 0) + self.yoff
@@ -459,10 +459,10 @@ class _Form(_Canvas):
 
     _idcounter = -1
 
-    def __init__(self, content=None, W=None, **kwargs):
+    def __init__(self, content=None, width=None, **kwargs):
         self.content = content or []
         # self.abswidth = abswidth
-        self.W = W
+        self._fixwidth = width
         _Canvas.__init__(self, **kwargs)
         # These attributes preserve information about the Height of a form object. These info
         # is interesting eg when doing operations which refer to the height of a staff. These values
@@ -562,13 +562,13 @@ class _Form(_Canvas):
         return min([self.x] + list(map(lambda C: C.left, self.content)))
 
     def _compute_right(self):
-        if self.W: # right never changes
-            return self.left + self.W
+        if self._fixwidth: # right never changes
+            return self.left + self._fixwidth
         else:
             return max([self.x] + list(map(lambda C: C.right, self.content)))
 
-    def _compute_width(self): 
-        return self.W or (self.right - self.left)
+    def _compute_width(self):
+        return (self.right - self.left) if self._fixwidth is None else self._fixwidth
 
     def _compute_top(self):
         return min([self.fixtop] + list(map(lambda C: C.top, self.content)))

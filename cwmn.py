@@ -186,9 +186,9 @@ Accidental(domain="treble",pitch=["d",4])]
 # print(notes[0].width, notes[0].content[0].width)
 # print(list(map(lambda n:n.x, notes[0].content)))
 # print(notes[0].width)
-h=HForm(W=mmtopxl(100),content=gemischt, x=100,y=200, canvas_opacity=.2)
+h=HForm(width=mmtopxl(100),content=gemischt, x=100,y=200, canvas_opacity=.2)
 # print(list(map(lambda n:n._fixtop, notes)))
-print(h.content[0].x, h.W, h.width, h._width, mmtopxl(100))
-h.content[0].x += 10
-print(h.content[0].x)
+print(h.content[0].x, h._fixwidth, h.width, h._width, mmtopxl(100))
+# h.content[0].x += 10
+# print(h.content[0].x)
 render(h)
