@@ -153,7 +153,9 @@ def f(h):
 
 # Rules ordered:    
 r("1: make noteheads, 2. position vertically",
-    (Note,), ["treble"], make_notehead)
+    (Note,), ["treble"], make_notehead, 
+    # notehead_vertical_pos
+    )
 r("", (Accidental,), ["treble", "bass"], make_accidental_char)
 r("decide clef symbol, add a stem", (Clef,),["treble"], make_clef_char)
 r("", (HForm,), ["horizontal"], f)
@@ -169,7 +171,7 @@ ruledocs()
 # print(mmtopxl(100))
 # 680.3149 pxl
 gemischt=[
-Note(domain="treble", duration=1, pitch=["c",4]),
+Note(domain="treble", duration=1, pitch=["c",4], x=50, y=57.6, xlocked=True,ylocked=True),
 Accidental(pitch=["c", 4],domain="treble"),
 Accidental(domain="bass"), 
 Clef(pitch="g",domain="treble"),
@@ -186,9 +188,7 @@ Accidental(domain="treble",pitch=["d",4])]
 # print(notes[0].width, notes[0].content[0].width)
 # print(list(map(lambda n:n.x, notes[0].content)))
 # print(notes[0].width)
-h=HForm(width=mmtopxl(100),content=gemischt, x=100,y=200, canvas_opacity=.2)
-# print(list(map(lambda n:n._fixtop, notes)))
-print(h.content[0].x, h._fixwidth, h.width, h._width, mmtopxl(100))
-# h.content[0].x += 10
-# print(h.content[0].x)
+h=HForm(content=gemischt, x=100,y=200, canvas_opacity=.2)
+
+print(h.content[0].x)
 render(h)
