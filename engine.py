@@ -190,7 +190,7 @@ class _SMTObject:
         
     def _pack_svg_list(self):
         """Makes sure the derived class has implemented this method!"""
-        raise NotImplementedError(f"_pack_svg_list not overriden by {self.__class__.__name__}!")
+        raise NotImplementedError(f"_pack_svg_list must be overriden by {self.__class__.__name__}!")
     
     def _assign_id(self):
         self.__class__._idcounter += 1
@@ -318,6 +318,14 @@ class _Canvas(_SMTObject):
         
     # def _assign_left(self, newl):
         # self._assign_x(self.x + (newl - self.left))
+
+
+    # Make sure from canvas derived subclasses have implemented these computations.
+    def _compute_width(self):
+        raise NotImplementedError(f"_compute_width must be overriden by {self.__class__.__name__}")
+    def _compute_height(self):
+        raise NotImplementedError(f"_compute_height must be overriden by {self.__class__.__name__}")
+        
 
     def _compute_horizontals(self):
         self._left = self._compute_left()
@@ -681,114 +689,28 @@ class HForm(_Form):
         for a, b in zip(self.content[:-1], self.content[1:]):
             b.left = a.right
 
-def _hline_segment(x, y, length, angle, thickness, color):
-    return SW.shapes.Line(start=(x, y), end=(x + length, y),
-    transform=f"rotate({angle} {x} {y})", stroke_width=thickness,
-    stroke=color)
 
 
 class _LineSegment(_Canvas):
     """Angle in degrees"""
     __ENDINGS = ("round", "square", "butt")
     _idcounter = -1
-    def __init__(self, length, ending, thickness=None, angle=None, color=None, **kwargs):
+    def __init__(self, length, ending, direction=None, thickness=None, angle=None, color=None, **kwargs):
         super().__init__(**kwargs)
         self._length = length or 0
         self._color = color or SW.utils.rgb(0, 0, 0)
         self._angle = angle or 0
         self._thickness = thickness or 0
-        assert ending in _LineSegment.__ENDINGS, "Line's ending must be one of {0}, {1} was given instead!".format(
-        _LineSegment.__ENDINGS, ending)
-        self._ending = ending
-        self._line_element = self._make_line_element()
-    
-    @property
-    def ending(self): return self._ending
-    
-    @property
-    def direction(self): return self._direction
-    
-    @property
-    def length(self): return self._length
-    
-    @length.setter
-    def length(self, new_length):
-        self._length = new_length
-        self._line_element = self._make_line_element()
-    
-    @property
-    def x(self): return self._x
-    
-    @x.setter
-    def x(self, newx):
-        self._x = newx
-        # There is no access to attribuites of the Line object from svgwrite' side!
-        # So we have to regenerate a new Line object. :-(
-        self._line_element = self._make_line_element()
-    
-    @property
-    def y(self): return self._y
-    
-    @y.setter
-    def y(self, newy):
-        self._y = newy
-        self._line_element = self._make_line_element()
-    
-    @property
-    def thickness(self): return self._thickness
-    
-    @thickness.setter
-    def thickness(self, new_thickness):
-        self._thickness = new_thickness
-        self._line_element = self._make_line_element()
-    
-    @property
-    def angle(self): return self._angle
-    
-    @angle.setter
-    def angle(self, new_angle):
-        self._angle = new_angle
-        self._line_element = self._make_line_element()
-    
-    @property
-    def color(self): return self._color
-    
-    @color.setter
-    def color(self, new_color):
-        self._color = new_color
-        self._line_element = self._make_line_element()
 
 
-# class HLineSegment(_LineSegment):
-    # __DIRECTIONS = {"left": -1, "right": 1}
-    
-    # def __init__(self, direction, **kwargs):
-        # assert direction in HLineSegment.__DIRECTIONS, "Horizontal line's direction must be one of {0}, {1} was given instead!".format(
-        # HLineSegment.__DIRECTIONS.keys(), direction)
-        # self._direction = direction
-        # super().__init__(**kwargs)
-    # @property
-    # def left(self): return self._x
-    # def _make_line_element(self):
-        # return SW.shapes.Line(start=(self.x, self.y), 
-        # end=(self.x + (self.length * HLineSegment.__DIRECTIONS[self.direction]), self.y),
-        # transform=f"rotate({self.angle} {self.x} {self.y})",
-        # stroke_width=self.thickness, stroke=self.color)
+class HLineSegment(_LineSegment):
+    def __init__(self, direction=None):
+        self._direction = "r" if direction is None else direction
 
-# # print(HLineSegment(x=0,y=0,length=0))
-
-# class VLineSegment(_LineSegment):
-    # __DIRECTIONS = {"up": -1, "down": 1}
+    def _compute_width(self)
     
-    # def __init__(self, direction, **kwargs):
-        # assert direction in VLineSegment.__DIRECTIONS, "Vertical line's direction must be one of {0}, {1} was given instead!".format(
-        # VLineSegment.__DIRECTIONS.keys(), direction)
-        # self._direction = direction
-        # super().__init__(**kwargs)
-    # @property
-    # def left(self): return self.x - self.thickness * 0.5
-    # def _make_line_element(self):
-        # return SW.shapes.Line(start=(self.x, self.y), 
-        # end=(self.x, self.y + (self.length * VLineSegment.__DIRECTIONS[self.direction])),
-        # transform=f"rotate({self.angle} {self.x} {self.y})", stroke_linecap=self.ending,
-        # stroke_width=self.thickness, stroke=self.color)
+    def _pack_svg_list(self):
+        self._svg_list.append(SW.shapes.Rect(
+            
+            )
+        )
