@@ -13,7 +13,7 @@ import svgwrite as SW
 
 
 ############### rules
-
+# ruletable class with multiple rule hooks?
 # _ruleregistry = []
 # def rule(targets, domains, fn):
     # for r in _ruleregistry:
@@ -173,12 +173,12 @@ def getallin(typeof, obj):
     """Returns an iterable of all types in obj."""
     return filter(lambda O: isinstance(O, typeof), members(obj))
 
-def _rule_appl_elig_objs(obj):
+def _rule_application_eligibles(obj):
     # Put in list to get False [] if nothing was filtered. 
     return list(filter(lambda O: (O.domain in _ruledomains) and
-    (isinstance(O, tuple(_ruletargets))) and
-    not(O._rules_applied_to), 
-    members(obj)))
+    (isinstance(O, tuple(_ruletargets))) and not(O._rules_applied_to), 
+    members(obj))
+    )
 
 class _SMTObject:
     def __init__(self, id_=None, domain=None):
@@ -190,7 +190,7 @@ class _SMTObject:
         
     def _pack_svg_list(self):
         """Makes sure the derived class has implemented this method!"""
-        raise NotImplementedError(f"_pack_svg_list must be overriden by {self.__class__.__name__}!")
+        raise NotImplementedError(f"Forgot to override _pack_svg_list for {self.__class__.__name__}?")
     
     def _assign_id(self):
         self.__class__._idcounter += 1
@@ -209,29 +209,30 @@ class _SMTObject:
 
     def _apply_rules(self):
         """
-        Applies rules to OBJ and all it's descendants. 
+        Applies rules to this object and all it's descendants. 
         """
-        eligible_objs = _rule_appl_elig_objs(self)
+        eligibles = _rule_application_eligibles(self)
         while True:
-            if eligible_objs:
+            if eligibles:
                 # Must iterate over rules first, then over objs.
                 # It is the order of rules to be applied which matters here! 
                 for order in sorted(_ruletable):
                     rule = _ruletable[order]
-                    for obj in eligible_objs:
+                    for obj in eligibles:
                         if isinstance(obj, rule["T"]) and (obj.domain in rule["D"]):
-                            for fn in rule["F"]:
-                                fn(obj)
+                            for hook in rule["F"]: hook(obj)
                             obj._rules_applied_to = True
                         if isinstance(obj, HForm):
+                            print([a.x for a in obj.content])
                             obj._lineup()
+                            print([a.x for a in obj.content])
                 # Maybe some rule has created new objs, or even defined new rules!
-                eligible_objs = _rule_appl_elig_objs(self)
+                eligibles = _rule_application_eligibles(self)
             else:
                 break
     
 def render(obj):
-    D = SW.drawing.Drawing(filename="/tmp/me.svg", size=(pgw,pgh), debug=True)
+    D = SW.drawing.Drawing(filename="/tmp/smt.svg", size=(pgw,pgh), debug=True)
     obj._apply_rules()
     # ~ Form's packsvglst will call packsvglst on descendants recursively
     obj._pack_svg_list()
@@ -301,7 +302,7 @@ class _Canvas(_SMTObject):
         # self.x = self.x + (newl - self.left)
         # deltal = newl - self.left
         # self.x = self.x + deltal
-        self.x += newl - self.left
+        self.x += (newl - self.left)
 
     @right.setter
     def right(self):
@@ -515,10 +516,11 @@ class _Form(_Canvas, _Font):
 
     @_Canvas.width.setter
     def width(self, neww):
-        self._right = self._left + neww
-        self._width = neww
-        for A in reversed(self.ancestors):
-            A._compute_horizontals()
+        if not self._fixwidth:
+            self._right = self._left + neww
+            self._width = neww
+            for A in reversed(self.ancestors):
+                A._compute_horizontals()
     
     # # TODO: Here the case of children with absx MUST be considered, what happens to the dimensions
     # # of the form, if a child is not willing to move due to it's absx?
@@ -695,22 +697,67 @@ class _LineSegment(_Canvas):
     """Angle in degrees"""
     __ENDINGS = ("round", "square", "butt")
     _idcounter = -1
-    def __init__(self, length, ending, direction=None, thickness=None, angle=None, color=None, **kwargs):
+    def __init__(self, length=None, direction=None, thickness=None, angle=None, color=None, 
+    rounded=False, endxr=None, endyr=None,
+    **kwargs):
         super().__init__(**kwargs)
         self._length = length or 0
         self._color = color or SW.utils.rgb(0, 0, 0)
         self._angle = angle or 0
         self._thickness = thickness or 0
+        self._direction = direction
+        self._compute_horizontals()
+        self._compute_verticals()
+        self.endxr = endxr or 0
+        self.endyr = endyr or 0
+        self.rounded = rounded
+    # Override canvas packsvglist
+    def _pack_svg_list(self):
+        self._svg_list.append(SW.shapes.Rect(
+            insert=(self.left, self.top),
+            size=(self.width, self.height),
+            fill=self.color, rx=self.endxr, ry=self.endyr
+            )
+        )
+    @_Canvas.x.setter
+    def x(self, newx): self._x = newx
+    @_Canvas.y.setter
+    def y(self, newy): self._y = newy
+    @property
+    def length(self): return self._length
+    @property
+    def thickness(self): return self._thickness
+    @property
+    def color(self): return self._color
+
+class VLineSegment(_LineSegment):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+    def _compute_height(self): return self.length
+    def _compute_width(self): return self.thickness
+    def _compute_left(self): return self.x - self.thickness*.5
+    def _compute_right(self): return self.x + self.thickness*.5
+    def _compute_bottom(self): return self.y + self.length
+    def _compute_top(self): return self.y
+    # def endr(self): return self.thickness*.5 if self.rounded else 0
 
 
 class HLineSegment(_LineSegment):
-    def __init__(self, direction=None):
-        self._direction = "r" if direction is None else direction
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+    def _compute_width(self): return self.length
+    def _compute_height(self): return self.thickness
+    def _compute_left(self): return self.x
+    def _compute_right(self): return self.x + self.length
+    def _compute_top(self): return self.y - self.thickness*.5
+    def _compute_bottom(self): return self.y + self.thickness*.5
+    # # Override canvas packsvglist
+    # def _pack_svg_list(self):
+        # self._svg_list.append(SW.shapes.Rect(
+            # insert=(self.left, self.top),
+            # size=(self.width, self.height),
+            # fill=self.color, 
+            # rx=self.width, ry=self.width
+            # )
+        # )
 
-    def _compute_width(self)
-    
-    def _pack_svg_list(self):
-        self._svg_list.append(SW.shapes.Rect(
-            
-            )
-        )

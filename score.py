@@ -1,6 +1,5 @@
 from engine import *
 
-
 class Clock:
     def __init__(self, duration=None):
         self.duration = duration or 0.25
@@ -25,32 +24,52 @@ class Pitch:
         self.pitch = pitch
 
 
-# STAFF_LINE_THICKNESS = 1.0
+STAFF_LINE_THICKNESS = 1.0
 
-# class Staff(HLineSegment):
-    # LINE_THICKNESS = 1.0
+class Staff(HLineSegment):
+    LINE_THICKNESS = 1.0
 
 
-# class Stem(VLineSegment):
-    # def __init__(self, length=None, thickness=None, ending=None, **kwargs):
-        # super().__init__(length=(length or (3.0 * STAFF_SPACE)),
-        # thickness=(thickness or Staff.LINE_THICKNESS), ending=(ending or "square"),
-        # **kwargs)
-# print(Stem(direction="up",x=10,y=0).x)
+class Stem(VLineSegment):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+def _remove_from_content_ip(obj, type_):
+    """Removes any objects of type type_ from obj."""
+    for i, C in enumerate(obj.content):
+        if isinstance(C, type_):
+            del obj.content[i]
+
 
 class Note(SForm, Clock, Pitch):
-    def __init__(self, headsymbol=None, flagsymbol=None, stemsymbol=None, duration=None, pitch=None, **kwargs):
+    def __init__(self, head=None, flagsym=None, stem=None, duration=None, pitch=None, **kwargs):
         Clock.__init__(self, duration)
         Pitch.__init__(self, pitch)
         SForm.__init__(self, **kwargs)
         # Head holds the head Char object
-        self.headsymbol = headsymbol
-        self.flagsymbol = flagsymbol
-        self.stemsymbol = stemsymbol
-    # @property
-    # def stem(self): return self._stem
-    # @stem.setter
-    # def stem(self, new_stem_obj):
+        self._head = head
+        self._flagsym = flagsym
+        self._stem = stem
+
+    @property
+    def head(self): return self._head
+    @head.setter
+    def head(self, newhead):
+        # wird auch flag sein!!!!!!!!!!!!!!!!!!!!!!!!!!
+        _remove_from_content_ip(self, Char)
+        self._head = newhead
+        self.append(self._head)
+
+    @property
+    def stem(self): return self._stem
+    @stem.setter
+    def stem(self, newstem):
+        # print(self, self.x)
+        # Allow only a single stem per note?
+        _remove_from_content_ip(self, Stem)
+        self._stem = newstem
+        self.append(self._stem)
+        # print(self, self.x)
 
 class Accidental(SForm, Pitch):
     def __init__(self, symbol=None, pitch=None, **kwargs):

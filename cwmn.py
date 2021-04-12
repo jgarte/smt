@@ -48,34 +48,20 @@ dann wird es geprinted! Also aufpassen mit eckigen Klammern!)
 def make_notehead(note):
     # setter for head? to append automatically
     if isinstance(note.duration, str):
-        note.headsymbol = Char(name={
+        note.head = Char(name={
             "w": "noteheads.s0",
             "h": "noteheads.s1",
             "q": "noteheads.s2"
         }[note.duration])
     elif isinstance(note.duration, (float, int)):
-        note.headsymbol = Char(name={
+        note.head = Char(name={
             1: "noteheads.s0",
             .5: "noteheads.s1",
             .25: "noteheads.s2"
         }[note.duration])
-    # note.head.y += randint(-100, 100)
-    note.append(note.headsymbol)
 
 def add_stem(self):
-    self.stem = Stem(x=self.head.left, y=self.head.y,direction="down",
-    thickness=10)
-    self.addsvg(self.stem)
-     # HLineSegment(direction="right",x=self.head.left, y=self.head.y,
-    # thickness=10,ending="square",length=20)
-
-
-# print(descendants(Stem(direction="up",x=0,y=0)))
-
-def add_stem_clef(self):
-    stem = Stem(x=self.symbol.x, y=self.symbol.y, direction="up")
-    self.addsvg(stem)
-
+    self.stem = Stem(x=self.x+.5, y=self.y,length=10,thickness=1,endxr=1,endyr=3)
     
 
 def notehead_vertical_pos(note):
@@ -129,7 +115,7 @@ def compute_perf_punct(clocks, w):
     return perfwidths
 
 def right_guard(obj):
-    return {Note: 2, Clef:10, Accidental: 1}[type(obj)]
+    return {Note: 10, Clef:10, Accidental: 1}[type(obj)]
 
 def f(h):
     clkchunks=clock_chunks(h.content)
@@ -140,6 +126,7 @@ def f(h):
         for C, w in zip(h.content, perfwidths):
             C.width += w
     else:
+        print("-------")
         for c,w in zip(clkchunks, perfwidths):
             clock = c[0]
             nonclocks = c[1:]
@@ -149,6 +136,7 @@ def f(h):
                 clock.width += (w - s)
                 for a in nonclocks:
                     a.width += right_guard(a)
+    # print([(a.left, a.width) for a in h.content])
 
 
 # Rules ordered:    
@@ -157,12 +145,11 @@ r("1: make noteheads, 2. position vertically",
     # notehead_vertical_pos
     )
 r("", (Accidental,), ["treble", "bass"], make_accidental_char)
-r("decide clef symbol, add a stem", (Clef,),["treble"], make_clef_char)
-r("", (HForm,), ["horizontal"], f)
 # r("Add stems to noteheads, after punctuation computed.", (Note,), ["treble"], add_stem)
-def movex(self): 
-    self.stem.color = svg.utils.rgb(100, 0,0,"%")
-    print(self.stem.y, self.stem.left)
+r("decide clef symbol, add a stem", (Clef,),["treble"], make_clef_char)
+r("punct", (HForm,), ["horizontal"], f)
+r("Add stems to noteheads, after punctuation computed.", (Note,), ["treble"], add_stem)
+
 # r("Just move note to see if stem moves along?", (Note,), ["treble"], movex)
 # r("Add stem to clef for fun", (Clef,), ["treble"], add_stem_clef)
 # r((Accidental,),["treble"], draw_staff)
@@ -170,14 +157,17 @@ ruledocs()
 
 # 680.3149 pxl
 gemischt=[
-Note(domain="treble", duration=1, pitch=["c",4], x=50, y=57.6, xlocked=True,ylocked=True),
-Accidental(pitch=["c", 4],domain="treble"),
-Accidental(domain="bass"), 
-Clef(pitch="g",domain="treble"),
-Accidental(domain="treble"),
+Note(domain="treble", duration=1, pitch=["c",4]),
+# Accidental(pitch=["c", 4],domain="treble"),
+# Accidental(domain="bass"), 
+# Clef(pitch="g",domain="treble"),
+# Accidental(domain="treble"),
 Note(pitch=["d",4],domain="treble", duration=.5),
-Clef(domain="treble",pitch="bass"),
-Accidental(domain="treble",pitch=["d",4])]
+# Clef(domain="treble",pitch="bass"),
+# Accidental(domain="treble",pitch=["d",4])
+]
+
+
 # gemischt=[Note(domain="treble", duration=1) for _ in range(10)]
 # for a in notes:
     # print(a.content)
@@ -187,7 +177,5 @@ Accidental(domain="treble",pitch=["d",4])]
 # print(notes[0].width, notes[0].content[0].width)
 # print(list(map(lambda n:n.x, notes[0].content)))
 # print(notes[0].width)
-h=HForm(content=gemischt, x=100,y=200, canvas_opacity=.2)
-
-print(h.content[0].x)
+h=HForm(content=gemischt, width=mmtopxl(50),x=10,y=200, canvas_opacity=.2)
 render(h)
