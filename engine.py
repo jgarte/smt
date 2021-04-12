@@ -7,7 +7,7 @@ import tempfile
 import xml.etree.ElementTree as ET
 import subprocess as sp
 import copy as cp
-import svgwrite as svg
+import svgwrite as SW
 # from svgwrite.shapes import Line as svgline
 # from svgwrite.utils import svg.utils.rgb
 
@@ -227,7 +227,7 @@ class _SMTObject:
                 break
     
 def render(obj):
-    D = svg.drawing.Drawing(filename="/tmp/me.svg", size=(pgw,pgh), debug=True)
+    D = SW.drawing.Drawing(filename="/tmp/me.svg", size=(pgw,pgh), debug=True)
     obj._apply_rules()
     # ~ Form's packsvglst will call packsvglst on descendants recursively
     obj._pack_svglist()
@@ -254,29 +254,20 @@ pgh =mmtopxl(297)
 
 
 class _Canvas(_SMTObject):
-    def __init__(self, canvas_color=None, absx=None, absy=None, toplevel=False,
-    canvas_opacity=None, xoff=None, yoff=None, xscale=None, yscale=None,
+    def __init__(self, canvas_color=None,
+    canvas_opacity=None, xscale=None, yscale=None,
     x=None, y=None, xlocked=False, ylocked=False,
     canvas_visible=True, origin_visible=True, **kwargs):
         super().__init__(**kwargs)
         # Only the first item in a hform will need _hlineup, for him 
         # this is set by HForm itself.
         self._is_hlineup_head = False
-        # self.font = font or current_font
         self.canvas_opacity = canvas_opacity or 0.3
         self.canvas_visible = canvas_visible
         self.canvas_color = canvas_color
         self.origin_visible = origin_visible
-        # self.xoff = xoff or 0
-        # self.yoff = yoff or 0
         self.xscale = xscale or GLOBAL_SCALE
         self.yscale = yscale or GLOBAL_SCALE
-        # self.toplevel = toplevel
-        # self.absx = _LEFT_MARGIN if (self.toplevel and not(absx)) else absx
-        # self.absy = _TOP_MARGIN if (self.toplevel and not(absy)) else absy
-        # ~ We need xy at init-time, just make absx 0 above??????
-        # self._x = (self.absx or 0) + self.xoff
-        # self._y = (self.absy or 0) + self.yoff
         self._x = x or 0
         self._y = y or 0
         self.xlocked = xlocked
@@ -338,7 +329,7 @@ class _Canvas(_SMTObject):
 
     
 def _bboxelem(obj): 
-    return svg.shapes.Rect(insert=(obj.left, obj.top),
+    return SW.shapes.Rect(insert=(obj.left, obj.top),
                                 size=(obj.width, obj.height), 
                                 fill=obj.canvas_color,
                                 fill_opacity=obj.canvas_opacity, 
@@ -349,17 +340,17 @@ _ORIGIN_CIRCLE_R = 4
 _ORIGIN_LINE_THICKNESS = 0.06
 def _origelems(obj):
     halfln = _ORIGIN_CROSS_LEN / 2
-    return [svg.shapes.Circle(center=(obj.x, obj.y), r=_ORIGIN_CIRCLE_R,
+    return [SW.shapes.Circle(center=(obj.x, obj.y), r=_ORIGIN_CIRCLE_R,
                                     id_=obj.id + "OriginCircle",
-                                    stroke=svg.utils.rgb(87, 78, 55), fill="none",
+                                    stroke=SW.utils.rgb(87, 78, 55), fill="none",
                                     stroke_width=_ORIGIN_LINE_THICKNESS),
-            svg.shapes.Line(start=(obj.x-halfln, obj.y), end=(obj.x+halfln, obj.y),
+            SW.shapes.Line(start=(obj.x-halfln, obj.y), end=(obj.x+halfln, obj.y),
                                         id_=obj.id + "OriginHLine",
-                                        stroke=svg.utils.rgb(87, 78, 55), 
+                                        stroke=SW.utils.rgb(87, 78, 55), 
                                         stroke_width=_ORIGIN_LINE_THICKNESS),
-            svg.shapes.Line(start=(obj.x, obj.y-halfln), end=(obj.x, obj.y+halfln),
+            SW.shapes.Line(start=(obj.x, obj.y-halfln), end=(obj.x, obj.y+halfln),
                                         id_=obj.id + "OriginVLine",
-                                        stroke=svg.utils.rgb(87, 78, 55), 
+                                        stroke=SW.utils.rgb(87, 78, 55), 
                                         stroke_width=_ORIGIN_LINE_THICKNESS)]
 
 class _Font:
@@ -378,10 +369,10 @@ class Char(_Canvas, _Font):
         _Font.__init__(self, font)
         self.name = name
         self.glyph = _getglyph(self.name, self.font)
-        self.color = color or svg.utils.rgb(0, 0, 0)
+        self.color = color or SW.utils.rgb(0, 0, 0)
         self.opacity = opacity or 1
         self.visible = visible
-        self.canvas_color = svg.utils.rgb(100, 0, 0, "%")
+        self.canvas_color = SW.utils.rgb(100, 0, 0, "%")
         self._compute_horizontals()
         self._compute_verticals()
     
@@ -451,7 +442,7 @@ class Char(_Canvas, _Font):
         if self.canvas_visible:
             self._svglist.append(_bboxelem(self))
         # Add the music character
-        self._svglist.append(svg.path.Path(d=_getglyph(self.name, self.font)["d"],
+        self._svglist.append(SW.path.Path(d=_getglyph(self.name, self.font)["d"],
         id_=self.id, fill=self.color, fill_opacity=self.opacity,
         transform="translate({0} {1}) scale(1 -1) scale({2} {3})".format(
         self.x, self.y, self.xscale * _scale(), self.yscale * _scale())))
@@ -602,7 +593,7 @@ class SForm(_Form):
         
     def __init__(self, **kwargs):
         _Form.__init__(self, **kwargs)
-        self.canvas_color = svg.utils.rgb(0, 100, 0, "%")
+        self.canvas_color = SW.utils.rgb(0, 100, 0, "%")
         self.domain = kwargs.get("domain", "stacked")
         # Content may contain children with absolute x, so compute horizontals with respect to them.
         # See whats happening in _Form init with children without absx!
@@ -639,7 +630,7 @@ class HForm(_Form):
     def __init__(self, **kwargs):
         _Form.__init__(self, **kwargs)
         # self.abswidth = abswidth
-        self.canvas_color = svg.utils.rgb(0, 0, 100, "%")
+        self.canvas_color = SW.utils.rgb(0, 0, 100, "%")
         self.domain = kwargs.get("domain", "horizontal")
         # Set the first item as in need of lineup
         # self.content[0]._is_hlineup_head = True
@@ -687,12 +678,12 @@ class HForm(_Form):
             b.left = a.right
 
 def _hline_segment(x, y, length, angle, thickness, color):
-    return svg.shapes.Line(start=(x, y), end=(x + length, y),
+    return SW.shapes.Line(start=(x, y), end=(x + length, y),
     transform=f"rotate({angle} {x} {y})", stroke_width=thickness,
     stroke=color)
 
 
-class _LineSegment(_SMTObject):
+class _LineSegment(_Canvas):
     """Angle in degrees"""
     __ENDINGS = ("round", "square", "butt")
     _idcounter = -1
@@ -702,7 +693,7 @@ class _LineSegment(_SMTObject):
         self._y = y
         self._length = length
         # self._direction = direction or 1
-        self._color = color or svg.utils.rgb(0, 0, 0)
+        self._color = color or SW.utils.rgb(0, 0, 0)
         self._angle = angle or 0
         self._thickness = thickness or 0
         assert ending in _LineSegment.__ENDINGS, "Line's ending must be one of {0}, {1} was given instead!".format(
@@ -767,36 +758,36 @@ class _LineSegment(_SMTObject):
         self._line_element = self._make_line_element()
 
 
-class HLineSegment(_LineSegment):
-    __DIRECTIONS = {"left": -1, "right": 1}
+# class HLineSegment(_LineSegment):
+    # __DIRECTIONS = {"left": -1, "right": 1}
     
-    def __init__(self, direction, **kwargs):
-        assert direction in HLineSegment.__DIRECTIONS, "Horizontal line's direction must be one of {0}, {1} was given instead!".format(
-        HLineSegment.__DIRECTIONS.keys(), direction)
-        self._direction = direction
-        super().__init__(**kwargs)
-    @property
-    def left(self): return self._x
-    def _make_line_element(self):
-        return svg.shapes.Line(start=(self.x, self.y), 
-        end=(self.x + (self.length * HLineSegment.__DIRECTIONS[self.direction]), self.y),
-        transform=f"rotate({self.angle} {self.x} {self.y})",
-        stroke_width=self.thickness, stroke=self.color)
+    # def __init__(self, direction, **kwargs):
+        # assert direction in HLineSegment.__DIRECTIONS, "Horizontal line's direction must be one of {0}, {1} was given instead!".format(
+        # HLineSegment.__DIRECTIONS.keys(), direction)
+        # self._direction = direction
+        # super().__init__(**kwargs)
+    # @property
+    # def left(self): return self._x
+    # def _make_line_element(self):
+        # return SW.shapes.Line(start=(self.x, self.y), 
+        # end=(self.x + (self.length * HLineSegment.__DIRECTIONS[self.direction]), self.y),
+        # transform=f"rotate({self.angle} {self.x} {self.y})",
+        # stroke_width=self.thickness, stroke=self.color)
 
-# print(HLineSegment(x=0,y=0,length=0))
+# # print(HLineSegment(x=0,y=0,length=0))
 
-class VLineSegment(_LineSegment):
-    __DIRECTIONS = {"up": -1, "down": 1}
+# class VLineSegment(_LineSegment):
+    # __DIRECTIONS = {"up": -1, "down": 1}
     
-    def __init__(self, direction, **kwargs):
-        assert direction in VLineSegment.__DIRECTIONS, "Vertical line's direction must be one of {0}, {1} was given instead!".format(
-        VLineSegment.__DIRECTIONS.keys(), direction)
-        self._direction = direction
-        super().__init__(**kwargs)
-    @property
-    def left(self): return self.x - self.thickness * 0.5
-    def _make_line_element(self):
-        return svg.shapes.Line(start=(self.x, self.y), 
-        end=(self.x, self.y + (self.length * VLineSegment.__DIRECTIONS[self.direction])),
-        transform=f"rotate({self.angle} {self.x} {self.y})", stroke_linecap=self.ending,
-        stroke_width=self.thickness, stroke=self.color)
+    # def __init__(self, direction, **kwargs):
+        # assert direction in VLineSegment.__DIRECTIONS, "Vertical line's direction must be one of {0}, {1} was given instead!".format(
+        # VLineSegment.__DIRECTIONS.keys(), direction)
+        # self._direction = direction
+        # super().__init__(**kwargs)
+    # @property
+    # def left(self): return self.x - self.thickness * 0.5
+    # def _make_line_element(self):
+        # return SW.shapes.Line(start=(self.x, self.y), 
+        # end=(self.x, self.y + (self.length * VLineSegment.__DIRECTIONS[self.direction])),
+        # transform=f"rotate({self.angle} {self.x} {self.y})", stroke_linecap=self.ending,
+        # stroke_width=self.thickness, stroke=self.color)

@@ -25,17 +25,17 @@ class Pitch:
         self.pitch = pitch
 
 
-STAFF_LINE_THICKNESS = 1.0
+# STAFF_LINE_THICKNESS = 1.0
 
-class Staff(HLineSegment):
-    LINE_THICKNESS = 1.0
+# class Staff(HLineSegment):
+    # LINE_THICKNESS = 1.0
 
 
-class Stem(VLineSegment):
-    def __init__(self, length=None, thickness=None, ending=None, **kwargs):
-        super().__init__(length=(length or (3.0 * STAFF_SPACE)),
-        thickness=(thickness or Staff.LINE_THICKNESS), ending=(ending or "square"),
-        **kwargs)
+# class Stem(VLineSegment):
+    # def __init__(self, length=None, thickness=None, ending=None, **kwargs):
+        # super().__init__(length=(length or (3.0 * STAFF_SPACE)),
+        # thickness=(thickness or Staff.LINE_THICKNESS), ending=(ending or "square"),
+        # **kwargs)
 # print(Stem(direction="up",x=10,y=0).x)
 
 class Note(SForm, Clock, Pitch):
