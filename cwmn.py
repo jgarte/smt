@@ -168,7 +168,6 @@ def movex(self):
 # r((Accidental,),["treble"], draw_staff)
 ruledocs()
 
-# print(mmtopxl(100))
 # 680.3149 pxl
 gemischt=[
 Note(domain="treble", duration=1, pitch=["c",4], x=50, y=57.6, xlocked=True,ylocked=True),
