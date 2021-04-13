@@ -61,8 +61,11 @@ def make_notehead(note):
         }[note.duration])
 
 def setstem(self):
-    print(self.x, self.left, self.width)
-    self.stem = Stem(x=self.x+.5, y=self.y,length=10,thickness=1,endxr=10,endyr=10)
+    s = Stem(length=10,thickness=10, xlocked=False, ylocked=False)
+    # print(s, s.x, s.y)
+    self.stem = s
+    # self.content.append(Stem(x=self.x+.5, y=self.y,length=10,thickness=1,endxr=10,endyr=10))
+    # print(self.stem.left)
     
 
 def notehead_vertical_pos(note):
@@ -119,6 +122,7 @@ def right_guard(obj):
     return {Note: 10, Clef:10, Accidental: 1}[type(obj)]
 
 def f(h):
+    # print([(a.x, a.left, a.width) for a in h.content])
     clkchunks=clock_chunks(h.content)
     # print(clkchunks)
     clocks = list(map(lambda l:l[0], clkchunks))
@@ -137,24 +141,23 @@ def f(h):
                 clock.width += (w - s)
                 for a in nonclocks:
                     a.width += right_guard(a)
-    print([(a.x, a.left, a.width) for a in h.content])
 
 cmn.add(make_notehead, (Note,), ["treble"])
-cmn.add(f, (HForm,), ["horizontal"])
 cmn.add(setstem, (Note,), ["treble"])
-# cmn.add(make_accidental_char, (Accidental,), ["treble", "bass"])
+cmn.add(make_accidental_char, (Accidental,), ["treble", "bass"])
+cmn.add(f, (HForm,), ["horizontal"])
 
 
 # 680.3149 pxl
 gemischt=[
 Note(domain="treble", duration=1, pitch=["c",4]),
-# Accidental(pitch=["c", 4],domain="treble"),
-# Accidental(domain="bass"), 
+Accidental(pitch=["c", 4],domain="treble"),
+Accidental(domain="bass"), 
 # Clef(pitch="g",domain="treble"),
-# Accidental(domain="treble"),
+Accidental(domain="treble"),
 Note(pitch=["d",4],domain="treble", duration=.5),
 # Clef(domain="treble",pitch="bass"),
-# Accidental(domain="treble",pitch=["d",4])
+Accidental(domain="treble",pitch=["d",4])
 ]
 
 
@@ -167,7 +170,7 @@ Note(pitch=["d",4],domain="treble", duration=.5),
 # print(notes[0].width, notes[0].content[0].width)
 # print(list(map(lambda n:n.x, notes[0].content)))
 # print(notes[0].width)
-h=HForm(ruletable=cmn, content=gemischt, width=mmtopxl(50),x=10,y=200, canvas_opacity=.2)
+h=HForm(ruletable=cmn, content=gemischt, width=mmtopxl(50),x=10,y=200, canvas_opacity=.2, widthlocked=True)
 # h2=cp.deepcopy(h)
 # print(h2.y)
 # h2.y += 30

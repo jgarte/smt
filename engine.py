@@ -241,15 +241,11 @@ class _SMTObject:
         while True:
             if eligibles:
                 # Must iterate over rules first, then over objs.
-                # It is the order of rules to be applied which matters here! 
-                # for order in sorted(_ruletable):
+                # It is the order of rules which matters! 
                 for order in sorted(self.ruletable.rules):
-                    # rule = _ruletable[order]
                     rule = self.ruletable.rules[order]
                     for obj in eligibles:
-                        # if isinstance(obj, rule["T"]) and (obj.domain in rule["D"]):
                         if isinstance(obj, rule["targets"]) and (obj.domain in rule["domains"]):
-                            # for hook in rule["hooks"]: hook(obj)
                             rule["hook"](obj)
                             obj._rules_applied_to = True
                         if isinstance(obj, HForm):
@@ -290,7 +286,8 @@ pgh =mmtopxl(297)
 class _Canvas(_SMTObject):
     def __init__(self, canvas_color=None,
     canvas_opacity=None, xscale=None, yscale=None,
-    x=None, y=None, xlocked=False, ylocked=False,
+    x=0, y=0, xlocked=False, ylocked=False,
+    width=0, widthlocked=False,
     canvas_visible=True, origin_visible=True, **kwargs):
         super().__init__(**kwargs)
         # Only the first item in a hform will need _hlineup, for him 
@@ -302,10 +299,12 @@ class _Canvas(_SMTObject):
         self.origin_visible = origin_visible
         self.xscale = xscale or GLOBAL_SCALE
         self.yscale = yscale or GLOBAL_SCALE
-        self._x = x or 0
-        self._y = y or 0
+        self._x = x
+        self._y = y
         self.xlocked = xlocked
         self.ylocked = ylocked
+        self._width = width
+        self.widthlocked = widthlocked
         
     @property
     def x(self): return self._x
@@ -355,8 +354,7 @@ class _Canvas(_SMTObject):
         raise NotImplementedError(f"_compute_width must be overriden by {self.__class__.__name__}")
     def _compute_height(self):
         raise NotImplementedError(f"_compute_height must be overriden by {self.__class__.__name__}")
-        
-
+    
     def _compute_horizontals(self):
         self._left = self._compute_left()
         self._right = self._compute_right()
@@ -417,25 +415,6 @@ class Char(_Canvas, _Font):
         self.canvas_color = SW.utils.rgb(100, 0, 0, "%")
         self._compute_horizontals()
         self._compute_verticals()
-    
-    # # This function is the basis for all horizontal shifting operations.
-    # def _assign_x(self, newx):
-        # dx = newx - self.x # save before modification!
-        # self._x = newx
-        # self._left += dx
-        # self._right += dx
-        # for A in reversed(self.ancestors): # An ancestor is always a Form!!
-            # # if isinstance(A, HForm) and lineup_ancestors:
-                # # A._lineup()
-            # A._compute_horizontals()
-    
-    # def _shift_x_by(self, deltax):
-        # # Delta x is used for a homogeneous shifting of x, left & right: 
-        # self._x += deltax
-        # self._left += deltax
-        # self._right += deltax
-        # for A in reversed(self.ancestors): # An ancestor is always a Form!!
-            # A._compute_horizontals()
     
     @_Canvas.x.setter
     def x(self, newx):
@@ -498,10 +477,8 @@ class _Form(_Canvas, _Font):
 
     _idcounter = -1
 
-    def __init__(self, font=None, content=None, width=None, **kwargs):
+    def __init__(self, font=None, content=None, **kwargs):
         self.content = content or []
-        # self.abswidth = abswidth
-        self._fixwidth = width
         _Canvas.__init__(self, **kwargs)
         _Font.__init__(self, font)
         # These attributes preserve information about the Height of a form object. These info
@@ -549,27 +526,11 @@ class _Form(_Canvas, _Font):
 
     @_Canvas.width.setter
     def width(self, neww):
-        if not self._fixwidth:
-            self._right = self._left + neww
+        if not self.widthlocked:
+            self._right = self.left + neww
             self._width = neww
             for A in reversed(self.ancestors):
                 A._compute_horizontals()
-    
-    # # TODO: Here the case of children with absx MUST be considered, what happens to the dimensions
-    # # of the form, if a child is not willing to move due to it's absx?
-    # def _assign_x(self, newx):
-        # dx = newx - self.x
-        # self._x = newx
-        # self._left += dx
-        # self._right += dx
-        # for D in descendants(self, False):
-            # D._x = newx
-            # D._left += dx
-            # D._right += dx
-        # for A in reversed(self.ancestors):
-            # # if isinstance(A, HForm) and lineup_ancestors:
-                # # A._lineup()
-            # A._compute_horizontals()
 
     @_Canvas.x.setter
     def x(self, newx):
@@ -604,16 +565,16 @@ class _Form(_Canvas, _Font):
     def _compute_left(self):
         """Determines the left-most of either: form's own x coordinate 
         or the left-most site of it's direct children."""
-        return min([self.x] + list(map(lambda C: C.left, self.content)))
+        return min([self.x] + list(map(lambda c: c.left, self.content)))
 
     def _compute_right(self):
-        if self._fixwidth: # right never changes
-            return self.left + self._fixwidth
+        if self.widthlocked: # right never changes
+            return self.left + self.width
         else:
             return max([self.x] + list(map(lambda C: C.right, self.content)))
 
     def _compute_width(self):
-        return (self.right - self.left) if self._fixwidth is None else self._fixwidth
+        return self.width if self.widthlocked else (self.right - self.left)
 
     def _compute_top(self):
         return min([self.fixtop] + list(map(lambda C: C.top, self.content)))
@@ -651,20 +612,20 @@ class SForm(_Form):
     def append(self, *children):
         """Appends new children to Form's content list."""
         self._establish_parental_relationship(children)
-        self.content.extend(children)
-        for C in children:
+        for c in children:
             # Use == since absx could be set.
             # if child.absx == None:
-            if not C.xlocked:
-                C.x += self.x
+            if not c.xlocked:
+                c.x += self.x
             # if C.absy == None:
-            if not C.ylocked:
-                C.y += self.y
+            if not c.ylocked:
+                c.y += self.y
+        print([(a.id, a.x) for a in children])
+        self.content.extend(children)
         # Having set the content before would have caused assign_x to trigger computing horizontals for the Form,
         # which would have been to early!????
         self._compute_horizontals()
         self._compute_verticals()
-        # self._is_hlineup_head = True
         for A in reversed(self.ancestors):
             if isinstance(A, HForm):
                 A._lineup()
@@ -679,46 +640,11 @@ class HForm(_Form):
         # self.abswidth = abswidth
         self.canvas_color = SW.utils.rgb(0, 0, 100, "%")
         self.domain = kwargs.get("domain", "horizontal")
-        # Set the first item as in need of lineup
-        # self.content[0]._is_hlineup_head = True
+        # Lineup content created at init-time,
         self._lineup()
         # then compute surfaces.
         self._compute_horizontals()
         self._compute_verticals()
-    
-    # def append(self, *children):
-        # self._establish_parental_relationship(children)
-        # # We don't know how many new children are going to be appended
-        # # to the content list, so first mark the last of existing content
-        # # as head of a new line-up chunk, then put all new children at the end
-        # # of the contents, then run the lineup operation.
-        # self.content[-1]._is_hlineup_head = True
-        # self.content.extend(children)
-        # self._lineup()
-        # self._compute_family_hv_surfaces()
-    
-    # def _lineup_chunks(self):
-        # enums = filter(lambda L: L[1]._is_hlineup_head, enumerate(self.content))
-        # indices = list(map(lambda L: L[0], enums))
-        # indices_tail = indices[1:]
-        # chunks = []
-        # # Using slicing to shallow copy object instances
-        # for i in range(len(indices_tail)):
-            # chunks.append(self.content[indices[i]:indices_tail[i] - 1])
-        # chunks.append(self.content[indices[-1]:])
-        # return chunks
-    
-    # def _lineup(self):
-        # for chunk in self._lineup_chunks():
-            # if chunk:
-                # chunk[0]._is_hlineup_head = False
-                # # The actual lineup operation:
-                # for a, b in zip(chunk[:-1], chunk[1:]):
-                    # # Use internal assignment to avoid labeling as lineup-needy!
-                    # # b._shift_left(a.right - b.left)
-                    # b._assign_left(a.right)
-        # # for a, b in zip(self.content[:-1], self.content[1:]):
-            # # b.left += a.right
             
     def _lineup(self):
         for a, b in zip(self.content[:-1], self.content[1:]):
@@ -752,10 +678,28 @@ class _LineSegment(_Canvas):
             fill=self.color, rx=self.endxr, ry=self.endyr
             )
         )
+    
     @_Canvas.x.setter
-    def x(self, newx): self._x = newx
+    def x(self, newx): 
+        if not self.xlocked:
+            dx = newx - self.x
+            self._x = newx
+            self._left += dx
+            self._right += dx
+            for A in reversed(self.ancestors): # An ancestor is always a Form!!
+                A._compute_horizontals()
+    
     @_Canvas.y.setter
-    def y(self, newy): self._y = newy
+    def y(self, newy): 
+        if not self.ylocked:
+            dy = newy - self.y
+            self._y = newy
+            self._top += dy
+            self._bottom += dy
+            for A in reversed(self.ancestors): # An ancestor is always a Form!!
+                A._compute_verticals()
+        
+    
     @property
     def length(self): return self._length
     @property
@@ -772,7 +716,6 @@ class VLineSegment(_LineSegment):
     def _compute_right(self): return self.x + self.thickness*.5
     def _compute_bottom(self): return self.y + self.length
     def _compute_top(self): return self.y
-    # def endr(self): return self.thickness*.5 if self.rounded else 0
 
 
 class HLineSegment(_LineSegment):
@@ -784,13 +727,3 @@ class HLineSegment(_LineSegment):
     def _compute_right(self): return self.x + self.length
     def _compute_top(self): return self.y - self.thickness*.5
     def _compute_bottom(self): return self.y + self.thickness*.5
-    # # Override canvas packsvglist
-    # def _pack_svg_list(self):
-        # self._svg_list.append(SW.shapes.Rect(
-            # insert=(self.left, self.top),
-            # size=(self.width, self.height),
-            # fill=self.color, 
-            # rx=self.width, ry=self.width
-            # )
-        # )
-
