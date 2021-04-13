@@ -1,4 +1,12 @@
+
+
 from engine import *
+
+
+
+# Default ruletable
+cmn = RuleTable()
+
 
 class Clock:
     def __init__(self, duration=None):
@@ -56,7 +64,6 @@ class Note(SForm, Clock, Pitch):
     @head.setter
     def head(self, newhead):
         # wird auch flag sein!!!!!!!!!!!!!!!!!!!!!!!!!!
-        _remove_from_content_ip(self, Char)
         self._head = newhead
         self.append(self._head)
 
@@ -66,16 +73,17 @@ class Note(SForm, Clock, Pitch):
     def stem(self, newstem):
         # print(self, self.x)
         # Allow only a single stem per note?
-        _remove_from_content_ip(self, Stem)
+        self.del_children(lambda c: isinstance(c, Stem))
         self._stem = newstem
         self.append(self._stem)
         # print(self, self.x)
 
 class Accidental(SForm, Pitch):
-    def __init__(self, symbol=None, pitch=None, **kwargs):
+    def __init__(self, char=None, pitch=None, **kwargs):
         SForm.__init__(self, **kwargs)
         Pitch.__init__(self, pitch)
-        self.symbol = symbol
+        self.char = char
+        
 
 class Clef(SForm, Pitch):
     def __init__(self, symbol=None, pitch=None, **kwargs):

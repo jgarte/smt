@@ -253,9 +253,7 @@ class _SMTObject:
                             rule["hook"](obj)
                             obj._rules_applied_to = True
                         if isinstance(obj, HForm):
-                            print("1",[a.x for a in obj.content])
                             obj._lineup()
-                            print("2",[a.x for a in obj.content])
                 # Maybe some rule has created new objs, or even defined new rules!
                 eligibles = self._rule_application_eligibles()
             else:
@@ -530,6 +528,10 @@ class _Form(_Canvas, _Font):
                     C.fixtop += self.y
                     C.fixbottom += self.y
                     # Fixheight never changes!
+    
+    def del_children(self, cond):
+        for i, c in enumerate(self.content):
+            if cond(c): del self.content[i]
     
     # Children is a sequence. This method modifies only ancestor lists.
     def _establish_parental_relationship(self, children):

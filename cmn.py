@@ -61,6 +61,7 @@ def make_notehead(note):
         }[note.duration])
 
 def setstem(self):
+    print(self.x, self.left, self.width)
     self.stem = Stem(x=self.x+.5, y=self.y,length=10,thickness=1,endxr=10,endyr=10)
     
 
@@ -79,8 +80,8 @@ def notehead_vertical_pos(note):
         
         
 def make_accidental_char(accobj):
-    accobj.symbol=Char(name="accidentals.sharp")
-    accobj.append(accobj.symbol)
+    accobj.char=Char(name="accidentals.sharp")
+    accobj.append(accobj.char)
 
 def make_clef_char(clefobj):
     clefobj.symbol = Char(name={"treble":"clefs.G", "g": "clefs.G",
@@ -136,26 +137,13 @@ def f(h):
                 clock.width += (w - s)
                 for a in nonclocks:
                     a.width += right_guard(a)
-    # print([(a.left, a.width) for a in h.content])
+    print([(a.x, a.left, a.width) for a in h.content])
 
-cmn = RuleTable()
 cmn.add(make_notehead, (Note,), ["treble"])
-# cmn.new((Accidental,), ["treble", "bass"], make_accidental_char)
-cmn.add(setstem, (Note,), ["treble"])
 cmn.add(f, (HForm,), ["horizontal"])
+cmn.add(setstem, (Note,), ["treble"])
+# cmn.add(make_accidental_char, (Accidental,), ["treble", "bass"])
 
-
-# # Rules ordered:    
-# r("1: make noteheads, 2. position vertically",
-    # (Note,), ["treble"], make_notehead, 
-    # # notehead_vertical_pos
-    # )
-# r("", (Accidental,), ["treble", "bass"], make_accidental_char)
-# # r("Add stems to noteheads, after punctuation computed.", (Note,), ["treble"], setstem)
-# r("decide clef symbol, add a stem", (Clef,),["treble"], make_clef_char)
-# r("punct", (HForm,), ["horizontal"], f)
-# r("Add stems to noteheads, after punctuation computed.", (Note,), ["treble"], setstem)
-# ruledocs()
 
 # 680.3149 pxl
 gemischt=[
@@ -180,9 +168,9 @@ Note(pitch=["d",4],domain="treble", duration=.5),
 # print(list(map(lambda n:n.x, notes[0].content)))
 # print(notes[0].width)
 h=HForm(ruletable=cmn, content=gemischt, width=mmtopxl(50),x=10,y=200, canvas_opacity=.2)
-h2=cp.deepcopy(h)
-print(h2.y)
-h2.y += 30
-h2.x += 30
-print(h2.y)
-render(h,h2)
+# h2=cp.deepcopy(h)
+# print(h2.y)
+# h2.y += 30
+# h2.x += 30
+# print(h2.y)
+render(h,)
