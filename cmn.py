@@ -138,11 +138,11 @@ def f(h):
                     a.width += right_guard(a)
     # print([(a.left, a.width) for a in h.content])
 
-cwmn = RuleTable()
-cwmn.add(make_notehead, (Note,), ["treble"])
-# cwmn.new((Accidental,), ["treble", "bass"], make_accidental_char)
-cwmn.add(setstem, (Note,), ["treble"])
-cwmn.add(f, (HForm,), ["horizontal"])
+cmn = RuleTable()
+cmn.add(make_notehead, (Note,), ["treble"])
+# cmn.new((Accidental,), ["treble", "bass"], make_accidental_char)
+cmn.add(setstem, (Note,), ["treble"])
+cmn.add(f, (HForm,), ["horizontal"])
 
 
 # # Rules ordered:    
@@ -179,5 +179,5 @@ Note(pitch=["d",4],domain="treble", duration=.5),
 # print(notes[0].width, notes[0].content[0].width)
 # print(list(map(lambda n:n.x, notes[0].content)))
 # print(notes[0].width)
-h=HForm(ruletable=cwmn, content=gemischt, width=mmtopxl(50),x=10,y=200, canvas_opacity=.2)
+h=HForm(ruletable=cmn, content=gemischt, width=mmtopxl(50),x=10,y=200, canvas_opacity=.2)
 render(h)
