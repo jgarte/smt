@@ -261,16 +261,17 @@ class _SMTObject:
             else:
                 break
     
-def render(obj):
+def render(*objs):
     D = SW.drawing.Drawing(filename="/tmp/smt.svg", size=(pgw,pgh), debug=True)
-    obj._apply_rules()
-    # ~ Form's packsvglst will call packsvglst on descendants recursively
-    obj._pack_svg_list()
-    for elem in obj._svg_list:
-        if isinstance(elem, _LineSegment):
-            D.add(elem._line_element)
-        else:
-            D.add(elem)
+    for obj in objs:
+        obj._apply_rules()
+        # ~ Form's packsvglst will call packsvglst on descendants recursively
+        obj._pack_svg_list()
+        for elem in obj._svg_list:
+            if isinstance(elem, _LineSegment):
+                D.add(elem._line_element)
+            else:
+                D.add(elem)
     D.save(pretty=True)
 
 

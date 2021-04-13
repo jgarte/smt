@@ -180,4 +180,9 @@ Note(pitch=["d",4],domain="treble", duration=.5),
 # print(list(map(lambda n:n.x, notes[0].content)))
 # print(notes[0].width)
 h=HForm(ruletable=cmn, content=gemischt, width=mmtopxl(50),x=10,y=200, canvas_opacity=.2)
-render(h)
+h2=cp.deepcopy(h)
+print(h2.y)
+h2.y += 30
+h2.x += 30
+print(h2.y)
+render(h,h2)
