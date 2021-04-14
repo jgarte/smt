@@ -23,6 +23,13 @@ instead use the set operator
 	   [set [xscale parent] [* 3 4 .5 2]]]
 ]]
 
+@ = Object to which rule must be applied!
+@color = [color object]
+@0color = [color [at 0 [content object]]]
+@-1color = [color [ancestors object]]
+[defrule [set @color [list [random 0 101] 0 0]]]
+
+
 A named function:
 
 [set funcname [function [x y] [print [* x y]]]]

@@ -1,71 +1,26 @@
 from random import randint, choice
 from score import *
 
-""".smt File
-[unknownName knownExpression] is an assignment.
-[knownName knownExpression] ?
-[myNote [note
-            [domain treble]
-            [color [rgb 100 10 20]]
-            [absx 100] [absy 100]]]
-[sform [content myNote]]
-[render sform]
-; Here we bind Python code
-[py def double(x): return x * 2]
-[double 4]
-[page1 [page [title [bold Douxe [size [cm 10] Notation]] pour Piano]]]
-Syntax known Names:
-[SIZE Type:Number Type:String] Returns a new String with the size Number.  
-[BOLD Type:String] Returns a new String in bold.
-
-[RGB Type:Number Type:Number Type:Number] Returns an RGB Object for use as the value for the COLOR attribute.
-[COLOR red] Designates the attribute color to be the string value red.
-[LOOP variable Type:Sequence|[RANGE Type:Integer Type:Integer]]
-
-sehr high-level!!
-[seq [content [note] [note] [rest] [chord] [timesig 3 4] [clef treble]] [yoffset -10] [domain bass]]
-
-Hier deklarieren wir zwei Notenamen:
-[c4a [note [spn 60]]]
-[c4b [note [spn 60]]]
-
-
-Und hier verwenden wir die Namen
-[line [note [spn f # 5] [ 1/4]]
-    [rest [duration .25]]
-     [chord (yoff -15) 
-        [note [spn f # 5]]
-         [note [spn f#5]]
-          c4a c4b]]
-Immer die letzte  Form wird gerendert! (und überigens alles was 
-nicht in eckigen Klammern steht ist Comment! Wenn ich mitten im Kommentieren [print [+ 3 4]]
-dann wird es geprinted! Also aufpassen mit eckigen Klammern!)
-:-)
-[print hello beautiful world of music typesetting!]
-"""
-
 
 def make_notehead(note):
     # setter for head? to append automatically
     if isinstance(note.duration, str):
-        note.head = Char(name={
+        note.head_hammer = Char(name={
             "w": "noteheads.s0",
             "h": "noteheads.s1",
             "q": "noteheads.s2"
         }[note.duration])
     elif isinstance(note.duration, (float, int)):
-        note.head = Char(name={
+        note.head_hammer = Char(name={
             1: "noteheads.s0",
             .5: "noteheads.s1",
             .25: "noteheads.s2"
-        }[note.duration])
+        }[note.duration],
+        )
 
 def setstem(self):
-    s = Stem(length=10,thickness=10, xlocked=False, ylocked=False)
-    # print(s, s.x, s.y)
-    self.stem = s
-    # self.content.append(Stem(x=self.x+.5, y=self.y,length=10,thickness=1,endxr=10,endyr=10))
-    # print(self.stem.left)
+    self.stem_stichel = Stem(length=10,thickness=1,x=.5,endxr=2)
+    
     
 
 def notehead_vertical_pos(note):
@@ -74,17 +29,10 @@ def notehead_vertical_pos(note):
         okt = note.pitch[1]
         note.headsymbol.y = ((note.fixbottom - {"c":-STAFF_SPACE, "d":-(.5 * STAFF_SPACE)}[p]) + ((4 - okt) * 7/8 * note.FIXHEIGHT))
 
-# def draw_staff(self):
-    # for i in range(-2, 3):
-        # y_= i *space + self.y
-        # l=_VLineSegment(x=self.left, y=y_, length=self.width, thickness=1)
-        # l.angle = 0
-        # self._svglist.append(l.svg)
-        
         
 def make_accidental_char(accobj):
-    accobj.char=Char(name="accidentals.sharp")
-    accobj.append(accobj.char)
+    accobj.accidental_hammer=Char(name="accidentals.sharp")
+    accobj.append(accobj.accidental_hammer)
 
 def make_clef_char(clefobj):
     clefobj.symbol = Char(name={"treble":"clefs.G", "g": "clefs.G",
@@ -130,6 +78,7 @@ def f(h):
     if allclocks(h):
         for C, w in zip(h.content, perfwidths):
             C.width += w
+            C.width_locked = True
     else:
         print("-------")
         for c,w in zip(clkchunks, perfwidths):
@@ -139,13 +88,27 @@ def f(h):
             if s < w:
                 # add rest of perfect width - sum of nonclocks
                 clock.width += (w - s)
+                clock.width_locked = True
                 for a in nonclocks:
                     a.width += right_guard(a)
+                    a.width_locked = 1
+    # print([(a.id, a.x) for a in h.content])
 
 cmn.add(make_notehead, (Note,), ["treble"])
-cmn.add(setstem, (Note,), ["treble"])
 cmn.add(make_accidental_char, (Accidental,), ["treble", "bass"])
+cmn.add(setstem, (Note,),["treble"])
 cmn.add(f, (HForm,), ["horizontal"])
+
+# def x(self): self._svg_list.append(SW.shapes.Rect(insert=(self.stem.left, self.stem.bottom),size=(5,5),fill=SW.utils.rgb(100,100,0,"%")))
+# def xx(self): self._svg_list.append(SW.shapes.Rect(insert=(self.head.right, self.head.top),size=(2,5),fill=SW.utils.rgb(100,0,0,"%")))
+# cmn.add(x, (Note,),["treble"])
+# cmn.add(xx, (Note,),["treble"])
+
+
+
+def reden(o): o.color=SW.utils.rgb(randint(0,100),0,0,"%")
+# cmn.add(reden, (Stem,),["d"])
+# print(cmn.domains)
 
 
 # 680.3149 pxl
@@ -156,24 +119,15 @@ Accidental(domain="bass"),
 # Clef(pitch="g",domain="treble"),
 Accidental(domain="treble"),
 Note(pitch=["d",4],domain="treble", duration=.5),
+Note(pitch=["d",4],domain="treble", duration=.25),
 # Clef(domain="treble",pitch="bass"),
 Accidental(domain="treble",pitch=["d",4])
 ]
 
 
-# gemischt=[Note(domain="treble", duration=1) for _ in range(10)]
-# for a in notes:
-    # print(a.content)
-    # for s in a.content:
-        # s.x += 10
-        # print(s.x)
-# print(notes[0].width, notes[0].content[0].width)
-# print(list(map(lambda n:n.x, notes[0].content)))
-# print(notes[0].width)
-h=HForm(ruletable=cmn, content=gemischt, width=mmtopxl(50),x=10,y=200, canvas_opacity=.2, widthlocked=True)
-# h2=cp.deepcopy(h)
-# print(h2.y)
-# h2.y += 30
-# h2.x += 30
-# print(h2.y)
+# s=SForm(width=5,width_locked=0,x=50)
+# s.append(Stem(length=10,thickness=30))
+# h=HForm(content=[s],width=mmtopx(20),x=40,y=200, canvas_opacity=.2, width_locked=0)
+print(mmtopx(100))
+h=HForm(ruletable=cmn, content=gemischt,width=mmtopx(100),x=40,y=200, canvas_opacity=.2, width_locked=True)
 render(h,)

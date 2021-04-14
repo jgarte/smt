@@ -1,7 +1,7 @@
 
 
 from engine import *
-
+from engine import _LineSegment
 
 
 # Default ruletable
@@ -42,47 +42,43 @@ class Stem(VLineSegment):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-def _remove_from_content_ip(obj, type_):
-    """Removes any objects of type type_ from obj."""
-    for i, C in enumerate(obj.content):
-        if isinstance(C, type_):
-            del obj.content[i]
-
+# print(isinstance(Stem(), _LineSegment))
 
 class Note(SForm, Clock, Pitch):
-    def __init__(self, head=None, flagsym=None, stem=None, duration=None, pitch=None, **kwargs):
+    def __init__(self, head_hammer=None, flagsym=None, stem_stichel=None, duration=None, pitch=None, **kwargs):
         Clock.__init__(self, duration)
         Pitch.__init__(self, pitch)
         SForm.__init__(self, **kwargs)
-        # Head holds the head Char object
-        self._head = head
-        self._flagsym = flagsym
-        self._stem = stem
+        # Head holds the head_hammer Char object
+        self._head_char = head_hammer
+        self._flag_char = flagsym
+        self._stem_stichel = stem_stichel
 
     @property
-    def head(self): return self._head
-    @head.setter
-    def head(self, newhead):
+    def head_hammer(self): return self._head_char
+    @head_hammer.setter
+    def head_hammer(self, newhead):
         # wird auch flag sein!!!!!!!!!!!!!!!!!!!!!!!!!!
-        self._head = newhead
-        self.append(self._head)
+        self._head_char = newhead
+        self.append(self._head_char)
 
     @property
-    def stem(self): return self._stem
-    @stem.setter
-    def stem(self, newstem):
-        # print(self, self.x)
-        # Allow only a single stem per note?
+    def stem_stichel(self): return self._stem_stichel
+    
+    @stem_stichel.setter
+    def stem_stichel(self, newstem):
+        # print("before append",self.id, self.x)
+        # Allow only a single stem_stichel per note?
         self.del_children(lambda c: isinstance(c, Stem))
-        self._stem = newstem
-        self.append(self._stem)
-        # print(self, self.x)
+        self._stem_stichel = newstem
+        self.append(self._stem_stichel)
+        # print("After append", self.id, self.x)
 
 class Accidental(SForm, Pitch):
-    def __init__(self, char=None, pitch=None, **kwargs):
+    def __init__(self, accidental_hammer=None, pitch=None, **kwargs):
         SForm.__init__(self, **kwargs)
         Pitch.__init__(self, pitch)
-        self.char = char
+        self.accidental_hammer = accidental_hammer
         
 
 class Clef(SForm, Pitch):

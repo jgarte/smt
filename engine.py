@@ -26,33 +26,14 @@ class RuleTable:
     def __init__(self):
         self.domains = set()
         self.targets = set((object,))
-        self.rules = {}
+        self.rules = dict()
         self._order = 0
     
     def add(self, hook, targets, domains):
-        self.targets.update(tuple(targets))
-        self.domains.update(tuple(domains))
+        self.targets.update(targets)
+        self.domains.update(domains)
         self.rules[self._order] = {"targets": targets, "domains": domains, "hook": hook}
         self._order += 1
-
-# # ~ New rule is by default applicable to all hitherto defined domains
-# _ruledomains = set()
-# _ruletargets = set((object,))
-# _ruletable = {}
-# _ruleorder = 0
-# def r(doc, targets, domains, *funcs):
-    # assert isinstance(doc, str), "Rule's documentation must be a str."
-    # _ruletargets.update(tuple(targets))
-    # _ruledomains.update(tuple(domains))
-    # global _ruleorder
-    # _ruletable[_ruleorder] = {"T": targets, "D": domains, "F": funcs, "doc": doc}
-    # _ruleorder += 1
-
-# def ruledocs():
-    # for order, ruledict in _ruletable.items():
-        # print(order, ruledict["doc"])
-
-
 
 
 ##### Font
@@ -147,12 +128,12 @@ install_font("Haydn", "/home/amir/haydn/svg/haydn-11.svg")
 ##### Rastral, Dimensions, Margins
 _PXLPERMM = 3.7795275591 # Pixel per mm
 
-def mmtopxl(mm): return mm * _PXLPERMM
+def mmtopx(mm): return mm * _PXLPERMM
 def chlapik_staff_space(rastral):
     return {
-    "zwei": mmtopxl(1.88), 3: mmtopxl(1.755), 4: mmtopxl(1.6),
-    5: mmtopxl(1.532), 6: mmtopxl(1.4), 7: mmtopxl(1.19),
-    8: mmtopxl(1.02)}[rastral]
+    "zwei": mmtopx(1.88), 3: mmtopx(1.755), 4: mmtopx(1.6),
+    5: mmtopx(1.532), 6: mmtopx(1.4), 7: mmtopx(1.19),
+    8: mmtopx(1.02)}[rastral]
 
 STAFF_SPACE = chlapik_staff_space("zwei")
 GLOBAL_SCALE = 1.0
@@ -161,8 +142,8 @@ def _scale():
     return GLOBAL_SCALE * ((4 * STAFF_SPACE) / _getglyph("clefs.C", "Haydn")["height"])
 def toplevel_scale(R): return R * _scale()
 
-_LEFT_MARGIN = mmtopxl(36)
-_TOP_MARGIN = mmtopxl(56)
+_LEFT_MARGIN = mmtopx(36)
+_TOP_MARGIN = mmtopx(56)
 
 
 
@@ -205,12 +186,12 @@ class _SMTObject:
         self._svg_list = []
         self.domain = domain
         self._rules_applied_to = False
-        self.ruletable = ruletable
+        self.ruletable = RuleTable() if ruletable is None else ruletable
     
     def _rule_application_eligibles(self):
         # Put in list to get False [] if nothing was filtered. 
-        return list(filter(lambda O: (O.domain in self.ruletable.domains) and
-        (isinstance(O, tuple(self.ruletable.targets))) and not(O._rules_applied_to), 
+        return list(filter(lambda o: (o.domain in self.ruletable.domains) and
+        (isinstance(o, tuple(self.ruletable.targets))) and not(o._rules_applied_to), 
         members(self))
         )
         
@@ -228,14 +209,9 @@ class _SMTObject:
     def parent(self): return self.ancestors[-1]
     def root(self): return self.ancestors[0]
     
-    def my_idx_in_parent_content(self):
-        for i, C in enumerate(self.parent().content):
-            if (C is self) and (C.id == self.id):
-                return i
-
     def _apply_rules(self):
         """
-        Applies rules to this object and all it's descendants. 
+        Applies rules to this object and to POSSIBLY all it's descendants. 
         """
         eligibles = self._rule_application_eligibles()
         while True:
@@ -248,8 +224,7 @@ class _SMTObject:
                         if isinstance(obj, rule["targets"]) and (obj.domain in rule["domains"]):
                             rule["hook"](obj)
                             obj._rules_applied_to = True
-                        if isinstance(obj, HForm):
-                            obj._lineup()
+                        if isinstance(obj, HForm): obj._lineup()
                 # Maybe some rule has created new objs, or even defined new rules!
                 eligibles = self._rule_application_eligibles()
             else:
@@ -259,13 +234,10 @@ def render(*objs):
     D = SW.drawing.Drawing(filename="/tmp/smt.svg", size=(pgw,pgh), debug=True)
     for obj in objs:
         obj._apply_rules()
-        # ~ Form's packsvglst will call packsvglst on descendants recursively
+        # Form's packsvglst will call packsvglst on descendants recursively
         obj._pack_svg_list()
         for elem in obj._svg_list:
-            if isinstance(elem, _LineSegment):
-                D.add(elem._line_element)
-            else:
-                D.add(elem)
+            D.add(elem)
     D.save(pretty=True)
 
 
@@ -278,16 +250,16 @@ __orgcrs_len = 20
 __orgcrcl_r = 4
 __orgcrcl_opac = 0.3
 __orgln_thickness = 0.06
-pgw = mmtopxl(210)
-pgh =mmtopxl(297)
+pgw = mmtopx(210)
+pgh =mmtopx(297)
 
 
 
 class _Canvas(_SMTObject):
     def __init__(self, canvas_color=None,
     canvas_opacity=None, xscale=None, yscale=None,
-    x=0, y=0, xlocked=False, ylocked=False,
-    width=0, widthlocked=False,
+    x=0, y=0, x_locked=False, ylocked=False,
+    width=0, width_locked=False,
     canvas_visible=True, origin_visible=True, **kwargs):
         super().__init__(**kwargs)
         # Only the first item in a hform will need _hlineup, for him 
@@ -301,10 +273,10 @@ class _Canvas(_SMTObject):
         self.yscale = yscale or GLOBAL_SCALE
         self._x = x
         self._y = y
-        self.xlocked = xlocked
+        self.x_locked = x_locked
         self.ylocked = ylocked
         self._width = width
-        self.widthlocked = widthlocked
+        self.width_locked = width_locked
         
     @property
     def x(self): return self._x
@@ -418,7 +390,7 @@ class Char(_Canvas, _Font):
     
     @_Canvas.x.setter
     def x(self, newx):
-        if not self.xlocked:
+        if not self.x_locked:
             dx = newx - self.x # save before modification!
             self._x = newx
             self._left += dx
@@ -491,7 +463,7 @@ class _Form(_Canvas, _Font):
         for D in descendants(self, False):
             D.ancestors.insert(0, self) # Need smteq??
         for C in self.content:
-            if not C.xlocked:
+            if not C.x_locked:
             # if C.absx == None: # 0 is a legitimate absy!
                 # Note that this is happening at init-time! When there is no absolute-x,
                 # C.x is ONLY the amount of it's x-offset (see Canvas' self._x definition).
@@ -526,7 +498,7 @@ class _Form(_Canvas, _Font):
 
     @_Canvas.width.setter
     def width(self, neww):
-        if not self.widthlocked:
+        if not self.width_locked:
             self._right = self.left + neww
             self._width = neww
             for A in reversed(self.ancestors):
@@ -534,7 +506,7 @@ class _Form(_Canvas, _Font):
 
     @_Canvas.x.setter
     def x(self, newx):
-        if not self.xlocked:
+        if not self.x_locked:
             dx = newx - self.x
             self._x = newx
             self._left += dx
@@ -568,19 +540,19 @@ class _Form(_Canvas, _Font):
         return min([self.x] + list(map(lambda c: c.left, self.content)))
 
     def _compute_right(self):
-        if self.widthlocked: # right never changes
+        if self.width_locked: # ,then right never changes!
             return self.left + self.width
         else:
-            return max([self.x] + list(map(lambda C: C.right, self.content)))
+            return max([self.x] + list(map(lambda c: c.right, self.content)))
 
     def _compute_width(self):
-        return self.width if self.widthlocked else (self.right - self.left)
+        return self.width if self.width_locked else (self.right - self.left)
 
     def _compute_top(self):
-        return min([self.fixtop] + list(map(lambda C: C.top, self.content)))
+        return min([self.fixtop] + list(map(lambda c: c.top, self.content)))
     
     def _compute_bottom(self):
-        return max([self.fixbottom] + list(map(lambda C: C.bottom, self.content)))
+        return max([self.fixbottom] + list(map(lambda c: c.bottom, self.content)))
     
     def _compute_height(self): return self.bottom - self.top
     
@@ -608,27 +580,24 @@ class SForm(_Form):
         self._compute_horizontals()
         self._compute_verticals()
     
-    # Sinnvoll nur in rule-application-time?
+    # Sinnvoll nur in rule-application-time?!!!!!!!!!!!!!!!
     def append(self, *children):
         """Appends new children to Form's content list."""
         self._establish_parental_relationship(children)
         for c in children:
-            # Use == since absx could be set.
-            # if child.absx == None:
-            if not c.xlocked:
-                c.x += self.x
-            # if C.absy == None:
-            if not c.ylocked:
-                c.y += self.y
-        print([(a.id, a.x) for a in children])
+            # print(">>",c.id,c.x,self.x)
+            # Asking if xy are locked happens in setter methods!
+            c.x += self.x
+            # print(">>>",c.id,c.x)
+            c.y += self.y
         self.content.extend(children)
         # Having set the content before would have caused assign_x to trigger computing horizontals for the Form,
         # which would have been to early!????
         self._compute_horizontals()
         self._compute_verticals()
         for A in reversed(self.ancestors):
-            if isinstance(A, HForm):
-                A._lineup()
+            # if isinstance(A, HForm):
+                # A._lineup()
             A._compute_horizontals()
             A._compute_verticals()
 
@@ -654,7 +623,6 @@ class HForm(_Form):
 
 class _LineSegment(_Canvas):
     """Angle in degrees"""
-    __ENDINGS = ("round", "square", "butt")
     _idcounter = -1
     def __init__(self, length=None, direction=None, thickness=None, angle=None, color=None, 
     rounded=False, endxr=None, endyr=None,
@@ -665,11 +633,12 @@ class _LineSegment(_Canvas):
         self._angle = angle or 0
         self._thickness = thickness or 0
         self._direction = direction
-        self._compute_horizontals()
-        self._compute_verticals()
         self.endxr = endxr or 0
         self.endyr = endyr or 0
         self.rounded = rounded
+        self._compute_horizontals()
+        self._compute_verticals()
+    
     # Override canvas packsvglist
     def _pack_svg_list(self):
         self._svg_list.append(SW.shapes.Rect(
@@ -680,8 +649,8 @@ class _LineSegment(_Canvas):
         )
     
     @_Canvas.x.setter
-    def x(self, newx): 
-        if not self.xlocked:
+    def x(self, newx):
+        if not self.x_locked:
             dx = newx - self.x
             self._x = newx
             self._left += dx
@@ -698,7 +667,6 @@ class _LineSegment(_Canvas):
             self._bottom += dy
             for A in reversed(self.ancestors): # An ancestor is always a Form!!
                 A._compute_verticals()
-        
     
     @property
     def length(self): return self._length
@@ -706,6 +674,8 @@ class _LineSegment(_Canvas):
     def thickness(self): return self._thickness
     @property
     def color(self): return self._color
+    @color.setter
+    def color(self, newcolor): self._color = newcolor
 
 class VLineSegment(_LineSegment):
     def __init__(self, **kwargs):
