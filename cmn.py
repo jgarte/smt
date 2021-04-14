@@ -5,13 +5,13 @@ from score import *
 def make_notehead(note):
     # setter for head? to append automatically
     if isinstance(note.duration, str):
-        note.head_hammer = Char(name={
+        note.head_punch = Char(name={
             "w": "noteheads.s0",
             "h": "noteheads.s1",
             "q": "noteheads.s2"
         }[note.duration])
     elif isinstance(note.duration, (float, int)):
-        note.head_hammer = Char(name={
+        note.head_punch = NGN.Char(name={
             1: "noteheads.s0",
             .5: "noteheads.s1",
             .25: "noteheads.s2"
@@ -19,7 +19,7 @@ def make_notehead(note):
         )
 
 def setstem(self):
-    self.stem_stichel = Stem(length=10,thickness=1,x=.5,endxr=2)
+    self.stem_graver = Stem(length=10,thickness=1,x=.5,endxr=2)
     
     
 
@@ -31,13 +31,11 @@ def notehead_vertical_pos(note):
 
         
 def make_accidental_char(accobj):
-    accobj.accidental_hammer=Char(name="accidentals.sharp")
-    accobj.append(accobj.accidental_hammer)
+    accobj.punch = NGN.Char(name="accidentals.sharp")
 
 def make_clef_char(clefobj):
-    clefobj.symbol = Char(name={"treble":"clefs.G", "g": "clefs.G",
+    clefobj.punch = NGN.Char(name={"treble":"clefs.G", "g": "clefs.G",
     "bass":"clefs.F", "alto":"clefs.C"}[clefobj.pitch])
-    clefobj.append(clefobj.symbol)
 
 
 def decide_unit_dur(dur_counts):
@@ -97,7 +95,7 @@ def f(h):
 cmn.add(make_notehead, (Note,), ["treble"])
 cmn.add(make_accidental_char, (Accidental,), ["treble", "bass"])
 cmn.add(setstem, (Note,),["treble"])
-cmn.add(f, (HForm,), ["horizontal"])
+cmn.add(f, (NGN.HForm,), ["horizontal"])
 
 # def x(self): self._svg_list.append(SW.shapes.Rect(insert=(self.stem.left, self.stem.bottom),size=(5,5),fill=SW.utils.rgb(100,100,0,"%")))
 # def xx(self): self._svg_list.append(SW.shapes.Rect(insert=(self.head.right, self.head.top),size=(2,5),fill=SW.utils.rgb(100,0,0,"%")))
@@ -128,6 +126,6 @@ Accidental(domain="treble",pitch=["d",4])
 # s=SForm(width=5,width_locked=0,x=50)
 # s.append(Stem(length=10,thickness=30))
 # h=HForm(content=[s],width=mmtopx(20),x=40,y=200, canvas_opacity=.2, width_locked=0)
-print(mmtopx(100))
-h=HForm(ruletable=cmn, content=gemischt,width=mmtopx(100),x=40,y=200, canvas_opacity=.2, width_locked=True)
-render(h,)
+print(NGN.mmtopx(100))
+h=NGN.HForm(ruletable=cmn, content=gemischt,width=NGN.mmtopx(100),x=40,y=200, canvas_opacity=.2, width_locked=True)
+NGN.render(h,)

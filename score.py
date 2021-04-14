@@ -1,11 +1,9 @@
 
 
-from engine import *
-from engine import _LineSegment
-
+import engine as NGN
 
 # Default ruletable
-cmn = RuleTable()
+cmn = NGN.RuleTable()
 
 
 class Clock:
@@ -34,55 +32,69 @@ class Pitch:
 
 STAFF_LINE_THICKNESS = 1.0
 
-class Staff(HLineSegment):
+class Staff(NGN.HLineSegment):
     LINE_THICKNESS = 1.0
 
 
-class Stem(VLineSegment):
+class Stem(NGN.VLineSegment):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
 # print(isinstance(Stem(), _LineSegment))
 
-class Note(SForm, Clock, Pitch):
-    def __init__(self, head_hammer=None, flagsym=None, stem_stichel=None, duration=None, pitch=None, **kwargs):
+class Note(NGN.SForm, Clock, Pitch):
+    def __init__(self, head_punch=None, stem_graver=None, duration=None, pitch=None, **kwargs):
         Clock.__init__(self, duration)
         Pitch.__init__(self, pitch)
-        SForm.__init__(self, **kwargs)
-        # Head holds the head_hammer Char object
-        self._head_char = head_hammer
-        self._flag_char = flagsym
-        self._stem_stichel = stem_stichel
+        NGN.SForm.__init__(self, **kwargs)
+        self._head_punch = head_punch
+        self._stem_graver = stem_graver
 
     @property
-    def head_hammer(self): return self._head_char
-    @head_hammer.setter
-    def head_hammer(self, newhead):
-        # wird auch flag sein!!!!!!!!!!!!!!!!!!!!!!!!!!
-        self._head_char = newhead
-        self.append(self._head_char)
-
-    @property
-    def stem_stichel(self): return self._stem_stichel
+    def head_punch(self): return self._head_punch
     
-    @stem_stichel.setter
-    def stem_stichel(self, newstem):
-        # print("before append",self.id, self.x)
-        # Allow only a single stem_stichel per note?
-        self.del_children(lambda c: isinstance(c, Stem))
-        self._stem_stichel = newstem
-        self.append(self._stem_stichel)
-        # print("After append", self.id, self.x)
+    @head_punch.setter
+    def head_punch(self, newhead):
+        # wird auch flag sein!!!!!!!!!!!!!!!!!!!!!!!!!!
+        self._head_punch = newhead
+        self.append(self._head_punch)
 
-class Accidental(SForm, Pitch):
-    def __init__(self, accidental_hammer=None, pitch=None, **kwargs):
-        SForm.__init__(self, **kwargs)
+    @property
+    def stem_graver(self): return self._stem_graver
+    
+    @stem_graver.setter
+    def stem_graver(self, newstem):
+        # Allow only a single stem_graver per note?
+        self.del_children(lambda c: isinstance(c, Stem))
+        self._stem_graver = newstem
+        self.append(self._stem_graver)
+
+
+class Accidental(NGN.SForm, Pitch):
+    def __init__(self, punch=None, pitch=None, **kwargs):
+        NGN.SForm.__init__(self, **kwargs)
         Pitch.__init__(self, pitch)
-        self.accidental_hammer = accidental_hammer
+        self._punch = punch
+        
+    @property
+    def punch(self): return self._punch
+    @punch.setter
+    def punch(self, new):
+        self.del_children(lambda c: isinstance(c, NGN.Char))
+        self._punch = new
+        self.append(self._punch)
         
 
-class Clef(SForm, Pitch):
-    def __init__(self, symbol=None, pitch=None, **kwargs):
-        SForm.__init__(self, **kwargs)
+class Clef(NGN.SForm, Pitch):
+    def __init__(self, punch=None, pitch=None, **kwargs):
+        NGN.SForm.__init__(self, **kwargs)
         Pitch.__init__(self, pitch)
-        self.symbol = symbol
+        self._punch = punch
+
+    @property
+    def punch(self): return self._punch
+    @punch.setter
+    def punch(self):
+        self.del_children(lambda c: isinstance(c, NGN.Char))
+        self._punch = new
+        self.append(self._punch)
