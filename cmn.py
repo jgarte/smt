@@ -94,8 +94,8 @@ def f(h):
 
 cmn.add(make_notehead, (Note,), ["treble"])
 cmn.add(make_accidental_char, (Accidental,), ["treble", "bass"])
-cmn.add(setstem, (Note,),["treble"])
 cmn.add(f, (NGN.HForm,), ["horizontal"])
+cmn.add(setstem, (Note,),["treble"])
 
 # def x(self): self._svg_list.append(SW.shapes.Rect(insert=(self.stem.left, self.stem.bottom),size=(5,5),fill=SW.utils.rgb(100,100,0,"%")))
 # def xx(self): self._svg_list.append(SW.shapes.Rect(insert=(self.head.right, self.head.top),size=(2,5),fill=SW.utils.rgb(100,0,0,"%")))
@@ -105,7 +105,7 @@ cmn.add(f, (NGN.HForm,), ["horizontal"])
 
 
 def reden(o): o.color=SW.utils.rgb(randint(0,100),0,0,"%")
-# cmn.add(reden, (Stem,),["d"])
+cmn.add(reden, (Stem,),["stem"])
 # print(cmn.domains)
 
 
