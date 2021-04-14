@@ -2,8 +2,6 @@
 
 import engine as NGN
 
-# Default ruletable
-cmn = NGN.RuleTable()
 
 
 class Clock:
@@ -30,17 +28,14 @@ class Pitch:
         self.pitch = pitch
 
 
-STAFF_LINE_THICKNESS = 1.0
 
-class Staff(NGN.HLineSegment):
-    LINE_THICKNESS = 1.0
 
 
 class Stem(NGN.VLineSegment):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-# print(isinstance(Stem(), _LineSegment))
+
 
 class Note(NGN.SForm, Clock, Pitch):
     def __init__(self, head_punch=None, stem_graver=None, duration=None, pitch=None, **kwargs):
