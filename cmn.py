@@ -17,19 +17,28 @@ def make_notehead(note):
             .25: "noteheads.s2"
         }[note.duration],
         )
+        
+def headcolor(n):
+    n.head_punch.color = NGN.SW.utils.rgb(50,0,0,"%")
+    n.head_punch.x += 20
+    n.append(NGN.Char(name="accidentals.flat",x=10,y=4))
+    
 
-def longer(stm): 
-    print(stm)
-    stm.length += 10
+def longer(s):
+    print("Longer",s.id)
+    # s.length += randint(0, 51)
+    NGN.cmn.add(headcolor, isnote)
+    print(len(NGN.cmn))
 
-def reden(o):
-    o.color=NGN.SW.utils.rgb(100,0,0,"%")
+def reden(stm):
+    stm.color=NGN.SW.utils.rgb(100,0,0,"%")
+    # stm.length += 10
     NGN.cmn.add(longer, isstem)
     #rule applied, appliedto=true
 
 def isstem(o): return isinstance(o, Stem)
 def setstem(self):
-    self.stem_graver = Stem(length=10,thickness=1,x=.5,endxr=2) #taze , appliedto =false
+    self.stem_graver = Stem(length=10,thickness=3) #taze , appliedto =false
     NGN.cmn.add(reden, isstem)
     
 

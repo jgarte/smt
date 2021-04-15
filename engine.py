@@ -162,11 +162,14 @@ def getallin(typeof, obj):
 # def _rule_application_eligibles(obj):
     # # Put in list to get False [] if nothing was filtered. 
     # return list(filter(lambda O: (O.domain in _ruledomains) and
-    # (isinstance(O, tuple(_ruletargets))) and not(O._rules_applied_to), 
+    # (isinstance(O, tuple(_ruletargets))) and not(O._is_rule_target), 
     # members(obj))
     # )
 
 _ruletables = set()
+
+def _any_pending_ruletables():
+    return any(map(lambda rt: rt._pending(), _ruletables))
 
 class RuleTable:
     
@@ -177,6 +180,11 @@ class RuleTable:
         self._order = 0
         self._registered = set()
         _ruletables.add(self)
+        
+    def _pending(self):
+        # return filter(lambda order_rule: not order_rule[1]["applied"], self.rules.items())
+        # o=order, rd=rule dict
+        return [(o, rd) for (o, rd) in self.rules.items() if not rd["applied"]]
     
     def add(self, hook, cond):
         """
@@ -186,38 +194,29 @@ class RuleTable:
         # Register rules using hook's hash to avoid re-adding the same hook(rule)!
         # This is merely a guard for not having rule-function multiples!
         if (hook.__hash__(), cond.__hash__()) not in self._registered:
-            self.rules[self._order] = {"hook": hook, "cond": cond}
+            self.rules[self._order] = {"hook": hook, "cond": cond, "applied": False}
             self._order += 1
             self._registered.add((hook.__hash__(), cond.__hash__()))
-        
-    # def _sorted(self):
-        # D = {}
-        # for d in self.rules.values():
-            # D[d["order"]] = {"hook": d["hook"], "cond": d["cond"]}
-        # return sorted(D.items())
-        
-        
-    # def _sorted_orders(self):
-        # return [D["order"] for D in sorted(self.rules.values(), key=lambda D: D["order"])]
+            
+    def __len__(self): return len(self.rules)
 
 
 # Default ruletable for all objects
 cmn = RuleTable()
 
 class _SMTObject:
-    def __init__(self, id_=None, domain=None, ruletable=None, hasrules=True):
+    def __init__(self, id_=None, domain=None, ruletable=None):
         self.ancestors = []
         self.id = id_ or self._assign_id()
         self._svg_list = []
         self.domain = domain
-        self.hasrules = hasrules
-        self._rules_applied_to = False
+        self._is_rule_target = True
         self.ruletable = ruletable or cmn
     
     # def _rule_application_eligibles(self):
         # # Put in list to get False [] if nothing was filtered. 
         # return list(filter(lambda o: (o.domain in self.ruletable.domains) and
-        # (isinstance(o, tuple(self.ruletable.targets))) and not(o._rules_applied_to), 
+        # (isinstance(o, tuple(self.ruletable.targets))) and not(o._is_rule_target), 
         # members(self))
         # )
         
@@ -236,49 +235,26 @@ class _SMTObject:
     def root(self): return self.ancestors[0]
     
     def _rule_application_eligibles(self):
-        return set(filter(lambda o: not o._rules_applied_to, members(self)))
+        return set(filter(lambda m: m._is_rule_target, members(self)))
     
     def _apply_rules(self):
-        # eligibles = self._rule_application_eligibles()
-        eligibles = members(self)
-        while True:
-            if eligibles:
-                # No garanty on order of ruletables!
-                for rt in _ruletables:
-                    for order in sorted(rt.rules):
-                        rule = rt.rules[order]
-                        # The order of eligibles is not realy important. Order of rules ARE!
-                        for e in eligibles:
-                            if rule["cond"](e): 
-                                rule["hook"](e)
-                                # e._rules_applied_to = True
-                                if isinstance(e, HForm): e._lineup()
-                for e in eligibles:
-                    e._rules_applied_to = True
-                # At the end of each round, ask whether there are newly added eligibles
-                eligibles = self._rule_application_eligibles().difference(eligibles)
-            else: break
-    
-    # def _apply_rules(self):
-        # """
-        # Applies rules to this object and to POSSIBLY all it's descendants. 
-        # """
-        # eligibles = self._rule_application_eligibles()
-        # while True:
-            # if eligibles:
-                # # Must iterate over rules first, then over objs.
-                # # It is the order of rules which matters! 
-                # for order in sorted(self.ruletable.rules):
-                    # rule = self.ruletable.rules[order]
-                    # for obj in eligibles:
-                        # if isinstance(obj, rule["targets"]) and (obj.domain in rule["domains"]):
-                            # rule["hook"](obj)
-                            # obj._rules_applied_to = True
-                        # if isinstance(obj, HForm): obj._lineup()
-                # # Maybe some rule has created new objs, or even defined new rules!
-                # eligibles = self._rule_application_eligibles()
-            # else:
-                # break
+        """
+        Applies rules to self and all it's descendants.
+        A rule will look for application-targets exactly once per each 
+        rule-application iteration. This means however that a rule might be applied
+        to an object more than once, if the object satisfies it's condition.
+        """
+        while _any_pending_ruletables():
+            # Do More efficiently eg retreive only pending rules????
+            for rt in _ruletables:
+                # o_rd=(order, ruledictionary)
+                for _, ruledict in sorted(rt._pending(), key=lambda o_rd: o_rd[0]):
+                    ruledict["applied"] = True
+                    for m in members(self):
+                        if ruledict["cond"](m):
+                            ruledict["hook"](m)
+                            if isinstance(m, HForm): m._lineup()
+
     
 def render(*objs):
     D = SW.drawing.Drawing(filename="/tmp/smt.svg", size=(pgw,pgh), debug=True)
@@ -697,6 +673,8 @@ class _LineSegment(_Canvas):
             fill=self.color, rx=self.endxr, ry=self.endyr
             )
         )
+    @property
+    def length(self): return self._length
     
     @_Canvas.x.setter
     def x(self, newx):
@@ -719,20 +697,24 @@ class _LineSegment(_Canvas):
                 A._compute_verticals()
     
     @property
-    def length(self): return self._length
-    @property
     def thickness(self): return self._thickness
 
 
 class VLineSegment(_LineSegment):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-    def _compute_height(self): return self.length
     def _compute_width(self): return self.thickness
     def _compute_left(self): return self.x - self.thickness*.5
     def _compute_right(self): return self.x + self.thickness*.5
+    def _compute_height(self): return self.length
     def _compute_bottom(self): return self.y + self.length
     def _compute_top(self): return self.y
+    @_LineSegment.length.setter
+    def length(self, new):
+        self._length = new
+        self._compute_verticals()
+        for a in reversed(self.ancestors):
+            a._compute_verticals()
 
 
 class HLineSegment(_LineSegment):
