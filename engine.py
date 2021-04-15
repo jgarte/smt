@@ -171,18 +171,16 @@ _ruletables = set()
 def _any_pending_ruletables():
     return any(map(lambda rt: rt._pending(), _ruletables))
 
+
 class RuleTable:
     
     def __init__(self):
-        # self.domains = set()
-        # self.targets = set((object,))
         self.rules = dict()
         self._order = 0
         self._registered = set()
         _ruletables.add(self)
         
     def _pending(self):
-        # return filter(lambda order_rule: not order_rule[1]["applied"], self.rules.items())
         # o=order, rd=rule dict
         return [(o, rd) for (o, rd) in self.rules.items() if not rd["applied"]]
     
