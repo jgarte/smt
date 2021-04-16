@@ -22,13 +22,12 @@ def headcolor(n):
     n.head_punch.color = NGN.SW.utils.rgb(50,0,100,"%")
     # n.head_punch.x += 20
     n.append(NGN.Char(name="accidentals.flat",opacity=.5))
+    print(NGN.cmn._constraints_registry)
     
 
 def longer(s):
-    print("Longer",s.id)
     # s.length += randint(0, 51)
     NGN.cmn.add(headcolor, isnote)
-    print(len(NGN.cmn))
 
 def reden(stm):
     stm.color=NGN.SW.utils.rgb(100,0,0,"%")

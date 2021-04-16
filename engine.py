@@ -159,17 +159,9 @@ def getallin(typeof, obj):
     """Returns an iterable of all types in obj."""
     return filter(lambda O: isinstance(O, typeof), members(obj))
 
-# def _rule_application_eligibles(obj):
-    # # Put in list to get False [] if nothing was filtered. 
-    # return list(filter(lambda O: (O.domain in _ruledomains) and
-    # (isinstance(O, tuple(_ruletargets))) and not(O._is_rule_target), 
-    # members(obj))
-    # )
+
 
 _ruletables = set()
-
-# def _any_pending_ruletables():
-    # return any(map(lambda rt: rt._pending(), _ruletables))
 
 def _pending_ruletables():
     return [rt for rt in _ruletables if rt._pending()]
@@ -179,7 +171,8 @@ class RuleTable:
     def __init__(self):
         self.rules = dict()
         self._order = 0
-        self._registered = set()
+        self._hooks_registry = []
+        self._constraints_registry = []
         _ruletables.add(self)
         
     def _pending(self):
@@ -189,17 +182,18 @@ class RuleTable:
         # o=order, rd=rule dict
         return [(o, rd) for (o, rd) in self.rules.items() if not rd["applied"]]
     
-    def add(self, hook, cond):
+    def add(self, hook, constraint):
         """
-        cond is a function 1 arg
-        
+        Rule will be added only if at least hook or constraint is fresh,
+        allowing combinations of both parameters.
         """
-        # Register rules using hook's hash to avoid re-adding the same hook(rule)!
-        # This is merely a guard for not having rule-function multiples!
-        if (hook.__hash__(), cond.__hash__()) not in self._registered:
-            self.rules[self._order] = {"hook": hook, "cond": cond, "applied": False}
+        hhash = hook.__hash__()
+        chash = constraint.__hash__()
+        if hhash not in self._hooks_registry or chash not in self._constraints_registry:
+            self.rules[self._order] = {"hook": hook, "constraint": constraint, "applied": False}
             self._order += 1
-            self._registered.add((hook.__hash__(), cond.__hash__()))
+            self._hooks_registry.append(hhash)
+            self._constraints_registry.append(chash)
             
     def __len__(self): return len(self.rules)
 
@@ -255,7 +249,7 @@ class _SMTObject:
                     for _, ruledict in sorted(rt._pending(), key=lambda o_rd: o_rd[0]):
                         ruledict["applied"] = True
                         for m in members(self):
-                            if ruledict["cond"](m):
+                            if ruledict["constraint"](m):
                                 ruledict["hook"](m)
                                 if isinstance(m, HForm): m._lineup()
                 pending_rts = _pending_ruletables()
@@ -331,35 +325,17 @@ class _Canvas(_SMTObject):
     
     @left.setter
     def left(self, newl):
-        # Public x-setter gets DESTINATION & passes (newx-destination - x) to 
-        # the shift_x function (which gets DELTAX as argument).
-        # self.x = self.x + (newl - self.left)
-        # deltal = newl - self.left
-        # self.x = self.x + deltal
         self.x += (newl - self.left)
 
     @right.setter
     def right(self):
         print("Implement right setter!")
 
-    # This is used eg by h-lineup
-    # def _shift_left(self, newl):
-        # # Shiftx gets the difference to the Destination as argument.
-        # self._shift_x_by(newl - self.left)
-
-    # def _shift_left(self, deltal):
-        # # Shiftx gets the difference to the Destination as argument.
-        # self._shift_x_by(deltal)
-        
-    # def _assign_left(self, newl):
-        # self._assign_x(self.x + (newl - self.left))
-
-
     # Make sure from canvas derived subclasses have implemented these computations.
     def _compute_width(self):
-        raise NotImplementedError(f"_compute_width must be overriden by {self.__class__.__name__}")
+        raise NotImplementedError(f"_compute_width not overriden by {self.__class__.__name__}")
     def _compute_height(self):
-        raise NotImplementedError(f"_compute_height must be overriden by {self.__class__.__name__}")
+        raise NotImplementedError(f"_compute_height not overriden by {self.__class__.__name__}")
     
     def _compute_horizontals(self):
         self._left = self._compute_left()
