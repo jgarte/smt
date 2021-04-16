@@ -1,6 +1,6 @@
 
 
-import engine as NGN
+import engine as e
 
 
 
@@ -31,17 +31,17 @@ class Pitch:
 
 
 
-class Stem(NGN.VLineSegment):
+class Stem(e.VLineSegment):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
 
 
-class Note(NGN.SForm, Clock, Pitch):
+class Note(e.SForm, Clock, Pitch):
     def __init__(self, head_punch=None, stem_graver=None, duration=None, pitch=None, **kwargs):
         Clock.__init__(self, duration)
         Pitch.__init__(self, pitch)
-        NGN.SForm.__init__(self, **kwargs)
+        e.SForm.__init__(self, **kwargs)
         self._head_punch = head_punch
         self._stem_graver = stem_graver
 
@@ -65,9 +65,9 @@ class Note(NGN.SForm, Clock, Pitch):
         self.append(self._stem_graver)
 
 
-class Accidental(NGN.SForm, Pitch):
+class Accidental(e.SForm, Pitch):
     def __init__(self, punch=None, pitch=None, **kwargs):
-        NGN.SForm.__init__(self, **kwargs)
+        e.SForm.__init__(self, **kwargs)
         Pitch.__init__(self, pitch)
         self._punch = punch
         
@@ -75,14 +75,14 @@ class Accidental(NGN.SForm, Pitch):
     def punch(self): return self._punch
     @punch.setter
     def punch(self, new):
-        self.del_children(lambda c: isinstance(c, NGN.Char))
+        self.del_children(lambda c: isinstance(c, e.Char))
         self._punch = new
         self.append(self._punch)
         
 
-class Clef(NGN.SForm, Pitch):
+class Clef(e.SForm, Pitch):
     def __init__(self, punch=None, pitch=None, **kwargs):
-        NGN.SForm.__init__(self, **kwargs)
+        e.SForm.__init__(self, **kwargs)
         Pitch.__init__(self, pitch)
         self._punch = punch
 
@@ -90,6 +90,6 @@ class Clef(NGN.SForm, Pitch):
     def punch(self): return self._punch
     @punch.setter
     def punch(self):
-        self.del_children(lambda c: isinstance(c, NGN.Char))
+        self.del_children(lambda c: isinstance(c, e.Char))
         self._punch = new
         self.append(self._punch)

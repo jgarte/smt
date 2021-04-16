@@ -5,13 +5,13 @@ from score import *
 def make_notehead(note):
     # setter for head? to append automatically
     if isinstance(note.duration, str):
-        note.head_punch = NGN.Char(name={
+        note.head_punch = e.Char(name={
             "w": "noteheads.s0",
             "h": "noteheads.s1",
             "q": "noteheads.s2"
         }[note.duration])
     elif isinstance(note.duration, (float, int)):
-        note.head_punch = NGN.Char(name={
+        note.head_punch = e.Char(name={
             1: "noteheads.s0",
             .5: "noteheads.s1",
             .25: "noteheads.s2"
@@ -19,26 +19,26 @@ def make_notehead(note):
         )
         
 def headcolor(n):
-    n.head_punch.color = NGN.SW.utils.rgb(50,0,100,"%")
+    n.head_punch.color = e.SW.utils.rgb(50,0,100,"%")
     # n.head_punch.x += 20
-    n.append(NGN.Char(name="accidentals.flat",opacity=.5))
-    print(NGN.cmn._constraints_registry)
+    n.append(e.Char(name="accidentals.flat",opacity=.5))
+    print(len(e.cmn))
     
 
 def longer(s):
     # s.length += randint(0, 51)
-    NGN.cmn.add(headcolor, isnote)
+    e.cmn.add(headcolor, isnote)
 
 def reden(stm):
-    stm.color=NGN.SW.utils.rgb(100,0,0,"%")
+    stm.color=e.SW.utils.rgb(100,0,0,"%")
     # stm.length += 10
-    NGN.cmn.add(longer, isstem)
+    e.cmn.add(longer, isstem)
     #rule applied, appliedto=true
 
 def isstem(o): return isinstance(o, Stem)
 def setstem(self):
-    self.stem_graver = Stem(length=10,thickness=5,opacity=.2) #taze , appliedto =false
-    NGN.cmn.add(reden, isstem)
+    self.stem_graver = Stem(length=10,thickness=5) #taze , appliedto =false
+    # e.cmn.add(reden, isstem)
     
 
 
@@ -50,10 +50,10 @@ def notehead_vertical_pos(note):
 
         
 def make_accidental_char(accobj):
-    accobj.punch = NGN.Char(name="accidentals.sharp")
+    accobj.punch = e.Char(name="accidentals.sharp")
 
 def make_clef_char(clefobj):
-    clefobj.punch = NGN.Char(name={"treble":"clefs.G", "g": "clefs.G",
+    clefobj.punch = e.Char(name={"treble":"clefs.G", "g": "clefs.G",
     "bass":"clefs.F", "alto":"clefs.C"}[clefobj.pitch])
 
 
@@ -84,7 +84,7 @@ def compute_perf_punct(clocks, w):
     return perfwidths
 
 def right_guard(obj):
-    return {Note: 10, Clef:10, Accidental: 1}[type(obj)]
+    return {Note: 10, Clef:10, Accidental: 10, e.SForm: 5}[type(obj)]
 
 def f(h):
     # print([(a.x, a.left, a.width) for a in h.content])
@@ -95,7 +95,7 @@ def f(h):
     if allclocks(h):
         for C, w in zip(h.content, perfwidths):
             C.width += w
-            C.width_locked = True
+            # C.width_locked = False
     else:
         print("-------nonclocks")
         for c,w in zip(clkchunks, perfwidths):
@@ -105,31 +105,40 @@ def f(h):
             if s < w:
                 # add rest of perfect width - sum of nonclocks
                 clock.width += (w - s)
-                clock.width_locked = True
+                # clock.width_locked = True
                 for a in nonclocks:
                     a.width += right_guard(a)
-                    a.width_locked = 1
-    # print([(a.id, a.x) for a in h.content])
+                    # dont need to lock this width, since it's not touched
+                    # by setstem: setstem only impacts it's papa: the NOTE object
+                    # a.width_locked = 0
 
 
 def noteandtrebe(x): return isinstance(x, Note) and x.domain == "treble"
-NGN.cmn.add(make_notehead, noteandtrebe)
 def isacc(x): return isinstance(x, Accidental)
-NGN.cmn.add(make_accidental_char, isacc)
 def isnote(x): return isinstance(x,Note)
-NGN.cmn.add(setstem, isnote)
 
-def greenhead(x): x.head_punch.color = NGN.SW.utils.rgb(0,0,100,"%")
-NGN.cmn.add(greenhead, noteandtrebe)
+def greenhead(x): x.head_punch.color = e.SW.utils.rgb(0,0,100,"%")
+def reden(x): 
+    print(x.id, x.content)
+    x.content[0].color = e.SW.utils.rgb(100,0,0,"%")
+def S(x): return x.id == "S"
+
+def ish(x): return isinstance(x, e.HForm)
 
 
-def ish(x): return isinstance(x, NGN.HForm)
-NGN.cmn.add(f, ish)
+
+e.cmn.add(make_notehead, noteandtrebe)
+e.cmn.add(make_accidental_char, isacc)
+# e.cmn.add(greenhead, noteandtrebe)
+e.cmn.add(setstem, isnote)
+# e.cmn.add(reden, S)
+
+e.cmn.add(f, ish)
 
 # 680.3149 pxl
 gemischt=[
 Note(domain="treble", duration=1, pitch=["c",4]),
-Accidental(pitch=["c", 4],domain="treble"),
+Accidental(pitch=["c", 4],domain="treble",),
 Accidental(domain="treble"), 
 # Clef(pitch="g",domain="treble"),
 Accidental(domain="treble"),
@@ -144,8 +153,8 @@ Accidental(domain="treble",pitch=["d",4])
 # s.append(Stem(length=10,thickness=30))
 # h=HForm(content=[s],width=mmtopx(20),x=40,y=200, canvas_opacity=.2, width_locked=0)
 
-# print(NGN.mmtopx(100))
-h=NGN.HForm(content=gemischt,width=NGN.mmtopx(100),x=40,y=200, canvas_opacity=.2, width_locked=True,
+# print(e.mmtopx(100))
+h=e.HForm(content=gemischt,width=e.mmtopx(100),x=40,y=200, canvas_opacity=.2, width_locked=True,
 id_="top")
-NGN.render(h,)
-# print(NGN.cmn.rules.keys())
+e.render(h,)
+# print(e.cmn.rules.keys())

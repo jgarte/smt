@@ -127,6 +127,7 @@ GLOBAL_SCALE = 1.0
 
 def _scale():
     return GLOBAL_SCALE * ((4 * STAFF_SPACE) / _getglyph("clefs.C", "Haydn")["height"])
+
 def toplevel_scale(R): return R * _scale()
 
 _LEFT_MARGIN = mmtopx(36)
@@ -198,7 +199,7 @@ class RuleTable:
     def __len__(self): return len(self.rules)
 
 
-# Default ruletable for all objects
+# Common Music Notation, default ruletable for all objects
 cmn = RuleTable()
 
 class _SMTObject:
@@ -208,14 +209,7 @@ class _SMTObject:
         self._svg_list = []
         self.domain = domain
         self.ruletable = ruletable or cmn
-    
-    # def _rule_application_eligibles(self):
-        # # Put in list to get False [] if nothing was filtered. 
-        # return list(filter(lambda o: (o.domain in self.ruletable.domains) and
-        # (isinstance(o, tuple(self.ruletable.targets))) and not(o._is_rule_target), 
-        # members(self))
-        # )
-        
+
     def _pack_svg_list(self):
         """Makes sure the derived class has implemented this method!"""
         raise NotImplementedError(f"Forgot to override _pack_svg_list for {self.__class__.__name__}?")
@@ -242,11 +236,12 @@ class _SMTObject:
             if pending_rts:
                 for rt in pending_rts:
                     # o_rd=(order, ruledictionary)
-                    for _, ruledict in sorted(rt._pending(), key=lambda o_rd: o_rd[0]):
-                        ruledict["applied"] = True
+                    for _, rule in sorted(rt._pending(), key=lambda o_rd: o_rd[0]):
+                        rule["applied"] = True
+                        # Dump in each round the up-to-date members (if any new objects have been added etc....)
                         for m in members(self):
-                            if ruledict["constraint"](m):
-                                ruledict["hook"](m)
+                            if rule["constraint"](m):
+                                rule["hook"](m)
                                 if isinstance(m, HForm): m._lineup()
                 pending_rts = _pending_ruletables()
             else: break
@@ -279,7 +274,7 @@ pgh =mmtopx(297)
 
 class _Canvas(_SMTObject):
     def __init__(self, canvas_color=None,
-    canvas_opacity=None, xscale=None, yscale=None,
+    canvas_opacity=None, xscale=1, yscale=1,
     x=0, y=0, x_locked=False, y_locked=False,
     width=0, width_locked=False,
     canvas_visible=True, origin_visible=True, **kwargs):
@@ -291,8 +286,8 @@ class _Canvas(_SMTObject):
         self.canvas_visible = canvas_visible
         self.canvas_color = canvas_color
         self.origin_visible = origin_visible
-        self.xscale = xscale or GLOBAL_SCALE
-        self.yscale = yscale or GLOBAL_SCALE
+        self.xscale = xscale
+        self.yscale = yscale
         # self._x_locked = True if x else False
         # self._x = x if x else 0
         self._x = x
@@ -587,7 +582,7 @@ class SForm(_Form):
         """Appends new children to Form's content list."""
         self._establish_parental_relationship(children)
         for c in children:
-            # Asking if xy are locked happens in setter methods!
+            # Asking if xy are locked happens in their setter methods!
             c.x += self.x
             c.y += self.y
         self.content.extend(children)
