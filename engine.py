@@ -275,7 +275,7 @@ pgh =mmtopx(297)
 class _Canvas(_SMTObject):
     def __init__(self, canvas_color=None,
     canvas_opacity=None, xscale=1, yscale=1,
-    x=0, y=0, x_locked=False, y_locked=False,
+    x=None, y=None, x_locked=False, y_locked=False,
     width=0, width_locked=False,
     canvas_visible=True, origin_visible=True, **kwargs):
         super().__init__(**kwargs)
@@ -288,14 +288,19 @@ class _Canvas(_SMTObject):
         self.origin_visible = origin_visible
         self.xscale = xscale
         self.yscale = yscale
-        # self._x_locked = True if x else False
-        # self._x = x if x else 0
-        self._x = x
-        self._y = y
+        self._y_locked = True if y else False
+        self._x_locked = True if x else False
+        self._x = x if x else 0
+        # self._x = x
+        self._y = y if y else 0
         self.y_locked = y_locked
         self.x_locked = x_locked
         self._width = width
         self.width_locked = width_locked
+        
+    def unlock(what):
+        if what == "y":
+            self._y_locked = False
         
     @property
     def x(self): return self._x
@@ -315,8 +320,12 @@ class _Canvas(_SMTObject):
     def right(self): return self._right
     
     @left.setter
-    def left(self, newl):
-        self.x += (newl - self.left)
+    def left(self, new):
+        self.x += (new - self.left)
+    
+    @top.setter
+    def top(self, new):
+        self.y += (new - self.top)
 
     @right.setter
     def right(self):
@@ -390,10 +399,10 @@ class Char(_Canvas, _Font):
         self._compute_verticals()
     
     @_Canvas.x.setter
-    def x(self, newx):
-        if not self.x_locked:
-            dx = newx - self.x # save x before re-assignment!
-            self._x = newx
+    def x(self, new):
+        if not self._x_locked:
+            dx = new - self.x # save x before re-assignment!
+            self._x = new
             self._left += dx
             self._right += dx
             for A in reversed(self.ancestors): # An ancestor is always a Form!!
@@ -401,7 +410,7 @@ class Char(_Canvas, _Font):
     
     @_Canvas.y.setter
     def y(self, newy):
-        if not self.y_locked:
+        if not self._y_locked:
             dy = newy - self.y
             self._y = newy
             self._top += dy
@@ -464,10 +473,16 @@ class _Form(_Canvas, _Font):
         for D in descendants(self, False):
             D.ancestors.insert(0, self) # Need smteq??
         for c in self.content:
-            if not c.x_locked:
-                c.x += self.x
-            if not c.y_locked:
-                c.y += self.y
+            # These assignments take place only if xy are not locked!
+            c.x = self.x
+            c.y = self.y
+            
+            # if not c.x_locked:
+                # c.x += self.x
+            if not c._y_locked:
+                # # c.y += self.y
+                # c.y = self.y
+                
                 # If child is to be relocated vertically, their fix-top & bottom can not be
                 # the original values, but must move along with the parent.
                 if isinstance(c, _Form):
@@ -502,10 +517,10 @@ class _Form(_Canvas, _Font):
                 A._compute_horizontals()
 
     @_Canvas.x.setter
-    def x(self, newx):
-        if not self.x_locked:
-            dx = newx - self.x
-            self._x = newx
+    def x(self, new):
+        if not self._x_locked:
+            dx = new - self.x
+            self._x = new
             self._left += dx
             self._right += dx
             for D in descendants(self, False):
@@ -517,10 +532,10 @@ class _Form(_Canvas, _Font):
                 A._compute_horizontals()
 
     @_Canvas.y.setter
-    def y(self, newy):
-        if not self.y_locked:
-            dy = newy - self.y
-            self._y = newy
+    def y(self, new):
+        if not self._y_locked:
+            dy = new - self.y
+            self._y = new
             self._top += dy
             self._bottom += dy
             for D in descendants(self, False):
@@ -582,9 +597,10 @@ class SForm(_Form):
         """Appends new children to Form's content list."""
         self._establish_parental_relationship(children)
         for c in children:
-            # Asking if xy are locked happens in their setter methods!
-            c.x += self.x
-            c.y += self.y
+            c.x = self.x
+            # c.x += self.x
+            # c.y += self.y
+            c.y = self.y
         self.content.extend(children)
         # Having set the content before would have caused assign_x to trigger computing horizontals for the Form,
         # which would have been to early!????
@@ -611,10 +627,19 @@ class HForm(_Form):
         self._compute_verticals()
             
     def _lineup(self):
-        for a, b in zip(self.content[:-1], self.content[1:]):
-            b.left = a.right
+        for L, R in zip(self.content[:-1], self.content[1:]):
+            R.left = L.right
 
-
+class VForm(_Form):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self._lineup()
+        self._compute_horizontals()
+        self._compute_verticals()
+    def _lineup(self):
+        for T, B in zip(self.content[:-1], self.content[1:]):
+            B.top = T.bottom
+        
 
 class _LineSegment(_Canvas):
     """Angle in degrees"""
@@ -647,20 +672,20 @@ class _LineSegment(_Canvas):
     def length(self): return self._length
     
     @_Canvas.x.setter
-    def x(self, newx):
-        if not self.x_locked:
-            dx = newx - self.x
-            self._x = newx
+    def x(self, new):
+        if not self._x_locked:
+            dx = new - self.x
+            self._x = new
             self._left += dx
             self._right += dx
             for A in reversed(self.ancestors): # An ancestor is always a Form!!
                 A._compute_horizontals()
     
     @_Canvas.y.setter
-    def y(self, newy): 
-        if not self.y_locked:
-            dy = newy - self.y
-            self._y = newy
+    def y(self, new): 
+        if not self._y_locked:
+            dy = new - self.y
+            self._y = new
             self._top += dy
             self._bottom += dy
             for A in reversed(self.ancestors): # An ancestor is always a Form!!

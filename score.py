@@ -29,7 +29,9 @@ class Pitch:
 
 
 
-
+class Staff(e.VForm):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
 class Stem(e.VLineSegment):
     def __init__(self, **kwargs):
@@ -89,7 +91,7 @@ class Clef(e.SForm, Pitch):
     @property
     def punch(self): return self._punch
     @punch.setter
-    def punch(self):
+    def punch(self, new):
         self.del_children(lambda c: isinstance(c, e.Char))
         self._punch = new
         self.append(self._punch)

@@ -22,7 +22,7 @@ def headcolor(n):
     n.head_punch.color = e.SW.utils.rgb(50,0,100,"%")
     # n.head_punch.x += 20
     n.append(e.Char(name="accidentals.flat",opacity=.5))
-    print(len(e.cmn))
+    # print(len(e.cmn))
     
 
 def longer(s):
@@ -37,8 +37,12 @@ def reden(stm):
 
 def isstem(o): return isinstance(o, Stem)
 def setstem(self):
-    self.stem_graver = Stem(length=10,thickness=5) #taze , appliedto =false
-    # e.cmn.add(reden, isstem)
+    if self.duration in (.25, .5):
+        s=Stem(length=13,thickness=1,x=self.x+.5)
+        self.stem_graver = s #taze , appliedto =false
+        print(s,s._x_locked)
+        # e.cmn.add(rutchS, isstem)
+def rutchS(s): s.x += .5
     
 
 
@@ -52,9 +56,9 @@ def notehead_vertical_pos(note):
 def make_accidental_char(accobj):
     accobj.punch = e.Char(name="accidentals.sharp")
 
-def make_clef_char(clefobj):
-    clefobj.punch = e.Char(name={"treble":"clefs.G", "g": "clefs.G",
-    "bass":"clefs.F", "alto":"clefs.C"}[clefobj.pitch])
+def setclef(clefobj):
+    clefobj.punch = e.Char(name={"g": "clefs.G",
+    "f":"clefs.F", "c":"clefs.C"}[clefobj.pitch])
 
 
 def decide_unit_dur(dur_counts):
@@ -78,24 +82,31 @@ def compute_perf_punct(clocks, w):
     uw=w / sum([x[0] * ufactor(udur, x[1]) for x in dur_counts])
     perfwidths = []
     for x in clocks:
+        # a space is excluding the own width of the clock (it's own char width)
         space = ((uw * ufactor(udur, x.duration)) - x.width)
         perfwidths.append(space)
         # x.width += ((uw * ufactor(udur, x.duration)) - x.width)
     return perfwidths
 
 def right_guard(obj):
-    return {Note: 10, Clef:10, Accidental: 10, e.SForm: 5}[type(obj)]
-
-def f(h):
-    # print([(a.x, a.left, a.width) for a in h.content])
-    clkchunks=clock_chunks(h.content)
+    return {Note: 2, Clef:3, Accidental: 2,}[type(obj)]
+def first_clock_idx(l):
+    for i,x in enumerate(l):
+        if isinstance(x, Clock):
+            return i
+def punctuate_line(h):
+    first_clock_idx_ = first_clock_idx(h.content)
+    startings=h.content[0:first_clock_idx_]
+    for starting in startings:
+        starting.width += right_guard(starting)
+    clkchunks=clock_chunks(h.content[first_clock_idx_:])
     # print(clkchunks)
     clocks = list(map(lambda l:l[0], clkchunks))
-    perfwidths = compute_perf_punct(clocks, h.width)
+    perfwidths = compute_perf_punct(clocks, h.width - sum([x.width for x in startings]))
     if allclocks(h):
         for C, w in zip(h.content, perfwidths):
             C.width += w
-            # C.width_locked = False
+            C.width_locked = True
     else:
         print("-------nonclocks")
         for c,w in zip(clkchunks, perfwidths):
@@ -105,7 +116,7 @@ def f(h):
             if s < w:
                 # add rest of perfect width - sum of nonclocks
                 clock.width += (w - s)
-                # clock.width_locked = True
+                clock.width_locked = True
                 for a in nonclocks:
                     a.width += right_guard(a)
                     # dont need to lock this width, since it's not touched
@@ -122,39 +133,64 @@ def reden(x):
     print(x.id, x.content)
     x.content[0].color = e.SW.utils.rgb(100,0,0,"%")
 def S(x): return x.id == "S"
-
+def isline(x): return isinstance(x, Line)
 def ish(x): return isinstance(x, e.HForm)
-
-
+def isclef(x): return isinstance(x, Clef)
+def opachead(n): n.head_punch.opacity = .3
 
 e.cmn.add(make_notehead, noteandtrebe)
 e.cmn.add(make_accidental_char, isacc)
 # e.cmn.add(greenhead, noteandtrebe)
 e.cmn.add(setstem, isnote)
-# e.cmn.add(reden, S)
+e.cmn.add(setclef, isclef)
+e.cmn.add(opachead, isnote)
 
-e.cmn.add(f, ish)
+e.cmn.add(punctuate_line, isline)
+
+def addstaff(n):
+    for i in range(5):
+        l=e.HLineSegment(length=n.width, thickness=1, endxr=0, y=i*e.STAFF_SPACE + n.top)
+        n.append(l)
+        # n.append(e.HLineSegment(length=n.width, thickness=1, endxr=0))
+
+e.cmn.add(addstaff, isnote)
+
+
 
 # 680.3149 pxl
-gemischt=[
-Note(domain="treble", duration=1, pitch=["c",4]),
-Accidental(pitch=["c", 4],domain="treble",),
-Accidental(domain="treble"), 
-# Clef(pitch="g",domain="treble"),
-Accidental(domain="treble"),
-Note(pitch=["d",4],domain="treble", duration=.5),
-Note(pitch=["d",4],domain="treble", duration=.25),
-# Clef(domain="treble",pitch="bass"),
-Accidental(domain="treble",pitch=["d",4])
-]
+# gemischt=[
+# Note(domain="treble", duration=1, pitch=["c",4]),
+# Accidental(pitch=["c", 4],domain="treble",),
+# Accidental(domain="treble"), 
+# # Clef(pitch="g",domain="treble"),
+# Accidental(domain="treble"),
+# Note(pitch=["d",4],domain="treble", duration=.5),
+# Note(pitch=["d",4],domain="treble", duration=.25),
+# # Clef(domain="treble",pitch="bass"),
+# Accidental(domain="treble",pitch=["d",4])
+# ]
 
-
+class Line(e.HForm):
+    def __init__(self, *objs, **kw):
+        e.HForm.__init__(self, content=objs, **kw)
 # s=SForm(width=5,width_locked=0,x=50)
 # s.append(Stem(length=10,thickness=30))
 # h=HForm(content=[s],width=mmtopx(20),x=40,y=200, canvas_opacity=.2, width_locked=0)
 
 # print(e.mmtopx(100))
-h=e.HForm(content=gemischt,width=e.mmtopx(100),x=40,y=200, canvas_opacity=.2, width_locked=True,
-id_="top")
-e.render(h,)
-# print(e.cmn.rules.keys())
+e.render(Line(
+Clef(pitch="g"),
+Clef(pitch="f"),
+Clef(pitch="c"),
+Note(domain="treble", duration=.25, pitch=["c",4]), 
+Note(domain="treble", duration=1, pitch=["c",4]), 
+Note(domain="treble", duration=.25, pitch=["c",4]), 
+Note(domain="treble", duration=.5, pitch=["c",4]), 
+Note(domain="treble", duration=.25, pitch=["c",4]), 
+Note(domain="treble", duration=.5, pitch=["c",4]), 
+Note(domain="treble", duration=.25, pitch=["c",4]), 
+
+width=e.mmtopx(70),x=20,y=20, width_locked=True))
+
+# h=e.HForm(content=gemischt,width=e.mmtopx(100),x=40,y=200, canvas_opacity=.2, width_locked=True,id_="top")
+# e.render(h,)
