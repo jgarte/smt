@@ -207,7 +207,6 @@ class _SMTObject:
         self.id = id_ or self._assign_id()
         self._svg_list = []
         self.domain = domain
-        self._is_rule_target = True
         self.ruletable = ruletable or cmn
     
     # def _rule_application_eligibles(self):
@@ -230,9 +229,6 @@ class _SMTObject:
 
     def parent(self): return self.ancestors[-1]
     def root(self): return self.ancestors[0]
-    
-    def _rule_application_eligibles(self):
-        return set(filter(lambda m: m._is_rule_target, members(self)))
     
     def _apply_rules(self):
         """
