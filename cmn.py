@@ -38,9 +38,9 @@ def reden(stm):
 def isstem(o): return isinstance(o, Stem)
 def setstem(self):
     if self.duration in (.25, .5):
-        s=Stem(length=13,thickness=1,x=self.x+.5)
+        s=Stem(length=13,thickness=10,x=self.x+5)
         self.stem_graver = s #taze , appliedto =false
-        print(s,s._x_locked)
+        print(s,s._x_locked, s._y_locked)
         # e.cmn.add(rutchS, isstem)
 def rutchS(s): s.x += .5
     
@@ -186,7 +186,7 @@ Note(domain="treble", duration=.25, pitch=["c",4]),
 Note(domain="treble", duration=1, pitch=["c",4]), 
 Note(domain="treble", duration=.25, pitch=["c",4]), 
 Note(domain="treble", duration=.5, pitch=["c",4]), 
-Note(domain="treble", duration=.25, pitch=["c",4]), 
+Note(domain="treble", duration=1, pitch=["c",4]), 
 Note(domain="treble", duration=.5, pitch=["c",4]), 
 Note(domain="treble", duration=.25, pitch=["c",4]), 
 

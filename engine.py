@@ -288,12 +288,13 @@ class _Canvas(_SMTObject):
         self.origin_visible = origin_visible
         self.xscale = xscale
         self.yscale = yscale
+        # Permit zeros for x and y
         self._y_locked = False if y is None else True # permit 0
-        self._x_locked = False if y is None else True
-        self._x = x if x else 0
+        self._x_locked = False if x is None else True
+        self._x = 0 if x is None else x
         # self._x = x
-        self._y = y if y else 0
-        self.y_locked = y_locked
+        self._y = 0 if y is None else y
+        # self.y_locked = y_locked
         self.x_locked = x_locked
         self._width = width
         self.width_locked = width_locked
