@@ -290,7 +290,7 @@ pgh =mmtopx(297)
 class _Canvas(_SMTObject):
     def __init__(self, canvas_color=None,
     canvas_opacity=None, xscale=None, yscale=None,
-    x=0, y=0, x_locked=False, ylocked=False,
+    x=0, y=0, x_locked=False, y_locked=False,
     width=0, width_locked=False,
     canvas_visible=True, origin_visible=True, **kwargs):
         super().__init__(**kwargs)
@@ -303,10 +303,12 @@ class _Canvas(_SMTObject):
         self.origin_visible = origin_visible
         self.xscale = xscale or GLOBAL_SCALE
         self.yscale = yscale or GLOBAL_SCALE
+        # self._x_locked = True if x else False
+        # self._x = x if x else 0
         self._x = x
         self._y = y
+        self.y_locked = y_locked
         self.x_locked = x_locked
-        self.ylocked = ylocked
         self._width = width
         self.width_locked = width_locked
         
@@ -423,7 +425,7 @@ class Char(_Canvas, _Font):
     @_Canvas.x.setter
     def x(self, newx):
         if not self.x_locked:
-            dx = newx - self.x # save before modification!
+            dx = newx - self.x # save x before re-assignment!
             self._x = newx
             self._left += dx
             self._right += dx
@@ -432,7 +434,7 @@ class Char(_Canvas, _Font):
     
     @_Canvas.y.setter
     def y(self, newy):
-        if not self.ylocked:
+        if not self.y_locked:
             dy = newy - self.y
             self._y = newy
             self._top += dy
@@ -494,20 +496,16 @@ class _Form(_Canvas, _Font):
         self.FIXHEIGHT = toplevel_scale(_getglyph(STAFF_HEIGHT_REFERENCE_GLYPH, self.font)["height"])
         for D in descendants(self, False):
             D.ancestors.insert(0, self) # Need smteq??
-        for C in self.content:
-            if not C.x_locked:
-            # if C.absx == None: # 0 is a legitimate absy!
-                # Note that this is happening at init-time! When there is no absolute-x,
-                # C.x is ONLY the amount of it's x-offset (see Canvas' self._x definition).
-                C.x += self.x
-            if not C.ylocked:
-            # if C.absy == None: # 0 is a legitimate absy!
-                C.y += self.y
+        for c in self.content:
+            if not c.x_locked:
+                c.x += self.x
+            if not c.y_locked:
+                c.y += self.y
                 # If child is to be relocated vertically, their fix-top & bottom can not be
                 # the original values, but must move along with the parent.
-                if isinstance(C, _Form):
-                    C.fixtop += self.y
-                    C.fixbottom += self.y
+                if isinstance(c, _Form):
+                    c.fixtop += self.y
+                    c.fixbottom += self.y
                     # Fixheight never changes!
     
     def del_children(self, cond):
@@ -553,7 +551,7 @@ class _Form(_Canvas, _Font):
 
     @_Canvas.y.setter
     def y(self, newy):
-        if not self.ylocked:
+        if not self.y_locked:
             dy = newy - self.y
             self._y = newy
             self._top += dy
@@ -617,10 +615,8 @@ class SForm(_Form):
         """Appends new children to Form's content list."""
         self._establish_parental_relationship(children)
         for c in children:
-            # print(">>",c.id,c.x,self.x)
             # Asking if xy are locked happens in setter methods!
             c.x += self.x
-            # print(">>>",c.id,c.x)
             c.y += self.y
         self.content.extend(children)
         # Having set the content before would have caused assign_x to trigger computing horizontals for the Form,
@@ -628,8 +624,8 @@ class SForm(_Form):
         self._compute_horizontals()
         self._compute_verticals()
         for A in reversed(self.ancestors):
-            # if isinstance(A, HForm):
-                # A._lineup()
+            if isinstance(A, HForm):
+                A._lineup()
             A._compute_horizontals()
             A._compute_verticals()
 
@@ -695,7 +691,7 @@ class _LineSegment(_Canvas):
     
     @_Canvas.y.setter
     def y(self, newy): 
-        if not self.ylocked:
+        if not self.y_locked:
             dy = newy - self.y
             self._y = newy
             self._top += dy

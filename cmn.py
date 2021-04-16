@@ -19,9 +19,9 @@ def make_notehead(note):
         )
         
 def headcolor(n):
-    n.head_punch.color = NGN.SW.utils.rgb(50,0,0,"%")
+    n.head_punch.color = NGN.SW.utils.rgb(50,0,100,"%")
     # n.head_punch.x += 20
-    n.append(NGN.Char(name="accidentals.flat",opacity=.3))
+    n.append(NGN.Char(name="accidentals.flat",opacity=.5))
     
 
 def longer(s):
