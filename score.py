@@ -1,21 +1,28 @@
 
 
-import engine as e
+from engine import *
 
 
 
-class Clock:
+__all__ = [
+    "HForm", "VForm", "SForm", "Char", "HLineSegment", "VLineSegment",
+    "Stem", "Note", "Accidental", "Clef"
+]
+
+
+
+class _Clock:
     def __init__(self, duration=None):
         self.duration = duration or 0.25
 
 def allclocks(form):
     """Returns True if form's content is made up of Clocks only."""
-    return all(map(lambda C: isinstance(C, Clock), form.content))
+    return all(map(lambda C: isinstance(C, _Clock), form.content))
 
 def clock_chunks(content_list):
     indices = []
     for i in range(len(content_list)):
-        if isinstance(content_list[i], Clock):
+        if isinstance(content_list[i], _Clock):
             indices.append(i)
     chunks = []
     for start, end in zip(indices[:-1], indices[1:]):
@@ -23,27 +30,27 @@ def clock_chunks(content_list):
     chunks.append(content_list[indices[-1]:])
     return chunks
 
-class Pitch:
+class _Pitch:
     def __init__(self, pitch):
         self.pitch = pitch
 
 
 
-class Staff(e.VForm):
+class Staff(VForm):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-class Stem(e.VLineSegment):
+class Stem(VLineSegment):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
 
 
-class Note(e.SForm, Clock, Pitch):
+class Note(SForm, _Clock, _Pitch):
     def __init__(self, head_punch=None, stem_graver=None, duration=None, pitch=None, **kwargs):
-        Clock.__init__(self, duration)
-        Pitch.__init__(self, pitch)
-        e.SForm.__init__(self, **kwargs)
+        _Clock.__init__(self, duration)
+        _Pitch.__init__(self, pitch)
+        SForm.__init__(self, **kwargs)
         self._head_punch = head_punch
         self._stem_graver = stem_graver
 
@@ -67,10 +74,10 @@ class Note(e.SForm, Clock, Pitch):
         self.append(self._stem_graver)
 
 
-class Accidental(e.SForm, Pitch):
+class Accidental(SForm, _Pitch):
     def __init__(self, punch=None, pitch=None, **kwargs):
-        e.SForm.__init__(self, **kwargs)
-        Pitch.__init__(self, pitch)
+        SForm.__init__(self, **kwargs)
+        _Pitch.__init__(self, pitch)
         self._punch = punch
         
     @property
@@ -82,10 +89,10 @@ class Accidental(e.SForm, Pitch):
         self.append(self._punch)
         
 
-class Clef(e.SForm, Pitch):
+class Clef(SForm, _Pitch):
     def __init__(self, punch=None, pitch=None, **kwargs):
-        e.SForm.__init__(self, **kwargs)
-        Pitch.__init__(self, pitch)
+        SForm.__init__(self, **kwargs)
+        _Pitch.__init__(self, pitch)
         self._punch = punch
 
     @property

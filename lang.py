@@ -37,4 +37,19 @@ A named function:
 vs. anonymus function:
 
 [function [x y] a doc string? [print [list x y]]]
+
+[procedure make_note [p] [note [pitch p] [duration 1]]
+[line [toplevel yes] [make_note c4]]
+
+
+
+
+
+
+
+
 """
+
+from score import *
+
+print(Stem, Clef, HForm, Char)

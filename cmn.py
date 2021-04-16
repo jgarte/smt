@@ -176,21 +176,21 @@ class Line(e.HForm):
 # s=SForm(width=5,width_locked=0,x=50)
 # s.append(Stem(length=10,thickness=30))
 # h=HForm(content=[s],width=mmtopx(20),x=40,y=200, canvas_opacity=.2, width_locked=0)
+if __name__=="__main__":
+    print(e.mmtopx(100))
+# e.render(Line(
+# Clef(pitch="g"),
+# Clef(pitch="f"),
+# Clef(pitch="c"),
+# Note(domain="treble", duration=.25, pitch=["c",4]), 
+# Note(domain="treble", duration=1, pitch=["c",4]), 
+# Note(domain="treble", duration=.25, pitch=["c",4]), 
+# Note(domain="treble", duration=.5, pitch=["c",4]), 
+# Note(domain="treble", duration=1, pitch=["c",4]), 
+# Note(domain="treble", duration=.5, pitch=["c",4]), 
+# Note(domain="treble", duration=.25, pitch=["c",4]), 
 
-# print(e.mmtopx(100))
-e.render(Line(
-Clef(pitch="g"),
-Clef(pitch="f"),
-Clef(pitch="c"),
-Note(domain="treble", duration=.25, pitch=["c",4]), 
-Note(domain="treble", duration=1, pitch=["c",4]), 
-Note(domain="treble", duration=.25, pitch=["c",4]), 
-Note(domain="treble", duration=.5, pitch=["c",4]), 
-Note(domain="treble", duration=1, pitch=["c",4]), 
-Note(domain="treble", duration=.5, pitch=["c",4]), 
-Note(domain="treble", duration=.25, pitch=["c",4]), 
-
-width=e.mmtopx(70),x=20,y=20, width_locked=True))
+# width=e.mmtopx(70),x=20,y=20, width_locked=True))
 
 # h=e.HForm(content=gemischt,width=e.mmtopx(100),x=40,y=200, canvas_opacity=.2, width_locked=True,id_="top")
 # e.render(h,)

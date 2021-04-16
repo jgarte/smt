@@ -20,7 +20,7 @@ import svgwrite as SW
         # if fn is r["F"]:
             # return
     # _ruleregistry.append({"T": targets, "D": domains, "F": fn})
-
+__all__ = ["HForm", "VForm", "SForm", "Char", "HLineSegment", "VLineSegment"]
 
 
 ##### Font
@@ -203,7 +203,8 @@ class RuleTable:
 cmn = RuleTable()
 
 class _SMTObject:
-    def __init__(self, id_=None, domain=None, ruletable=None):
+    def __init__(self, id_=None, domain=None, ruletable=None, toplevel=False):
+        self.toplevel = toplevel
         self.ancestors = []
         self.id = id_ or self._assign_id()
         self._svg_list = []
