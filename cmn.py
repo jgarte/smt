@@ -20,8 +20,8 @@ def make_notehead(note):
         
 def headcolor(n):
     n.head_punch.color = NGN.SW.utils.rgb(50,0,0,"%")
-    n.head_punch.x += 20
-    n.append(NGN.Char(name="accidentals.flat",x=10,y=4))
+    # n.head_punch.x += 20
+    n.append(NGN.Char(name="accidentals.flat",opacity=.3))
     
 
 def longer(s):
@@ -38,7 +38,7 @@ def reden(stm):
 
 def isstem(o): return isinstance(o, Stem)
 def setstem(self):
-    self.stem_graver = Stem(length=10,thickness=3) #taze , appliedto =false
+    self.stem_graver = Stem(length=10,thickness=5,opacity=.2) #taze , appliedto =false
     NGN.cmn.add(reden, isstem)
     
 

@@ -168,9 +168,11 @@ def getallin(typeof, obj):
 
 _ruletables = set()
 
-def _any_pending_ruletables():
-    return any(map(lambda rt: rt._pending(), _ruletables))
+# def _any_pending_ruletables():
+    # return any(map(lambda rt: rt._pending(), _ruletables))
 
+def _pending_ruletables():
+    return [rt for rt in _ruletables if rt._pending()]
 
 class RuleTable:
     
@@ -181,6 +183,9 @@ class RuleTable:
         _ruletables.add(self)
         
     def _pending(self):
+        """Returns a list of rules of this ruletable: (order, rule-dictionary)
+        which are pending for application. If nothing is pending 
+        [] is returned."""
         # o=order, rd=rule dict
         return [(o, rd) for (o, rd) in self.rules.items() if not rd["applied"]]
     
@@ -242,16 +247,19 @@ class _SMTObject:
         rule-application iteration. This means however that a rule might be applied
         to an object more than once, if the object satisfies it's condition.
         """
-        while _any_pending_ruletables():
-            # Do More efficiently eg retreive only pending rules????
-            for rt in _ruletables:
-                # o_rd=(order, ruledictionary)
-                for _, ruledict in sorted(rt._pending(), key=lambda o_rd: o_rd[0]):
-                    ruledict["applied"] = True
-                    for m in members(self):
-                        if ruledict["cond"](m):
-                            ruledict["hook"](m)
-                            if isinstance(m, HForm): m._lineup()
+        while True:
+            pending_rts = _pending_ruletables()
+            if pending_rts:
+                for rt in pending_rts:
+                    # o_rd=(order, ruledictionary)
+                    for _, ruledict in sorted(rt._pending(), key=lambda o_rd: o_rd[0]):
+                        ruledict["applied"] = True
+                        for m in members(self):
+                            if ruledict["cond"](m):
+                                ruledict["hook"](m)
+                                if isinstance(m, HForm): m._lineup()
+                pending_rts = _pending_ruletables()
+            else: break
 
     
 def render(*objs):
@@ -649,17 +657,17 @@ class _LineSegment(_Canvas):
     """Angle in degrees"""
     _idcounter = -1
     def __init__(self, length=None, direction=None, thickness=None, angle=None, color=None, 
-    rounded=False, endxr=None, endyr=None,
+    opacity=1, endxr=None, endyr=None,
     **kwargs):
         super().__init__(**kwargs)
         self._length = length or 0
         self.color = color or SW.utils.rgb(0, 0, 0)
+        self.opacity = opacity
         self._angle = angle or 0
         self._thickness = thickness or 0
         self._direction = direction
         self.endxr = endxr or 0
         self.endyr = endyr or 0
-        self.rounded = rounded
         self._compute_horizontals()
         self._compute_verticals()
     
@@ -668,7 +676,8 @@ class _LineSegment(_Canvas):
         self._svg_list.append(SW.shapes.Rect(
             insert=(self.left, self.top),
             size=(self.width, self.height),
-            fill=self.color, rx=self.endxr, ry=self.endyr
+            fill=self.color, fill_opacity=self.opacity,
+            rx=self.endxr, ry=self.endyr
             )
         )
     @property
