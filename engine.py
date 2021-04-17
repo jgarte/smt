@@ -4,10 +4,13 @@ Semantic Music Typesetting
 """
 
 import tempfile
+import json
+import os
 import xml.etree.ElementTree as ET
 import subprocess as sp
 import copy as cp
 import svgwrite as SW
+import svgpathtools as SPT
 # from svgwrite.shapes import Line as svgline
 # from svgwrite.utils import svg.utils.rgb
 
@@ -26,47 +29,53 @@ __all__ = ["HForm", "VForm", "SForm", "Char", "HLineSegment", "VLineSegment"]
 ##### Font
 
 _SVGNS = {"ns": "http://www.w3.org/2000/svg"}
-_fontsdict = {}
-installed_fonts = []
-def install_font1(src):
-    name, ext = os.path.splitext(os.path.basename(src))
-    installed_fonts.append(name)
-    _fontsdict[name] = {}
-    if ext == ".svg":
-        # root = ET.parse(src).getroot()
-        font = ET.parse(src).getroot().find("ns:defs", _SVGNS).find("ns:font", _SVGNS)
-        for glyph in font.findall("ns:glyph", _SVGNS):
-            _fontsdict[name][glyph.get("glyph-name")] = glyph.attrib
-            # glyph.attrib["d"]
-            print(glyph)
-            try:
-                path = SE.Path(glyph.attrib["d"], transform="scale(1 -1)")
-                # .scaled(sx=1, sy=-1)
-                # print(path.continuous_subpaths())
-                xmin, ymin, xmax, ymax = path.bbox()
-                _fontsdict[name][glyph.get("glyph-name")].update({
-                    "original_path_d": glyph.attrib["d"], "path": path,
-                    "left": xmin, "right": xmax,
-                    "top": ymin, "bottom": ymax, "width": xmax - xmin,
-                    "height": ymax - ymin
-                })
-            except KeyError:
-                """
-                _fontsdict[name][glyph["glyph-name"]].update(
-                    {
-                        "path": ?, "left": 0, "height": 0, ...
-                    }
-                )
-                """
-                pass
+# _fontsdict = {}
+# installed_fonts = []
+def install_font1(path, overwrite=False):
+    name, ext = os.path.splitext(os.path.basename(path))
+    if os.path.exists(f"./fonts/{name}.json") and not overwrite:
+        raise FileExistsError(f"{name} font is already installed.")
     else:
-        raise NotImplementedError("Non-svg fonts are not supported!")
+        D = {}
+        D[name] = {}
+        if ext == ".svg":
+            with open(f"./fonts/{name}.json", "w") as file_:
+                font = ET.parse(path).getroot().find("ns:defs", _SVGNS).find("ns:font", _SVGNS)
+                for glyph in font.findall("ns:glyph", _SVGNS):
+                    try:
+                        # path = SE.Path(glyph.attrib["d"], transform="scale(1 -1)")
+                        # .scaled(sx=1, sy=-1)
+                        
+                        # There is a bug in svgpathtools scaled() method.
+                        # To bypass this bug and still use pathtools bbox and rotations etc,
+                        # I do all scalings in svgwrite
+                        # on both Paths and their bboxes (which come from svgpathtools). 
+                        # since the translation must be 
+                        # the final step in the transformation chain, translate also comes
+                        # in svgwrite after scale applied.
+                        path = SPT.Path(glyph.attrib["d"])                        
+                        D[name][glyph.get("glyph-name")] = path.d()
+                    except KeyError:
+                        pass
+                json.dump(D[name], file_)
+        else:
+            raise NotImplementedError("Non-svg fonts are not supported!")
+
+_loaded_fonts = {}
+
+def _load_fonts():
+    for json_file in os.listdir("./fonts"):        
+        with open(f"./fonts/{json_file}") as font:
+            _loaded_fonts[os.path.splitext(json_file)[0]] = json.load(font)
+
+
+# install_font1("/home/amir/haydn/svg/haydn-11.svg")
+_load_fonts()
+print(_loaded_fonts)
 
 def getglyph(name, font): return _fontsdict[font][name]    
 
-# install_font("/home/amir/haydn/svg/haydn-11.svg")
-
-
+################################
 _fonts = {}
 current_font = "Haydn"
 STAFF_HEIGHT_REFERENCE_GLYPH = "clefs.C"
@@ -108,7 +117,7 @@ def install_font(fontname, srcpath, shrg=STAFF_HEIGHT_REFERENCE_GLYPH):
     _fonts[fontname] = D
 
 # ~ Iinstalled fonts
-install_font("Haydn", "/home/amir/haydn/svg/haydn-11.svg")
+# install_font("Haydn", "/home/amir/haydn/svg/haydn-11.svg")
 
 
 
