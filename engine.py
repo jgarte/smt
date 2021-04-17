@@ -277,9 +277,11 @@ class _Canvas(_SMTObject):
     def __init__(self, canvas_color=None,
     canvas_opacity=None, xscale=1, yscale=1,
     x=None, y=None, x_locked=False, y_locked=False,
+    rotate=None,
     width=0, width_locked=False,
     canvas_visible=True, origin_visible=True, **kwargs):
         super().__init__(**kwargs)
+        # self.rotate=rotate
         # Only the first item in a hform will need _hlineup, for him 
         # this is set by HForm itself.
         self._is_hlineup_head = False
