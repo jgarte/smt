@@ -33,13 +33,13 @@ _SVGNS = {"ns": "http://www.w3.org/2000/svg"}
 # installed_fonts = []
 def install_font1(path, overwrite=False):
     name, ext = os.path.splitext(os.path.basename(path))
-    if os.path.exists(f"./fonts/{name}.json") and not overwrite:
+    if os.path.exists(f"./fonts/json/{name}.json") and not overwrite:
         raise FileExistsError(f"{name} font is already installed.")
     else:
         D = {}
         D[name] = {}
         if ext == ".svg":
-            with open(f"./fonts/{name}.json", "w") as file_:
+            with open(f"./fonts/json/{name}.json", "w") as file_:
                 font = ET.parse(path).getroot().find("ns:defs", _SVGNS).find("ns:font", _SVGNS)
                 for glyph in font.findall("ns:glyph", _SVGNS):
                     try:
@@ -66,16 +66,16 @@ def install_font1(path, overwrite=False):
 _loaded_fonts = {}
 
 def _load_fonts():
-    for json_file in os.listdir("./fonts"):        
-        with open(f"./fonts/{json_file}") as font:
+    for json_file in os.listdir("./fonts/json"):        
+        with open(f"./fonts/json/{json_file}") as font:
             _loaded_fonts[os.path.splitext(json_file)[0]] = json.load(font)
 
 
-install_font1("/home/amir/haydn/svg/haydn-11.svg",1)
+install_font1("./fonts/svg/haydn-11.svg",1)
 _load_fonts()
-print(_loaded_fonts)
+print(tuple(_loaded_fonts.keys())[0])
 
-def getglyph(name, font): return _fontsdict[font][name]    
+def _get_glyph_d(name, font): return _loaded_fonts[font][name]   
 
 ################################
 _fonts = {}
@@ -303,7 +303,7 @@ class _Canvas(_SMTObject):
         self.xscale = xscale
         self.yscale = yscale
         # Permit zeros for x and y
-        self._y_locked = False if y is None else True # permit 0
+        self._y_locked = False if y is None else True
         self._x_locked = False if x is None else True
         self._x = 0 if x is None else x
         # self._x = x
@@ -391,9 +391,9 @@ def _origelems(obj):
                                         stroke_width=_ORIGIN_LINE_THICKNESS)]
 
 class _Font:
-    """Adds font feature to Char & Form"""
+    """Adds font to Char & Form"""
     def __init__(self, font=None):
-        self.font = current_font if font is None else font
+        self.font = tuple(_loaded_fonts.keys())[0] if font is None else font
 
 class Char(_Canvas, _Font):
     
@@ -406,6 +406,7 @@ class Char(_Canvas, _Font):
         _Font.__init__(self, font)
         self.name = name
         self.glyph = _getglyph(self.name, self.font)
+        self._path = SPT.Path(_get_glyph_d(self.name, self.font))
         self.color = color or SW.utils.rgb(0, 0, 0)
         self.opacity = opacity or 1
         self.visible = visible
@@ -468,6 +469,8 @@ class Char(_Canvas, _Font):
         if self.origin_visible:
             for elem in _origelems(self):
                 self._svg_list.append(elem)
+
+print(Char(name="clefs"))
 
 
 class _Form(_Canvas, _Font):
