@@ -34,7 +34,7 @@ _SVGNS = {"ns": "http://www.w3.org/2000/svg"}
 def install_font1(path, overwrite=False):
     name, ext = os.path.splitext(os.path.basename(path))
     if os.path.exists(f"./fonts/json/{name}.json") and not overwrite:
-        raise FileExistsError(f"{name} font is already installed.")
+        raise FileExistsError(f"{name} is already installed.")
     else:
         D = {}
         D[name] = {}
@@ -71,9 +71,9 @@ def _load_fonts():
             _loaded_fonts[os.path.splitext(json_file)[0]] = json.load(font)
 
 
-install_font1("./fonts/svg/haydn-11.svg",1)
+# install_font1("./fonts/svg/haydn-11.svg")
 _load_fonts()
-print(tuple(_loaded_fonts.keys())[0])
+# print(tuple(_loaded_fonts.keys())[0])
 
 def _get_glyph_d(name, font): return _loaded_fonts[font][name]   
 
@@ -470,7 +470,7 @@ class Char(_Canvas, _Font):
             for elem in _origelems(self):
                 self._svg_list.append(elem)
 
-print(Char(name="clefs"))
+# print(Char(name="clefs.G"))
 
 
 class _Form(_Canvas, _Font):
