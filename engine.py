@@ -53,11 +53,13 @@ def install_font1(path, overwrite=False):
                         # since the translation must be 
                         # the final step in the transformation chain, translate also comes
                         # in svgwrite after scale applied.
-                        path = SPT.Path(glyph.attrib["d"])                        
-                        D[name][glyph.get("glyph-name")] = path.d()
+                        
+                        # path = SPT.Path(glyph.attrib["d"])                        
+                        # D[name][glyph.get("glyph-name")] = path.d()
+                        D[name][glyph.get("glyph-name")] = glyph.attrib["d"]
                     except KeyError:
                         pass
-                json.dump(D[name], file_)
+                json.dump(D[name], file_, indent=4)
         else:
             raise NotImplementedError("Non-svg fonts are not supported!")
 
@@ -69,7 +71,7 @@ def _load_fonts():
             _loaded_fonts[os.path.splitext(json_file)[0]] = json.load(font)
 
 
-# install_font1("/home/amir/haydn/svg/haydn-11.svg")
+install_font1("/home/amir/haydn/svg/haydn-11.svg",1)
 _load_fonts()
 print(_loaded_fonts)
 
