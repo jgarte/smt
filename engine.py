@@ -10,6 +10,7 @@ import xml.etree.ElementTree as ET
 import subprocess as sp
 import copy as cp
 import svgwrite as SW
+import svgelements as SE
 import svgpathtools as SPT
 # from svgwrite.shapes import Line as svgline
 # from svgwrite.utils import svg.utils.rgb
@@ -43,20 +44,16 @@ def install_font1(path, overwrite=False):
                 font = ET.parse(path).getroot().find("ns:defs", _SVGNS).find("ns:font", _SVGNS)
                 for glyph in font.findall("ns:glyph", _SVGNS):
                     try:
-                        # path = SE.Path(glyph.attrib["d"], transform="scale(1 -1)")
+                        path = SE.Path(glyph.attrib["d"], transform="scale(1 -1)")
                         # .scaled(sx=1, sy=-1)
-                        
-                        # There is a bug in svgpathtools scaled() method.
-                        # To bypass this bug and still use pathtools bbox and rotations etc,
-                        # I do all scalings in svgwrite
-                        # on both Paths and their bboxes (which come from svgpathtools). 
-                        # since the translation must be 
-                        # the final step in the transformation chain, translate also comes
-                        # in svgwrite after scale applied.
+
+                        # svgpathtools' scaled() method has a bug which deforms shapes. It offers however good bbox support.
+                        # svgelements has unreliable bbox functionality, but transformations seem to be more safe than in pathtools.
+                        # Bypass: apply transformations in svgelements and pass the d() to pathtools to get bboxes when needed.
                         
                         # path = SPT.Path(glyph.attrib["d"])                        
-                        # D[name][glyph.get("glyph-name")] = path.d()
-                        D[name][glyph.get("glyph-name")] = glyph.attrib["d"]
+                        D[name][glyph.get("glyph-name")] = path.d()
+                        # D[name][glyph.get("glyph-name")] = glyph.attrib["d"]
                     except KeyError:
                         pass
                 json.dump(D[name], file_, indent=4)
@@ -71,11 +68,11 @@ def _load_fonts():
             _loaded_fonts[os.path.splitext(json_file)[0]] = json.load(font)
 
 
-# install_font1("./fonts/svg/haydn-11.svg")
+install_font1("./fonts/svg/haydn-11.svg",1)
 _load_fonts()
-# print(tuple(_loaded_fonts.keys())[0])
 
-def _get_glyph_d(name, font): return _loaded_fonts[font][name]   
+def _get_glyph(name, font): return _loaded_fonts[font][name]   
+# print(_get_glyph("clefs.C"))
 
 ################################
 _fonts = {}
