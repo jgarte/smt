@@ -50,9 +50,13 @@ def install_font1(path, overwrite=False):
                         # svgpathtools' scaled() method has a bug which deforms shapes. It offers however good bbox support.
                         # svgelements has unreliable bbox functionality, but transformations seem to be more safe than in pathtools.
                         # Bypass: apply transformations in svgelements and pass the d() to pathtools to get bboxes when needed.
-                        
-                        # path = SPT.Path(glyph.attrib["d"])                        
-                        D[name][glyph.get("glyph-name")] = path.d()
+                        min_x, min_y, max_x, max_y = path.bbox()
+                        D[name][glyph.get("glyph-name")] = {
+                            "d": path.d(), "left": min_x, "right": max_x, 
+                            "top": min_y, "bottom": max_y, "width": max_x - min_x,
+                            "height": max_y - min_y
+                        }
+                        del path
                         # D[name][glyph.get("glyph-name")] = glyph.attrib["d"]
                     except KeyError:
                         pass
@@ -71,8 +75,12 @@ def _load_fonts():
 install_font1("./fonts/svg/haydn-11.svg",1)
 _load_fonts()
 
-def _get_glyph(name, font): return _loaded_fonts[font][name]   
-# print(_get_glyph("clefs.C"))
+def _glyph_names(font):
+    return _loaded_fonts[font].keys()
+
+def _get_glyph(name, font): return _loaded_fonts[font][name]
+# print(_loaded_fonts)
+
 
 ################################
 _fonts = {}
@@ -132,9 +140,10 @@ def chlapik_staff_space(rastral):
 
 STAFF_SPACE = chlapik_staff_space("zwei")
 GLOBAL_SCALE = 1.0
-
+# print(_get_glyph("clefs.C", "haydn-11"))
 def _scale():
-    return GLOBAL_SCALE * ((4 * STAFF_SPACE) / _getglyph("clefs.C", "Haydn")["height"])
+    # return GLOBAL_SCALE * ((4 * STAFF_SPACE) / _getglyph("clefs.C", "Haydn")["height"])
+    return GLOBAL_SCALE * ((4 * STAFF_SPACE) / _get_glyph("clefs.C", "haydn-11")["height"])
 
 def toplevel_scale(R): return R * _scale()
 
@@ -219,9 +228,9 @@ class _SMTObject:
         self.domain = domain
         self.ruletable = ruletable or cmn
 
-    def _pack_svg_list(self):
+    def _pack_svg_list_ip(self):
         """Makes sure the derived class has implemented this method!"""
-        raise NotImplementedError(f"Forgot to override _pack_svg_list for {self.__class__.__name__}?")
+        raise NotImplementedError(f"Forgot to override _pack_svg_list_ip for {self.__class__.__name__}?")
     
     def _assign_id(self):
         self.__class__._idcounter += 1
@@ -261,7 +270,7 @@ def render(*objs):
     for obj in objs:
         obj._apply_rules()
         # Form's packsvglst will call packsvglst on descendants recursively
-        obj._pack_svg_list()
+        obj._pack_svg_list_ip()
         for elem in obj._svg_list:
             D.add(elem)
     D.save(pretty=True)
@@ -390,26 +399,30 @@ def _origelems(obj):
 class _Font:
     """Adds font to Char & Form"""
     def __init__(self, font=None):
-        self.font = tuple(_loaded_fonts.keys())[0] if font is None else font
+        self.font = font or tuple(_loaded_fonts.keys())[0]
 
 class Char(_Canvas, _Font):
     
     _idcounter = -1
     
     def __init__(self, name, color=None, opacity=None,
-    visible=True, font=None,
+    visible=True, font=None,rotate=0,
     **kwargs):
         _Canvas.__init__(self, **kwargs)
         _Font.__init__(self, font)
+        self.rotate=rotate
         self.name = name
-        self.glyph = _getglyph(self.name, self.font)
-        self._path = SPT.Path(_get_glyph_d(self.name, self.font))
+        # self.glyph = _getglyph(self.name, self.font)
+        self._glyph = _get_glyph(self.name, self.font)
+        # self._se_path = SE.Path(self.glyph, transform)
+        # self.bbox = SPT.Path(self.glyph).bbox()
+        # self._path = SPT.Path(_get_glyph_d(self.name, self.font))
         self.color = color or SW.utils.rgb(0, 0, 0)
         self.opacity = opacity or 1
         self.visible = visible
         self.canvas_color = SW.utils.rgb(100, 0, 0, "%")
-        self._compute_horizontals()
-        self._compute_verticals()
+        # self._compute_horizontals()
+        # self._compute_verticals()
     
     @_Canvas.x.setter
     def x(self, new):
@@ -453,21 +466,53 @@ class Char(_Canvas, _Font):
     def _compute_height(self):
         return toplevel_scale(self.glyph["height"])
     
-    def _pack_svg_list(self):
+    def _pack_svg_list_ip(self):
         # Add bbox rect
         if self.canvas_visible:
             self._svg_list.append(_bboxelem(self))
         # Add the music character
         self._svg_list.append(SW.path.Path(d=_getglyph(self.name, self.font)["d"],
         id_=self.id, fill=self.color, fill_opacity=self.opacity,
-        transform="translate({0} {1}) scale(1 -1) scale({2} {3})".format(
-        self.x, self.y, self.xscale * _scale(), self.yscale * _scale())))
+        
+        # transform="translate({0} {1}) scale(1 -1) scale({2} {3})".format(
+        # self.x, self.y, self.xscale * _scale(), self.yscale * _scale())
+        
+        
+        ))
         # Add the origin
         if self.origin_visible:
             for elem in _origelems(self):
                 self._svg_list.append(elem)
+    
+    def _pack_svg_list_ip(self):
+        if self.canvas_visible:
+            self._svg_list.append(SW.path.Path(
+                d=self._bbox_path().d(),
+                fill=obj.canvas_color,
+                fill_opacity=obj.canvas_opacity, 
+                id_=f"{obj.id}-BBox")
+                )
+        
+        self._svg_list.append(SW.path.Path(
+            d=self._path().d(), id_=self.id,
+            fill=self.color, fill_opacity=self.opacity,
+            # transform="translate({0} {1}) scale({2} {3})".format(
+                # self.x, self.y, self.xscale * _scale(), self.yscale * _scale())
+        ))
+    
+    # svgelements
+    def _path(self):
+        path = SE.Path(self._glyph)
+        path *= f"scale({self.xscale * _scale()} {self.yscale * _scale()})"
+        path *= f"rotate({self.rotate})"
+        path *= f"translate({self.x} {self.y})"
+        return path
+        # return SE.Path(self._glyph, transform=f"rotate({self.rotate}) scale({self.xscale*_scale()} {self.yscale*_scale()})")
+    def _bbox_path(self):
+        xmin, ymin, xmax, ymax = self._path().bbox()
+        return SPT.bbox2path(xmin, xmax, ymin, ymax)
 
-# print(Char(name="clefs.G"))
+# print(Char(name="clefs.G")._path())
 
 
 class _Form(_Canvas, _Font):
@@ -583,14 +628,14 @@ class _Form(_Canvas, _Font):
     
     def _compute_height(self): return self.bottom - self.top
     
-    def _pack_svg_list(self):
+    def _pack_svg_list_ip(self):
         # Bbox
         if self.canvas_visible: self._svg_list.append(_bboxelem(self))
         # Add content
         for C in self.content:
             C.xscale *= self.xscale
             C.yscale *= self.yscale
-            C._pack_svg_list() # Recursively gather svg elements
+            C._pack_svg_list_ip() # Recursively gather svg elements
             self._svg_list.extend(C._svg_list)
         # Origin
         if self.origin_visible: self._svg_list.extend(_origelems(self))
@@ -675,7 +720,7 @@ class _LineSegment(_Canvas):
         self._compute_verticals()
     
     # Override canvas packsvglist
-    def _pack_svg_list(self):
+    def _pack_svg_list_ip(self):
         self._svg_list.append(SW.shapes.Rect(
             insert=(self.left, self.top),
             size=(self.width, self.height),
