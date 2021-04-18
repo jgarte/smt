@@ -22,9 +22,13 @@ import svgpathtools as SPT
 # def rule(targets, domains, fn):
     # for r in _ruleregistry:
         # if fn is r["F"]:
-            # return
+            # return///////////////STAFF_SPACE = chlapik_staff_space("zwei")
+# GLOBAL_SCALE
     # _ruleregistry.append({"T": targets, "D": domains, "F": fn})
-__all__ = ["HForm", "VForm", "SForm", "Char", "HLineSegment", "VLineSegment"]
+__all__ = [
+    "HForm", "VForm", "SForm", "Char", "HLineSegment", "VLineSegment",
+    "cmn", "mmtopx", "render", "GLOBAL_SCALE", "STAFF_SPACE"
+]
 
 
 ##### Font
@@ -56,11 +60,12 @@ def install_font1(path, overwrite=False):
                             "top": min_y, "bottom": max_y, "width": max_x - min_x,
                             "height": max_y - min_y
                         }
-                        del path
                         # D[name][glyph.get("glyph-name")] = glyph.attrib["d"]
                     except KeyError:
                         pass
                 json.dump(D[name], file_, indent=4)
+                del path
+                del glyph
         else:
             raise NotImplementedError("Non-svg fonts are not supported!")
 
@@ -72,7 +77,7 @@ def _load_fonts():
             _loaded_fonts[os.path.splitext(json_file)[0]] = json.load(font)
 
 
-install_font1("./fonts/svg/haydn-11.svg",1)
+# install_font1("./fonts/svg/haydn-11.svg",1)
 _load_fonts()
 
 def _glyph_names(font):
@@ -178,7 +183,7 @@ def getallin(typeof, obj):
     return filter(lambda O: isinstance(O, typeof), members(obj))
 
 
-
+############# Rules
 _ruletables = set()
 
 def _pending_ruletables():
@@ -295,7 +300,7 @@ class _Canvas(_SMTObject):
     canvas_opacity=None, xscale=1, yscale=1,
     x=None, y=None, x_locked=False, y_locked=False,
     rotate=None,
-    width=0, width_locked=False,
+    width=None, width_locked=False,
     canvas_visible=True, origin_visible=True, **kwargs):
         super().__init__(**kwargs)
         # self.rotate=rotate
@@ -316,8 +321,9 @@ class _Canvas(_SMTObject):
         self._y = 0 if y is None else y
         # self.y_locked = y_locked
         self.x_locked = x_locked
-        self._width = width
-        self.width_locked = width_locked
+        self._width = 0 if width is None else width
+        self._width_locked = False if width is None else True
+        
         
     def unlock(what):
         if what == "y":
@@ -327,30 +333,27 @@ class _Canvas(_SMTObject):
     def x(self): return self._x
     @property
     def y(self): return self._y
-    @property
-    def top(self): return self._top
-    @property
-    def bottom(self): return self._bottom
-    @property
-    def height(self): return self._height
-    @property
-    def width(self): return self._width
-    @property
-    def left(self): return self._left
-    @property
-    def right(self): return self._right
-    
-    @left.setter
-    def left(self, new):
-        self.x += (new - self.left)
-    
-    @top.setter
-    def top(self, new):
-        self.y += (new - self.top)
-
-    @right.setter
-    def right(self):
-        print("Implement right setter!")
+    # @property
+    # def top(self): return self._top
+    # @property
+    # def bottom(self): return self._bottom
+    # @property
+    # def height(self): return self._height
+    # @property
+    # def width(self): return self._width
+    # @property
+    # def left(self): return self._left
+    # @property
+    # def right(self): return self._right
+    # @left.setter
+    # def left(self, new):
+        # self.x += (new - self.left)
+    # @top.setter
+    # def top(self, new):
+        # self.y += (new - self.top)
+    # @right.setter
+    # def right(self):
+        # print("Implement right setter!")
 
     # Make sure from canvas derived subclasses have implemented these computations.
     def _compute_width(self):
@@ -427,26 +430,39 @@ class Char(_Canvas, _Font):
     @_Canvas.x.setter
     def x(self, new):
         if not self._x_locked:
-            dx = new - self.x # save x before re-assignment!
             self._x = new
-            self._left += dx
-            self._right += dx
-            for A in reversed(self.ancestors): # An ancestor is always a Form!!
-                A._compute_horizontals()
-    
+            # for a in reversed(self.ancestors):
+                # a._compute_horizontals()
     @_Canvas.y.setter
-    def y(self, newy):
+    def y(self, new):
         if not self._y_locked:
-            dy = newy - self.y
-            self._y = newy
-            self._top += dy
-            self._bottom += dy
-            for A in reversed(self.ancestors): # A are Forms
-                A._compute_verticals()
+            self._y = new
+            # for a in reversed(self.ancestors):
+                # a._compute_verticals()
+    
+    # @_Canvas.x.setter
+    # def x(self, new):
+        # if not self._x_locked:
+            # dx = new - self.x # save x before re-assignment!
+            # self._x = new
+            # self._left += dx
+            # self._right += dx
+            # for A in reversed(self.ancestors): # An ancestor is always a Form!!
+                # A._compute_horizontals()
+    
+    # @_Canvas.y.setter
+    # def y(self, newy):
+        # if not self._y_locked:
+            # dy = newy - self.y
+            # self._y = newy
+            # self._top += dy
+            # self._bottom += dy
+            # for A in reversed(self.ancestors): # A are Forms
+                # A._compute_verticals()
             
-    @_Canvas.width.setter
-    def width(self, neww):
-        raise Exception("Char's width is immutable!")
+    # @_Canvas.width.setter
+    # def width(self, neww):
+        # raise Exception("Char's width is immutable!")
 
     def _compute_left(self):
         return self.x + toplevel_scale(self.glyph["left"])
@@ -466,33 +482,33 @@ class Char(_Canvas, _Font):
     def _compute_height(self):
         return toplevel_scale(self.glyph["height"])
     
-    def _pack_svg_list_ip(self):
-        # Add bbox rect
-        if self.canvas_visible:
-            self._svg_list.append(_bboxelem(self))
-        # Add the music character
-        self._svg_list.append(SW.path.Path(d=_getglyph(self.name, self.font)["d"],
-        id_=self.id, fill=self.color, fill_opacity=self.opacity,
+    # def _pack_svg_list_ip(self):
+        # # Add bbox rect
+        # if self.canvas_visible:
+            # self._svg_list.append(_bboxelem(self))
+        # # Add the music character
+        # self._svg_list.append(SW.path.Path(d=_getglyph(self.name, self.font)["d"],
+        # id_=self.id, fill=self.color, fill_opacity=self.opacity,
         
         # transform="translate({0} {1}) scale(1 -1) scale({2} {3})".format(
         # self.x, self.y, self.xscale * _scale(), self.yscale * _scale())
         
         
-        ))
-        # Add the origin
-        if self.origin_visible:
-            for elem in _origelems(self):
-                self._svg_list.append(elem)
+        # ))
+        # # Add the origin
+        # if self.origin_visible:
+            # for elem in _origelems(self):
+                # self._svg_list.append(elem)
     
     def _pack_svg_list_ip(self):
         if self.canvas_visible:
             self._svg_list.append(SW.path.Path(
-                d=self._bbox_path().d(),
-                fill=obj.canvas_color,
-                fill_opacity=obj.canvas_opacity, 
-                id_=f"{obj.id}-BBox")
+                d=SPT.bbox2path(*self._bbox()).d(),
+                fill=self.canvas_color,
+                fill_opacity=self.canvas_opacity, 
+                id_=f"{self.id}-BBox")
                 )
-        
+        # Music character itself
         self._svg_list.append(SW.path.Path(
             d=self._path().d(), id_=self.id,
             fill=self.color, fill_opacity=self.opacity,
@@ -508,12 +524,38 @@ class Char(_Canvas, _Font):
         path *= f"translate({self.x} {self.y})"
         return path
         # return SE.Path(self._glyph, transform=f"rotate({self.rotate}) scale({self.xscale*_scale()} {self.yscale*_scale()})")
-    def _bbox_path(self):
-        xmin, ymin, xmax, ymax = self._path().bbox()
-        return SPT.bbox2path(xmin, xmax, ymin, ymax)
+    
+    # svgelements bbox seems to have a bug getting bboxes of transformed (rotated) paths,
+    # use svgpathtools bbox instead (xmin, xmax, ymin, ymax).
+    def _bbox(self): return SPT.Path(self._path().d()).bbox()
+    
+    @property
+    def left(self): return self._bbox()[0]
+    @property
+    def right(self): return self._bbox()[1]
+    @property
+    def top(self): return self._bbox()[2]
+    @property
+    def bottom(self): return self._bbox()[3]
+    @property
+    def width(self): return self.right - self.left
+    @property
+    def height(self): return self.bottom - self.top
+    
+    # Setters
+    @left.setter
+    def left(self, new): self.x += (new - self.left)
+    
 
-# print(Char(name="clefs.G")._path())
 
+# c=Char(name="clefs.G")
+# print(c.x, c.right, c.left)
+# c.left += 10
+# print(c.x, c.right, c.left)
+class _HeightHolder:
+    def __init__(self):
+        pass
+    
 
 class _Form(_Canvas, _Font):
 
@@ -527,9 +569,16 @@ class _Form(_Canvas, _Font):
         # is interesting eg when doing operations which refer to the height of a staff. These values
         # should never change, except with when the parent is shifted, they move along of course!
         # In fix-top & bottom is the values of x-offset and possibly absolute x included (self.y).
-        self.fixtop = self.y + toplevel_scale(_getglyph(STAFF_HEIGHT_REFERENCE_GLYPH, self.font)["top"])
-        self.fixbottom = self.y + toplevel_scale(_getglyph(STAFF_HEIGHT_REFERENCE_GLYPH, self.font)["bottom"])
-        self.FIXHEIGHT = toplevel_scale(_getglyph(STAFF_HEIGHT_REFERENCE_GLYPH, self.font)["height"])
+        
+        # self.fixtop = self.y + toplevel_scale(_getglyph(STAFF_HEIGHT_REFERENCE_GLYPH, self.font)["top"])
+        # self.fixbottom = self.y + toplevel_scale(_getglyph(STAFF_HEIGHT_REFERENCE_GLYPH, self.font)["bottom"])
+        # self.FIXHEIGHT = toplevel_scale(_getglyph(STAFF_HEIGHT_REFERENCE_GLYPH, self.font)["height"])
+        
+        self.fixtop = self.y + toplevel_scale(_get_glyph(STAFF_HEIGHT_REFERENCE_GLYPH, self.font)["top"])
+        self.fixbottom = self.y + toplevel_scale(_get_glyph(STAFF_HEIGHT_REFERENCE_GLYPH, self.font)["bottom"])
+        self.FIXHEIGHT = toplevel_scale(_get_glyph(STAFF_HEIGHT_REFERENCE_GLYPH, self.font)["height"])
+        
+        
         for D in descendants(self, False):
             D.ancestors.insert(0, self) # Need smteq??
         for c in self.content:
@@ -568,14 +617,30 @@ class _Form(_Canvas, _Font):
                     for D in descendants(child, False):
                         D.ancestors.insert(0, A)
 
-    @_Canvas.width.setter
-    def width(self, neww):
-        if not self.width_locked:
-            self._right = self.left + neww
-            self._width = neww
-            for A in reversed(self.ancestors):
-                A._compute_horizontals()
+    # @_Canvas.width.setter
+    # def width(self, neww):
+        # if not self.width_locked:
+            # self._right = self.left + neww
+            # self._width = neww
+            # for A in reversed(self.ancestors):
+                # A._compute_horizontals()
 
+
+    # @_Canvas.x.setter
+    # def x(self, new):
+        # if not self._x_locked:
+            # dx = new - self.x
+            # self._x = new
+            # self._left += dx
+            # self._right += dx
+            # for D in descendants(self, False):
+                # # Descendants' x are shifted by delta-x. 
+                # D._x += dx
+                # if isinstance(D, _Form):
+                    # D._left += dx
+                    # D._right += dx
+            # for A in reversed(self.ancestors):
+                # A._compute_horizontals()
     @_Canvas.x.setter
     def x(self, new):
         if not self._x_locked:
@@ -586,11 +651,28 @@ class _Form(_Canvas, _Font):
             for D in descendants(self, False):
                 # Descendants' x are shifted by delta-x. 
                 D._x += dx
-                D._left += dx
-                D._right += dx
+                if isinstance(D, _Form):
+                    D._left += dx
+                    D._right += dx
             for A in reversed(self.ancestors):
                 A._compute_horizontals()
 
+    # @_Canvas.y.setter
+    # def y(self, new):
+        # if not self._y_locked:
+            # dy = new - self.y
+            # self._y = new
+            # self._top += dy
+            # self._bottom += dy
+            # for D in descendants(self, False):
+                # D._y += dy
+                # if isinstance(D, _Form):
+                    # # D._y += dy
+                    # D._top += dy
+                    # D._bottom += dy
+            # # Shifting Y might have an impact on ancestor's width!
+            # for A in reversed(self.ancestors):
+                # A._compute_verticals()
     @_Canvas.y.setter
     def y(self, new):
         if not self._y_locked:
@@ -600,8 +682,10 @@ class _Form(_Canvas, _Font):
             self._bottom += dy
             for D in descendants(self, False):
                 D._y += dy
-                D._top += dy
-                D._bottom += dy
+                if isinstance(D, _Form):
+                    # # D._y += dy
+                    D._top += dy
+                    D._bottom += dy
             # Shifting Y might have an impact on ancestor's width!
             for A in reversed(self.ancestors):
                 A._compute_verticals()
@@ -609,24 +693,33 @@ class _Form(_Canvas, _Font):
     def _compute_left(self):
         """Determines the left-most of either: form's own x coordinate 
         or the left-most site of it's direct children."""
-        return min([self.x] + list(map(lambda c: c.left, self.content)))
+        # return min([self.x] + list(map(lambda c: c.left, self.content)))
+        return self._bbox()[0]
 
-    def _compute_right(self):
-        if self.width_locked: # ,then right never changes!
-            return self.left + self.width
-        else:
-            return max([self.x] + list(map(lambda c: c.right, self.content)))
+    # def _compute_right(self):
+        # if self.width_locked: # ,then right never changes!
+            # return self.left + self.width
+        # else:
+            # return max([self.x] + list(map(lambda c: c.right, self.content)))
+    def _compute_right(self): return self._bbox()[1]
 
     def _compute_width(self):
-        return self.width if self.width_locked else (self.right - self.left)
+        if self._width_locked:
+            return self._width
+        else:
+            return self.right - self.left
+        # return self.width if self.width_locked else (self.right - self.left)
 
     def _compute_top(self):
-        return min([self.fixtop] + list(map(lambda c: c.top, self.content)))
+        # return min([self.fixtop] + list(map(lambda c: c.top, self.content)))
+        return min(self.fixtop, self._bbox()[2])
     
     def _compute_bottom(self):
-        return max([self.fixbottom] + list(map(lambda c: c.bottom, self.content)))
+        # return max([self.fixbottom] + list(map(lambda c: c.bottom, self.content)))
+        return max(self.fixbottom, self._bbox()[3])
     
-    def _compute_height(self): return self.bottom - self.top
+    def _compute_height(self): 
+        return self.bottom - self.top
     
     def _pack_svg_list_ip(self):
         # Bbox
@@ -639,6 +732,63 @@ class _Form(_Canvas, _Font):
             self._svg_list.extend(C._svg_list)
         # Origin
         if self.origin_visible: self._svg_list.extend(_origelems(self))
+        
+    # def _pack_svg_list_ip(self):
+        # # Bbox
+        # if self.canvas_visible:
+            # self._svg_list.append(SW.path.Path(
+                # d=SPT.bbox2path(*self._bbox()).d(),
+                # fill=self.canvas_color,
+                # fill_opacity=self.canvas_opacity, 
+                # id_=f"{self.id}-BBox")
+                # )
+        # # Add content
+        # for C in self.content:
+            # C.xscale *= self.xscale
+            # C.yscale *= self.yscale
+            # C._pack_svg_list_ip() # Recursively gather svg elements
+            # self._svg_list.extend(C._svg_list)
+        # # Origin
+        # # if self.origin_visible: self._svg_list.extend(_origelems(self))
+        
+    @property
+    def left(self): return self._left
+    @property
+    def right(self): return self._right
+    @property
+    def top(self): return self._top
+    @property
+    def bottom(self): return self._bottom
+    @property
+    def width(self): return self._width
+    @property
+    def height(self): return self._height
+    
+    # Setters
+    @left.setter
+    def left(self, new):
+        self.x += (new - self.left)
+    
+    @right.setter
+    def right(self, new): 
+        self.x += (new - self.right)
+    
+    @width.setter
+    def width(self, new):
+        if not self._width_locked:
+            self._right = self.left + new
+            self._width = new
+            # self.right = self.left + new
+            for A in reversed(self.ancestors):
+                A._compute_horizontals()
+    
+    # SPT: xmin, xmax, ymin, ymax
+    def _bbox(self):
+        # print(">>",self.id, [[*c._bbox()] for c in self.content])
+        if self.content:
+            return SPT.Path(*[SPT.bbox2path(*c._bbox()) for c in self.content]).bbox()
+        else:
+            return 0, 0, self.fixtop, self.fixbottom
 
 
 class SForm(_Form):
@@ -662,8 +812,8 @@ class SForm(_Form):
             # c.y += self.y
             c.y = self.y
         self.content.extend(children)
-        # Having set the content before would have caused assign_x to trigger computing horizontals for the Form,
-        # which would have been to early!????
+        # # Having set the content before would have caused assign_x to trigger computing horizontals for the Form,
+        # # which would have been to early!????
         self._compute_horizontals()
         self._compute_verticals()
         for A in reversed(self.ancestors):
