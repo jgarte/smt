@@ -321,8 +321,8 @@ class _Canvas(_SMTObject):
         self.canvas_visible = canvas_visible
         self.canvas_color = canvas_color
         self.origin_visible = origin_visible
-        self.xscale = xscale
-        self.yscale = yscale
+        self._xscale = xscale
+        self._yscale = yscale
         # Permit zeros for x and y
         self._y_locked = False if y is None else True
         self._x_locked = False if x is None else True
@@ -334,10 +334,14 @@ class _Canvas(_SMTObject):
         self._width = 0 if width is None else width
         self._width_locked = False if width is None else True
         
-        
-    def unlock(what):
-        if what == "y":
-            self._y_locked = False
+    @property
+    def xscale(self): return self._xscale
+    @property
+    def yscale(self): return self._yscale
+    
+    # def unlock(what):
+        # if what == "y":
+            # self._y_locked = False
         
     @property
     def x(self): return self._x
@@ -436,6 +440,18 @@ class Char(_Canvas, _Font):
         # self._compute_horizontals()
         # self._compute_verticals()
     
+    @_Canvas.xscale.setter
+    def xscale(self, new):
+        self._xscale = new
+        for a in reversed(self.ancestors):
+            a._compute_horizontals()
+    @_Canvas.yscale.setter
+    def yscale(self, new):
+        self._yscale = new
+        for a in reversed(self.ancestors):
+            a._compute_verticals()
+        
+    
     @_Canvas.x.setter
     def x(self, new):
         if not self._x_locked:
@@ -473,23 +489,23 @@ class Char(_Canvas, _Font):
     # def width(self, neww):
         # raise Exception("Char's width is immutable!")
 
-    def _compute_left(self):
-        return self.x + toplevel_scale(self.glyph["left"])
+    # def _compute_left(self):
+        # return self.x + toplevel_scale(self.glyph["left"])
 
-    def _compute_right(self):
-        return self.x + toplevel_scale(self.glyph["right"])
+    # def _compute_right(self):
+        # return self.x + toplevel_scale(self.glyph["right"])
 
-    def _compute_width(self):
-        return toplevel_scale(self.glyph["width"])
+    # def _compute_width(self):
+        # return toplevel_scale(self.glyph["width"])
     
-    def _compute_top(self):
-        return self.y + toplevel_scale(self.glyph["top"])
+    # def _compute_top(self):
+        # return self.y + toplevel_scale(self.glyph["top"])
     
-    def _compute_bottom(self):
-        return self.y + toplevel_scale(self.glyph["bottom"])
+    # def _compute_bottom(self):
+        # return self.y + toplevel_scale(self.glyph["bottom"])
     
-    def _compute_height(self):
-        return toplevel_scale(self.glyph["height"])
+    # def _compute_height(self):
+        # return toplevel_scale(self.glyph["height"])
     
     # def _pack_svg_list_ip(self):
         # # Add bbox rect
@@ -738,8 +754,8 @@ class _Form(_Canvas, _Font):
         if self.canvas_visible: self._svg_list.append(_bboxelem(self))
         # Add content
         for C in self.content:
-            C.xscale *= self.xscale
-            C.yscale *= self.yscale
+            # C.xscale *= self.xscale
+            # C.yscale *= self.yscale
             C._pack_svg_list_ip() # Recursively gather svg elements
             self._svg_list.extend(C._svg_list)
         # Origin

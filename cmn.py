@@ -48,11 +48,10 @@ def setstem(self):
         # print(self.width)
     
 def rotate(stm): 
-    print(stm.rotate)
     stm.rotate = 10
-    print(stm.rotate)
-def rutchS(s): 
-    print("????")
+def rutchS(s):
+    s.parent().head_punch.xscale = 1
+    s.parent().head_punch.yscale = 1
     S.E.cmn.add(rotate, isstem, """Rotates the stem by 45 degree,
     which will have big
     and 
