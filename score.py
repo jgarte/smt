@@ -67,7 +67,7 @@ class Note(E.SForm, Clock, _Pitch):
     @stem_graver.setter
     def stem_graver(self, newstem):
         # Allow only a single stem_graver per note?
-        self.del_children(lambda c: isinstance(c, Stem))
+        self.delcont(lambda c: isinstance(c, Stem))
         self._stem_graver = newstem
         self.append(self._stem_graver)
 
@@ -82,7 +82,7 @@ class Accidental(E.SForm, _Pitch):
     def punch(self): return self._punch
     @punch.setter
     def punch(self, new):
-        self.del_children(lambda c: isinstance(c, e.Char))
+        self.delcont(lambda c: isinstance(c, e.Char))
         self._punch = new
         self.append(self._punch)
         
@@ -97,6 +97,6 @@ class Clef(E.SForm, _Pitch):
     def punch(self): return self._punch
     @punch.setter
     def punch(self, new):
-        self.del_children(lambda c: isinstance(c, e.Char))
+        self.delcont(lambda c: isinstance(c, e.Char))
         self._punch = new
         self.append(self._punch)

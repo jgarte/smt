@@ -609,7 +609,7 @@ class _Form(_Canvas, _Font):
                     c.fixbottom += self.y
                     # Fixheight never changes!
     
-    def del_children(self, cond):
+    def delcont(self, cond):
         for i, c in enumerate(self.content):
             if cond(c): del self.content[i]
     
