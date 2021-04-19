@@ -38,22 +38,25 @@ def reden(stm):
 def isstem(o): return isinstance(o, S.Stem)
 def setstem(self):
     if self.duration in (.25, .5):
-        s=S.Stem(length=13,thickness=2,
+        s=S.Stem(length=13,thickness=1, x=self.x+.5,endxr=1, endyr=5
         # canvas_color = S.E.SW.utils.rgb(100,100,0,"%")
         )
         self.stem_graver = s #taze , appliedto =false
         # print(self.width)
         # s.x+=100
-        S.E.cmn.add(rutchS, isstem, "Rütsch stem")
+        S.E.cmn.add(rutchS, isstem, "Just define another rule!")
         # print(self.width)
     
-
+def rotate(stm): 
+    print(stm.rotate)
+    stm.rotate = 10
+    print(stm.rotate)
 def rutchS(s): 
-    print(s.parent().width, s.parent()._width_locked)
-    s.x += 10
-    print(s.parent().width)
-    # s.y -= 100
-    
+    print("????")
+    S.E.cmn.add(rotate, isstem, """Rotates the stem by 45 degree,
+    which will have big
+    and 
+    small effects""")
 
 
 def notehead_vertical_pos(note):
@@ -69,7 +72,7 @@ def make_accidental_char(accobj):
 def setclef(clefobj):
     clefobj.punch = S.E.Char(name={"g": "clefs.G",
     "F":"clefs.F", "f":"clefs.F_change","c":"clefs.C"}[clefobj.pitch],
-    rotate=20)
+    rotate=10)
 
 
 def decide_unit_dur(dur_counts):

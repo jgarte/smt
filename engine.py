@@ -196,7 +196,7 @@ class RuleTable:
         self.id = id_
         self.rules = dict()
         self._order = 0
-        self.prindoc = True
+        self.describe = True
         self._hooks_registry = []
         self._constraints_registry = []
         _ruletables.add(self)
@@ -208,7 +208,7 @@ class RuleTable:
         # o=order, rd=rule dict
         return [(o, rd) for (o, rd) in self.rules.items() if not rd["applied"]]
     
-    def add(self, hook, constraint, doc=None):
+    def add(self, hook, constraint, desc=None):
         """
         Rule will be added only if at least hook or constraint is fresh,
         allowing combinations of both parameters.
@@ -216,7 +216,7 @@ class RuleTable:
         hhash = hook.__hash__()
         chash = constraint.__hash__()
         if hhash not in self._hooks_registry or chash not in self._constraints_registry:
-            self.rules[self._order] = {"doc": doc, "hook": hook, "constraint": constraint, "applied": False}
+            self.rules[self._order] = {"desc": desc, "hook": hook, "constraint": constraint, "applied": False}
             self._order += 1
             self._hooks_registry.append(hhash)
             self._constraints_registry.append(chash)
@@ -265,8 +265,8 @@ class _SMTObject:
                 for rt in pending_rts:
                     # o_rd=(order, ruledictionary), sort pending rules based on their order.
                     for order, rule in sorted(rt._pending(), key=lambda o_rd: o_rd[0]):
-                        if rt.prindoc:
-                            print(f"RT: {rt}, Depth: {depth}, Order: {order}, Doc: {rule['doc']}")
+                        if rt.describe:
+                            print(f"RT: {rt}, Depth: {depth}, Order: {order}, Desc: {rule['desc']}")
                         # Dump in each round the up-to-date members (if any new objects have been added etc....)
                         for m in members(self):
                             if rule["constraint"](m):
@@ -307,7 +307,7 @@ class _Canvas(_SMTObject):
     canvas_opacity=None, xscale=1, yscale=1,
     x=None, y=None,
      # x_locked=False, y_locked=False,
-    rotate=None,
+    rotate=0,
     width=None,
      # width_locked=False,
     canvas_visible=True, origin_visible=True, **kwargs):
@@ -528,9 +528,10 @@ class Char(_Canvas, _Font):
     # svgelements
     def _path(self):
         path = SE.Path(self._glyph)
-        path *= f"scale({self.xscale * _scale()} {self.yscale * _scale()})"
+        path *= f"scale({self.xscale * _scale()}, {self.yscale * _scale()})"
+        # Why cant I put rotation origin self.xy here?????????????
         path *= f"rotate({self.rotate}deg)"
-        path *= f"translate({self.x} {self.y})"
+        path *= f"translate({self.x}, {self.y})"
         return path
         # return SE.Path(self._glyph, transform=f"rotate({self.rotate}) scale({self.xscale*_scale()} {self.yscale*_scale()})")
     
@@ -944,7 +945,7 @@ class VLineSegment(_LineSegment):
             self.endxr, self.endyr
             )
         # print("B",r.d())
-        # r *= f"rotate({self.rotate})"
+        r *= f"rotate({self.rotate}deg, {self.x}, {self.y})"
         # print("A",r.d())
         return r
     # xmin, xmax, ymin, ymax
