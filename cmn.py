@@ -16,8 +16,7 @@ def make_notehead(note):
             .5: "noteheads.s1",
             .25: "noteheads.s2"
         }[note.duration],
-        )
-    print(note.head_punch)
+        rotate=0)
         
 def headcolor(n):
     n.head_punch.color = SW.utils.rgb(50,0,100,"%")
@@ -36,14 +35,24 @@ def reden(stm):
     cmn.add(longer, isstem)
     #rule applied, appliedto=true
 
-def isstem(o): return isinstance(o, Stem)
+def isstem(o): return isinstance(o, S.Stem)
 def setstem(self):
     if self.duration in (.25, .5):
-        s=S.Stem(length=13,thickness=10,x=self.x+5)
+        s=S.Stem(length=13,thickness=2,
+        # canvas_color = S.E.SW.utils.rgb(100,100,0,"%")
+        )
         self.stem_graver = s #taze , appliedto =false
-        print(s,s._x_locked, s._y_locked)
-        # e.cmn.add(rutchS, isstem)
-def rutchS(s): s.x += .5
+        # print(self.width)
+        # s.x+=100
+        S.E.cmn.add(rutchS, isstem, "Rütsch stem")
+        # print(self.width)
+    
+
+def rutchS(s): 
+    print(s.parent().width, s.parent()._width_locked)
+    s.x += 10
+    print(s.parent().width)
+    # s.y -= 100
     
 
 
@@ -59,7 +68,8 @@ def make_accidental_char(accobj):
 
 def setclef(clefobj):
     clefobj.punch = S.E.Char(name={"g": "clefs.G",
-    "f":"clefs.F", "c":"clefs.C"}[clefobj.pitch])
+    "F":"clefs.F", "f":"clefs.F_change","c":"clefs.C"}[clefobj.pitch],
+    rotate=20)
 
 
 def decide_unit_dur(dur_counts):
@@ -98,6 +108,7 @@ def first_clock_idx(l):
             
             
 def punctuate_line(h):
+    # print("---punct----")
     first_clock_idx_ = first_clock_idx(h.content)
     startings=h.content[0:first_clock_idx_]
     for starting in startings:
@@ -109,9 +120,8 @@ def punctuate_line(h):
     if S.allclocks(h):
         for C, w in zip(h.content, perfwidths):
             C.width += w
-            C.width_locked = True
+            C._width_locked = True
     else:
-        print("-------nonclocks")
         for c,w in zip(clkchunks, perfwidths):
             clock = c[0]
             nonclocks = c[1:]
@@ -119,8 +129,7 @@ def punctuate_line(h):
             if s < w:
                 # add rest of perfect width - sum of nonclocks
                 clock.width += (w - s)
-                print(clock.width)
-                clock.width_locked = True
+                clock._width_locked = True
                 for a in nonclocks:
                     a.width += right_guard(a)
                     # dont need to lock this width, since it's not touched
@@ -142,14 +151,16 @@ def ish(x): return isinstance(x, e.HForm)
 def isclef(x): return isinstance(x, S.Clef)
 def opachead(n): n.head_punch.opacity = .3
 
-S.E.cmn.add(make_notehead, noteandtrebe)
+S.E.cmn.add(make_notehead, noteandtrebe, "make noteheads")
 # S.E.cmn.add(make_accidental_char, isacc)
 # e.cmn.add(greenhead, noteandtrebe)
-# S.E.cmn.add(setstem, isnote)
-S.E.cmn.add(setclef, isclef)
+S.E.cmn.add(setstem, isnote, "Add stems")
+S.E.cmn.add(setclef, isclef, "Make clefs")
 # S.E.cmn.add(opachead, isnote)
 
-S.E.cmn.add(punctuate_line, isline)
+
+
+S.E.cmn.add(punctuate_line, isline, "Punctuate")
 
 def addstaff(n):
     for i in range(5):
@@ -185,9 +196,9 @@ if __name__=="__main__":
     S.E.render(Line(
     S.Clef(pitch="g"),
     S.Clef(pitch="f"),
-    S.Clef(pitch="f"),
-    S.Clef(pitch="f"),
-    S.Clef(pitch="f"),
+    # S.Clef(pitch="F"),
+    # S.Clef(pitch="f"),
+    S.Clef(pitch="F"),
     S.Clef(pitch="c"),
     S.Note(domain="treble", duration=.25, pitch=["c",4]), 
     S.Note(domain="treble", duration=1, pitch=["c",4]), 
@@ -197,7 +208,7 @@ if __name__=="__main__":
     S.Note(domain="treble", duration=.5, pitch=["c",4]), 
     S.Note(domain="treble", duration=.25, pitch=["c",4]), 
     
-    width=S.E.mmtopx(70),x=20,y=20))
+    width=S.E.mmtopx(100),x=200,y=100))
 
 # h=e.HForm(content=gemischt,width=e.mmtopx(100),x=40,y=200, canvas_opacity=.2, width_locked=True,id_="top")
 # e.render(h,)

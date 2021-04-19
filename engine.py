@@ -187,17 +187,20 @@ def getallin(typeof, obj):
 _ruletables = set()
 
 def _pending_ruletables():
+    """True if there some ruletables with pending rules."""
     return [rt for rt in _ruletables if rt._pending()]
 
 class RuleTable:
     
-    def __init__(self):
+    def __init__(self, id_=None):
+        self.id = id_
         self.rules = dict()
         self._order = 0
+        self.prindoc = True
         self._hooks_registry = []
         self._constraints_registry = []
         _ruletables.add(self)
-        
+    def __repr__(self): return f"RuleTable {self.id}"
     def _pending(self):
         """Returns a list of rules of this ruletable: (order, rule-dictionary)
         which are pending for application. If nothing is pending 
@@ -205,7 +208,7 @@ class RuleTable:
         # o=order, rd=rule dict
         return [(o, rd) for (o, rd) in self.rules.items() if not rd["applied"]]
     
-    def add(self, hook, constraint):
+    def add(self, hook, constraint, doc=None):
         """
         Rule will be added only if at least hook or constraint is fresh,
         allowing combinations of both parameters.
@@ -213,7 +216,7 @@ class RuleTable:
         hhash = hook.__hash__()
         chash = constraint.__hash__()
         if hhash not in self._hooks_registry or chash not in self._constraints_registry:
-            self.rules[self._order] = {"hook": hook, "constraint": constraint, "applied": False}
+            self.rules[self._order] = {"doc": doc, "hook": hook, "constraint": constraint, "applied": False}
             self._order += 1
             self._hooks_registry.append(hhash)
             self._constraints_registry.append(chash)
@@ -222,7 +225,7 @@ class RuleTable:
 
 
 # Common Music Notation, default ruletable for all objects
-cmn = RuleTable()
+cmn = RuleTable("CMN")
 
 class _SMTObject:
     def __init__(self, id_=None, domain=None, ruletable=None, toplevel=False):
@@ -254,18 +257,22 @@ class _SMTObject:
         rule-application iteration. This means however that a rule might be applied
         to an object more than once, if the object satisfies it's condition.
         """
+        depth = -1
         while True:
             pending_rts = _pending_ruletables()
             if pending_rts:
+                depth += 1
                 for rt in pending_rts:
-                    # o_rd=(order, ruledictionary)
-                    for _, rule in sorted(rt._pending(), key=lambda o_rd: o_rd[0]):
-                        rule["applied"] = True
+                    # o_rd=(order, ruledictionary), sort pending rules based on their order.
+                    for order, rule in sorted(rt._pending(), key=lambda o_rd: o_rd[0]):
+                        if rt.prindoc:
+                            print(f"RT: {rt}, Depth: {depth}, Order: {order}, Doc: {rule['doc']}")
                         # Dump in each round the up-to-date members (if any new objects have been added etc....)
                         for m in members(self):
                             if rule["constraint"](m):
                                 rule["hook"](m)
                                 if isinstance(m, HForm): m._lineup()
+                        rule["applied"] = True
                 pending_rts = _pending_ruletables()
             else: break
 
@@ -298,15 +305,18 @@ pgh =mmtopx(297)
 class _Canvas(_SMTObject):
     def __init__(self, canvas_color=None,
     canvas_opacity=None, xscale=1, yscale=1,
-    x=None, y=None, x_locked=False, y_locked=False,
+    x=None, y=None,
+     # x_locked=False, y_locked=False,
     rotate=None,
-    width=None, width_locked=False,
+    width=None,
+     # width_locked=False,
     canvas_visible=True, origin_visible=True, **kwargs):
         super().__init__(**kwargs)
         # self.rotate=rotate
         # Only the first item in a hform will need _hlineup, for him 
         # this is set by HForm itself.
         self._is_hlineup_head = False
+        self.rotate=rotate
         self.canvas_opacity = canvas_opacity or 0.3
         self.canvas_visible = canvas_visible
         self.canvas_color = canvas_color
@@ -320,7 +330,7 @@ class _Canvas(_SMTObject):
         # self._x = x
         self._y = 0 if y is None else y
         # self.y_locked = y_locked
-        self.x_locked = x_locked
+        # self.x_locked = x_locked
         self._width = 0 if width is None else width
         self._width_locked = False if width is None else True
         
@@ -409,11 +419,10 @@ class Char(_Canvas, _Font):
     _idcounter = -1
     
     def __init__(self, name, color=None, opacity=None,
-    visible=True, font=None,rotate=0,
+    visible=True, font=None,
     **kwargs):
         _Canvas.__init__(self, **kwargs)
         _Font.__init__(self, font)
-        self.rotate=rotate
         self.name = name
         # self.glyph = _getglyph(self.name, self.font)
         self._glyph = _get_glyph(self.name, self.font)
@@ -431,14 +440,14 @@ class Char(_Canvas, _Font):
     def x(self, new):
         if not self._x_locked:
             self._x = new
-            # for a in reversed(self.ancestors):
-                # a._compute_horizontals()
+            for a in reversed(self.ancestors):
+                a._compute_horizontals()
     @_Canvas.y.setter
     def y(self, new):
         if not self._y_locked:
             self._y = new
-            # for a in reversed(self.ancestors):
-                # a._compute_verticals()
+            for a in reversed(self.ancestors):
+                a._compute_verticals()
     
     # @_Canvas.x.setter
     # def x(self, new):
@@ -520,7 +529,7 @@ class Char(_Canvas, _Font):
     def _path(self):
         path = SE.Path(self._glyph)
         path *= f"scale({self.xscale * _scale()} {self.yscale * _scale()})"
-        path *= f"rotate({self.rotate})"
+        path *= f"rotate({self.rotate}deg)"
         path *= f"translate({self.x} {self.y})"
         return path
         # return SE.Path(self._glyph, transform=f"rotate({self.rotate}) scale({self.xscale*_scale()} {self.yscale*_scale()})")
@@ -693,30 +702,32 @@ class _Form(_Canvas, _Font):
     def _compute_left(self):
         """Determines the left-most of either: form's own x coordinate 
         or the left-most site of it's direct children."""
-        # return min([self.x] + list(map(lambda c: c.left, self.content)))
-        return self._bbox()[0]
+        return min([self.x] + list(map(lambda c: c.left, self.content)))
+        # return min(self.x, *[c.left for c in self.content])
+        # return self._bbox()[0]
 
-    # def _compute_right(self):
-        # if self.width_locked: # ,then right never changes!
-            # return self.left + self.width
-        # else:
-            # return max([self.x] + list(map(lambda c: c.right, self.content)))
-    def _compute_right(self): return self._bbox()[1]
+    def _compute_right(self):
+        if self._width_locked: # ,then right never changes!
+            return self.left + self.width
+        else:
+            return max([self.x] + list(map(lambda c: c.right, self.content)))
+    # def _compute_right(self): return self._bbox()[1]
 
     def _compute_width(self):
-        if self._width_locked:
-            return self._width
-        else:
-            return self.right - self.left
-        # return self.width if self.width_locked else (self.right - self.left)
+        # # print(self.id)
+        # if self._width_locked:
+            # return self.width
+        # else:
+            # return self.right - self.left
+        return self.width if self._width_locked else (self.right - self.left)
 
     def _compute_top(self):
-        # return min([self.fixtop] + list(map(lambda c: c.top, self.content)))
-        return min(self.fixtop, self._bbox()[2])
+        return min([self.fixtop] + list(map(lambda c: c.top, self.content)))
+        # return min(self.fixtop, self._bbox()[2])
     
     def _compute_bottom(self):
-        # return max([self.fixbottom] + list(map(lambda c: c.bottom, self.content)))
-        return max(self.fixbottom, self._bbox()[3])
+        return max([self.fixbottom] + list(map(lambda c: c.bottom, self.content)))
+        # return max(self.fixbottom, self._bbox()[3])
     
     def _compute_height(self): 
         return self.bottom - self.top
@@ -782,13 +793,19 @@ class _Form(_Canvas, _Font):
             for A in reversed(self.ancestors):
                 A._compute_horizontals()
     
-    # SPT: xmin, xmax, ymin, ymax
-    def _bbox(self):
-        # print(">>",self.id, [[*c._bbox()] for c in self.content])
-        if self.content:
-            return SPT.Path(*[SPT.bbox2path(*c._bbox()) for c in self.content]).bbox()
-        else:
-            return 0, 0, self.fixtop, self.fixbottom
+    # # SPT bbox output: xmin, xmax, ymin, ymax
+    # def _bbox(self):
+        # # print(">>",self.id, [[*c._bbox()] for c in self.content])
+        # # return SPT.Path(*[SPT.bbox2path(*c._bbox()) for c in self.content]).bbox()
+        # if self.content:
+            # bboxs = [c._bbox() for c in self.content]
+            # minx = min(self.x, *[bb[0] for bb in bboxs])
+            # maxx = max(self.x, *[bb[1] for bb in bboxs])
+            # miny = min(self.y, *[bb[2] for bb in bboxs])
+            # maxy = max(self.y, *[bb[3] for bb in bboxs])
+            # return SPT.Path(SPT.bbox2path(minx, maxx, miny, maxy)).bbox()
+        # else:
+            # return 0, 0, self.fixtop, self.fixbottom
 
 
 class SForm(_Form):
@@ -866,38 +883,50 @@ class _LineSegment(_Canvas):
         self._direction = direction
         self.endxr = endxr or 0
         self.endyr = endyr or 0
-        self._compute_horizontals()
-        self._compute_verticals()
-    
+        # self._compute_horizontals()
+        # self._compute_verticals()
+        
     # Override canvas packsvglist
     def _pack_svg_list_ip(self):
-        self._svg_list.append(SW.shapes.Rect(
-            insert=(self.left, self.top),
-            size=(self.width, self.height),
-            fill=self.color, fill_opacity=self.opacity,
-            rx=self.endxr, ry=self.endyr
-            )
-        )
+        # self._svg_list.append(SW.shapes.Rect(
+            # insert=(self.left, self.top),
+            # size=(self.width, self.height),
+            # fill=self.color, fill_opacity=self.opacity,
+            # rx=self.endxr, ry=self.endyr
+            # )
+        # )
+        self._svg_list.append(SW.path.Path(
+                d=SPT.bbox2path(*self._bbox()).d(),
+                fill=SW.utils.rgb(100,100,0,"%"),
+                fill_opacity=self.canvas_opacity, 
+                id_=f"{self.id}-BBox")
+                )
+        self._svg_list.append(SW.path.Path(
+            d=self._rect().d(),
+            fill=self.color, fill_opacity=self.opacity
+        ))
+        
+        
     @property
     def length(self): return self._length
     
     @_Canvas.x.setter
     def x(self, new):
         if not self._x_locked:
-            dx = new - self.x
+            # dx = new - self.x
             self._x = new
-            self._left += dx
-            self._right += dx
+            # self._left += dx
+            # self._right += dx
             for A in reversed(self.ancestors): # An ancestor is always a Form!!
                 A._compute_horizontals()
     
     @_Canvas.y.setter
     def y(self, new): 
         if not self._y_locked:
-            dy = new - self.y
+            # dy = new - self.y
             self._y = new
-            self._top += dy
-            self._bottom += dy
+            # self._top += dy
+            # self._bottom += dy
             for A in reversed(self.ancestors): # An ancestor is always a Form!!
                 A._compute_verticals()
     
@@ -908,18 +937,43 @@ class _LineSegment(_Canvas):
 class VLineSegment(_LineSegment):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-    def _compute_width(self): return self.thickness
-    def _compute_left(self): return self.x - self.thickness*.5
-    def _compute_right(self): return self.x + self.thickness*.5
-    def _compute_height(self): return self.length
-    def _compute_bottom(self): return self.y + self.length
-    def _compute_top(self): return self.y
-    @_LineSegment.length.setter
-    def length(self, new):
-        self._length = new
-        self._compute_verticals()
-        for a in reversed(self.ancestors):
-            a._compute_verticals()
+    def _rect(self):
+        r = SE.Rect(
+            self.x - self.thickness*.5, self.y, 
+            self.thickness, self.length,
+            self.endxr, self.endyr
+            )
+        # print("B",r.d())
+        # r *= f"rotate({self.rotate})"
+        # print("A",r.d())
+        return r
+    # xmin, xmax, ymin, ymax
+    def _bbox(self): return SPT.Path(self._rect().d()).bbox()
+    @property
+    def left(self): return self._bbox()[0]
+    @property
+    def right(self): return self._bbox()[1]
+    @property
+    def top(self): return self._bbox()[2]
+    @property
+    def bottom(self): return self._bbox()[3]
+    @property
+    def width(self): return self.thickness
+    @property
+    def height(self): return self.length
+    
+    # def _compute_width(self): return self.thickness
+    # def _compute_left(self): return self.x - self.thickness*.5
+    # def _compute_right(self): return self.x + self.thickness*.5
+    # def _compute_height(self): return self.length
+    # def _compute_bottom(self): return self.y + self.length
+    # def _compute_top(self): return self.y
+    # @_LineSegment.length.setter
+    # def length(self, new):
+        # self._length = new
+        # self._compute_verticals()
+        # for a in reversed(self.ancestors):
+            # a._compute_verticals()
 
 
 class HLineSegment(_LineSegment):
