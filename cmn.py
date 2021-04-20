@@ -40,12 +40,12 @@ def setstem(self):
     # self.head_punch._x_locked=1
     # print(self.head_punch._x_locked)
     if self.duration in (.25, .5):
-        s=S.Stem(length=13,thickness=9
+        s=S.Stem(length=13,thickness=9, skewy=-10
         # canvas_color = S.E.SW.utils.rgb(100,100,0,"%")
         )
         # print(s.left)
-        s.x = self.x + 40
-        s._x_locked=1
+        # s.x = self.x + 40
+        # s._x_locked=1
         self.stem_graver = s #taze , appliedto =false
         # print(self.width)
         # s.x+=100

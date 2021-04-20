@@ -196,7 +196,7 @@ class RuleTable:
         self.name = name
         self.rules = dict()
         self._order = 0
-        self.log = True
+        self.log = True # Print rules as they are being applied.
         self._hooks_registry = []
         self._constraints_registry = []
         _ruletables.add(self)
@@ -225,7 +225,7 @@ class RuleTable:
 
 
 # Common Music Notation, default ruletable for all objects
-cmn = RuleTable("CMN")
+cmn = RuleTable(name="CMN")
 
 class _SMTObject:
     def __init__(self, id_=None, domain=None, ruletable=None, toplevel=False):
@@ -307,11 +307,13 @@ class _Canvas(_SMTObject):
     canvas_opacity=None, xscale=1, yscale=1,
     x=None, y=None,
      # x_locked=False, y_locked=False,
-    rotate=0,
+    rotate=0, skewx=0, skewy=0,
     width=None,
      # width_locked=False,
     canvas_visible=True, origin_visible=True, **kwargs):
         super().__init__(**kwargs)
+        self.skewx = skewx
+        self.skewy = skewy
         # self.rotate=rotate
         # Only the first item in a hform will need _hlineup, for him 
         # this is set by HForm itself.
@@ -989,13 +991,14 @@ class VLineSegment(_LineSegment):
         super().__init__(**kwargs)
     
     def _rect(self):
-        r = SE.Rect(
+        rect = SE.Rect(
             self.x - self.thickness*.5, self.y, 
             self.thickness, self.length,
             self.endxr, self.endyr
             )
-        r *= f"rotate({self.rotate}deg, {self.x}, {self.y})"
-        return r
+        rect *= f"skew({self.skewx}, {self.skewy}, {self.x}, {self.y})"
+        rect *= f"rotate({self.rotate}deg, {self.x}, {self.y})"
+        return rect
     
     # xmin, xmax, ymin, ymax
     def _bbox(self): return SPT.Path(self._rect().d()).bbox()
