@@ -38,7 +38,7 @@ def reden(stm):
 def isstem(o): return isinstance(o, S.Stem)
 def setstem(self):
     if self.duration in (.25, .5):
-        s=S.Stem(length=13,thickness=1, x=self.x+.5,endxr=1, endyr=5
+        s=S.Stem(length=13,thickness=3, x=self.x,endxr=0, endyr=5
         # canvas_color = S.E.SW.utils.rgb(100,100,0,"%")
         )
         self.stem_graver = s #taze , appliedto =false
@@ -48,10 +48,13 @@ def setstem(self):
         # print(self.width)
     
 def rotate(stm): 
-    stm.rotate = 10
+    # stm.rotate = randint(0, 91)
+    stm.x += -20
+    # stm._x_locked=1
+
 def rutchS(s):
     s.parent().head_punch.xscale = 1
-    s.parent().head_punch.yscale = 10
+    s.parent().head_punch.yscale = 1
     S.E.cmn.add(rotate, isstem, """Rotates the stem by 45 degree,
     which will have big
     and 
@@ -72,10 +75,7 @@ def setclef(clefobj):
     clefobj.punch = S.E.Char(name={"g": "clefs.G",
     "F":"clefs.F", "f":"clefs.F_change","c":"clefs.C"}[clefobj.pitch],
     rotate=0,)
-    S.E.cmn.add(strechx, isclef, """Stretches the clef on x scale""")
-    
-def strechx(clef):
-    clef.punch.xscale = 2
+
 
 
 def decide_unit_dur(dur_counts):

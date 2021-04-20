@@ -25,10 +25,10 @@ import svgpathtools as SPT
             # return///////////////STAFF_SPACE = chlapik_staff_space("zwei")
 # GLOBAL_SCALE
     # _ruleregistry.append({"T": targets, "D": domains, "F": fn})
-__all__ = [
-    "HForm", "VForm", "SForm", "Char", "HLineSegment", "VLineSegment",
-    "cmn", "mmtopx", "render", "GLOBAL_SCALE", "STAFF_SPACE"
-]
+# __all__ = [
+    # "HForm", "VForm", "SForm", "Char", "HLineSegment", "VLineSegment",
+    # "cmn", "mmtopx", "render", "GLOBAL_SCALE", "STAFF_SPACE"
+# ]
 
 
 ##### Font
@@ -77,7 +77,7 @@ def _load_fonts():
             _loaded_fonts[os.path.splitext(json_file)[0]] = json.load(font)
 
 
-install_font1("./fonts/svg/haydn-11.svg",1)
+# install_font1("./fonts/svg/haydn-11.svg",1)
 _load_fonts()
 
 def _glyph_names(font):
@@ -192,15 +192,15 @@ def _pending_ruletables():
 
 class RuleTable:
     
-    def __init__(self, id_=None):
-        self.id = id_
+    def __init__(self, name=None):
+        self.name = name
         self.rules = dict()
         self._order = 0
-        self.describe = True
+        self.log = True
         self._hooks_registry = []
         self._constraints_registry = []
         _ruletables.add(self)
-    def __repr__(self): return f"RuleTable {self.id}"
+    # def __repr__(self): return f"RuleTable {self.id}"
     def _pending(self):
         """Returns a list of rules of this ruletable: (order, rule-dictionary)
         which are pending for application. If nothing is pending 
@@ -265,8 +265,8 @@ class _SMTObject:
                 for rt in pending_rts:
                     # o_rd=(order, ruledictionary), sort pending rules based on their order.
                     for order, rule in sorted(rt._pending(), key=lambda o_rd: o_rd[0]):
-                        if rt.describe:
-                            print(f"RT: {rt}, Depth: {depth}, Order: {order}, Desc: {rule['desc']}")
+                        if rt.log:
+                            print(f"RT: {rt.name}, Depth: {depth}, Order: {order}, Desc: {rule['desc']}")
                         # Dump in each round the up-to-date members (if any new objects have been added etc....)
                         for m in members(self):
                             if rule["constraint"](m):
@@ -342,49 +342,37 @@ class _Canvas(_SMTObject):
     # def unlock(what):
         # if what == "y":
             # self._y_locked = False
-        
+    
     @property
     def x(self): return self._x
     @property
     def y(self): return self._y
-    # @property
-    # def top(self): return self._top
-    # @property
-    # def bottom(self): return self._bottom
-    # @property
-    # def height(self): return self._height
-    # @property
-    # def width(self): return self._width
-    # @property
-    # def left(self): return self._left
-    # @property
-    # def right(self): return self._right
-    # @left.setter
-    # def left(self, new):
-        # self.x += (new - self.left)
-    # @top.setter
-    # def top(self, new):
-        # self.y += (new - self.top)
-    # @right.setter
-    # def right(self):
-        # print("Implement right setter!")
-
-    # Make sure from canvas derived subclasses have implemented these computations.
-    def _compute_width(self):
-        raise NotImplementedError(f"_compute_width not overriden by {self.__class__.__name__}")
-    def _compute_height(self):
-        raise NotImplementedError(f"_compute_height not overriden by {self.__class__.__name__}")
     
-    def _compute_horizontals(self):
-        self._left = self._compute_left()
-        self._right = self._compute_right()
-        self._width = self._compute_width()
+    # # Placeholders
+    # @property
+    # def top(self): raise NotImplementedError
+    # @property
+    # def bottom(self): raise NotImplementedError
+    # @property
+    # def height(self): raise NotImplementedError
+    # @property
+    # def width(self): raise NotImplementedError
+    # @property
+    # def left(self): raise NotImplementedError
+    # @property
+    # def right(self): raise NotImplementedError
 
-    def _compute_verticals(self):
-        self._top = self._compute_top()
-        self._bottom = self._compute_bottom()
-        self._height = self._compute_height()
+    # # X Setters; as these set the x, they have any effect only when x is unlocked.
+    # @left.setter
+    # def left(self, new): self.x += (new - self.left)
+    # @right.setter
+    # def right(self, new): self.x += (new - self.right)
 
+    # # Make sure from canvas derived subclasses have implemented these computations.
+    # def _compute_width(self):
+        # raise NotImplementedError(f"_compute_width not overriden by {self.__class__.__name__}")
+    # def _compute_height(self):
+        # raise NotImplementedError(f"_compute_height not overriden by {self.__class__.__name__}")
     
 
     
@@ -413,11 +401,43 @@ def _origelems(obj):
                                         stroke=SW.utils.rgb(87, 78, 55), 
                                         stroke_width=_ORIGIN_LINE_THICKNESS)]
 
+
 class _Font:
     """Adds font to Char & Form"""
     def __init__(self, font=None):
         self.font = font or tuple(_loaded_fonts.keys())[0]
 
+
+# class _Unit(_Canvas):
+    # def __init__(self,**kwargs):
+        # super().__init__(**kwargs)
+    # @_Canvas.x.setter
+    # def x(self, new):
+        # if not self._x_locked:
+            # self._x = new
+            # for a in reversed(self.ancestors):
+                # a._compute_horizontals()
+    # @_Canvas.y.setter
+    # def y(self, new):
+        # if not self._y_locked:
+            # self._y = new
+            # for a in reversed(self.ancestors):
+                # a._compute_verticals()
+    # def _bbox(self):
+        # raise NotImplementedError(f"_Unit subclass {self.__class__.__name__} must override the _bbox method!")  
+    # @property
+    # def left(self): return self._bbox()[0]
+    # @property
+    # def right(self): return self._bbox()[1]
+    # @property
+    # def top(self): return self._bbox()[2]
+    # @property
+    # def bottom(self): return self._bbox()[3]
+    # @property
+    # def width(self): return self.right - self.left
+    # @property
+    # def height(self): return self.bottom - self.top
+        
 class Char(_Canvas, _Font):
     
     _idcounter = -1
@@ -445,6 +465,7 @@ class Char(_Canvas, _Font):
         self._xscale = new
         for a in reversed(self.ancestors):
             a._compute_horizontals()
+    
     @_Canvas.yscale.setter
     def yscale(self, new):
         self._yscale = new
@@ -545,8 +566,9 @@ class Char(_Canvas, _Font):
     def _path(self):
         path = SE.Path(self._glyph)
         path *= f"scale({self.xscale * _scale()}, {self.yscale * _scale()})"
-        # Why cant I put rotation origin self.xy here?????????????
+        # First rotate at 00,
         path *= f"rotate({self.rotate}deg)"
+        # then move.
         path *= f"translate({self.x}, {self.y})"
         return path
         # return SE.Path(self._glyph, transform=f"rotate({self.rotate}) scale({self.xscale*_scale()} {self.yscale*_scale()})")
@@ -568,19 +590,12 @@ class Char(_Canvas, _Font):
     @property
     def height(self): return self.bottom - self.top
     
-    # Setters
+    # X Setters; as these set the x, they have any effect only when x is unlocked.
     @left.setter
     def left(self, new): self.x += (new - self.left)
+    @right.setter
+    def right(self, new): self.x += (new - self.right)
     
-
-
-# c=Char(name="clefs.G")
-# print(c.x, c.right, c.left)
-# c.left += 10
-# print(c.x, c.right, c.left)
-class _HeightHolder:
-    def __init__(self):
-        pass
     
 
 class _Form(_Canvas, _Font):
@@ -628,7 +643,16 @@ class _Form(_Canvas, _Font):
     def delcont(self, cond):
         for i, c in enumerate(self.content):
             if cond(c): del self.content[i]
-    
+    def _compute_horizontals(self):
+        self._left = self._compute_left()
+        self._right = self._compute_right()
+        self._width = self._compute_width()
+
+    def _compute_verticals(self):
+        self._top = self._compute_top()
+        self._bottom = self._compute_bottom()
+        self._height = self._compute_height()
+
     # Children is a sequence. This method modifies only ancestor lists.
     def _establish_parental_relationship(self, children):
         for child in children:
@@ -871,7 +895,7 @@ class HForm(_Form):
         self._compute_verticals()
             
     def _lineup(self):
-        for L, R in zip(self.content[:-1], self.content[1:]):
+        for L, R in zip(self.content[:-1], self.content[1:]):            
             R.left = L.right
 
 class VForm(_Form):
@@ -966,6 +990,7 @@ class VLineSegment(_LineSegment):
         return r
     # xmin, xmax, ymin, ymax
     def _bbox(self): return SPT.Path(self._rect().d()).bbox()
+    
     @property
     def left(self): return self._bbox()[0]
     @property
@@ -975,9 +1000,13 @@ class VLineSegment(_LineSegment):
     @property
     def bottom(self): return self._bbox()[3]
     @property
-    def width(self): return self.thickness
+    def width(self): 
+        # return self.thickness
+        return self.right-self.left
     @property
-    def height(self): return self.length
+    def height(self):
+        # return self.length
+        return self.bottom -self.top
     
     # def _compute_width(self): return self.thickness
     # def _compute_left(self): return self.x - self.thickness*.5
