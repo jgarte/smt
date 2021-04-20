@@ -38,33 +38,10 @@ def reden(stm):
 def isstem(o): return isinstance(o, S.Stem)
 def setstem(self):
     # self.head_punch._x_locked=1
-    # print(self.head_punch._x_locked)
     if self.duration in (.25, .5):
-        s=S.Stem(length=13,thickness=9, skewy=-10
-        # canvas_color = S.E.SW.utils.rgb(100,100,0,"%")
-        )
-        # print(s.left)
-        # s.x = self.x + 40
-        # s._x_locked=1
+        s=S.Stem(length=13,thickness=1, x=self.x+.5,
+        endyr=6,endxr=1)
         self.stem_graver = s #taze , appliedto =false
-        # print(self.width)
-        # s.x+=100
-        # S.E.cmn.add(rutchS, isstem, "Just define another rule!")
-        # print(self.width)
-    
-def rotate(stm): 
-    # stm.rotate = randint(0, 91)
-    stm.x += -20
-    # stm._x_locked=1
-
-def rutchS(s):
-    s.parent().head_punch.xscale = 1
-    s.parent().head_punch.yscale = 1
-    S.E.cmn.add(rotate, isstem, """Rotates the stem by 45 degree,
-    which will have big
-    and 
-    small effects""")
-
 
 def notehead_vertical_pos(note):
     if isinstance(note.pitch, list):
@@ -179,7 +156,7 @@ def addstaff(n):
         n.append(l)
         # n.append(e.HLineSegment(length=n.width, thickness=1, endxr=0))
 
-# S.E.cmn.add(addstaff, isnote)
+S.E.cmn.add(addstaff, isnote, "Draws stave.")
 
 
 
@@ -206,10 +183,10 @@ if __name__=="__main__":
     # print(mmtopx(100))
     S.E.render(Line(
     S.Clef(pitch="g"),
+    # S.Clef(pitch="f"),
+    # S.Clef(pitch="F"),
     S.Clef(pitch="f"),
     # S.Clef(pitch="F"),
-    # S.Clef(pitch="f"),
-    S.Clef(pitch="F"),
     S.Clef(pitch="c"),
     S.Note(domain="treble", duration=.25, pitch=["c",4]), 
     S.Note(domain="treble", duration=1, pitch=["c",4]), 

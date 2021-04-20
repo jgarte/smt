@@ -378,12 +378,12 @@ class _Canvas(_SMTObject):
     
 
     
-def _bboxelem(obj): 
-    return SW.shapes.Rect(insert=(obj.left, obj.top),
-                                size=(obj.width, obj.height), 
-                                fill=obj.canvas_color,
-                                fill_opacity=obj.canvas_opacity, 
-                                id_=obj.id + "BBox")
+# def _bboxelem(obj): 
+    # return SW.shapes.Rect(insert=(obj.left, obj.top),
+                                # size=(obj.width, obj.height), 
+                                # fill=obj.canvas_color,
+                                # fill_opacity=obj.canvas_opacity, 
+                                # id_=obj.id + "BBox")
 
 _ORIGIN_CROSS_LEN = 20
 _ORIGIN_CIRCLE_R = 4
@@ -430,7 +430,7 @@ class _Drawable(_Canvas):
                 a._compute_verticals()
     
     def _bbox(self):
-        raise NotImplementedError(f"_Drawable subclass {self.__class__.__name__} must override the _bbox method!")  
+        raise NotImplementedError(f"_bbox method not overriden by {self.__class__.__name__}!")  
     
     @property
     def left(self): return self._bbox()[0]
@@ -574,6 +574,10 @@ class Char(_Drawable, _Font):
             # transform="translate({0} {1}) scale({2} {3})".format(
                 # self.x, self.y, self.xscale * _scale(), self.yscale * _scale())
         ))
+        # Add the origin
+        if self.origin_visible:
+            for elem in _origelems(self):
+                self._svg_list.append(elem)
     
     # svgelements
     def _path(self):
@@ -788,7 +792,15 @@ class _Form(_Canvas, _Font):
     
     def _pack_svg_list_ip(self):
         # Bbox
-        if self.canvas_visible: self._svg_list.append(_bboxelem(self))
+        if self.canvas_visible: 
+            # self._svg_list.append(_bboxelem(self))
+            self._svg_list.append(
+                SW.shapes.Rect(insert=(self.left, self.top),
+                                size=(self.width, self.height), 
+                                fill=self.canvas_color,
+                                fill_opacity=self.canvas_opacity, 
+                                id_=f"{self.id}-BBox")
+            )
         # Add content
         for C in self.content:
             # C.xscale *= self.xscale
@@ -957,6 +969,10 @@ class _LineSegment(_Drawable):
             d=self._rect().d(),
             fill=self.color, fill_opacity=self.opacity
         ))
+        # Add the origin
+        if self.origin_visible:
+            for elem in _origelems(self):
+                self._svg_list.append(elem)
         
         
     @property
@@ -984,6 +1000,8 @@ class _LineSegment(_Drawable):
     
     @property
     def thickness(self): return self._thickness
+    # xmin, xmax, ymin, ymax
+    def _bbox(self): return SPT.Path(self._rect().d()).bbox()
 
 
 class VLineSegment(_LineSegment):
@@ -1000,8 +1018,7 @@ class VLineSegment(_LineSegment):
         rect *= f"rotate({self.rotate}deg, {self.x}, {self.y})"
         return rect
     
-    # xmin, xmax, ymin, ymax
-    def _bbox(self): return SPT.Path(self._rect().d()).bbox()
+
     
     # @property
     # def left(self): return self._bbox()[0]
@@ -1037,9 +1054,18 @@ class VLineSegment(_LineSegment):
 class HLineSegment(_LineSegment):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-    def _compute_width(self): return self.length
-    def _compute_height(self): return self.thickness
-    def _compute_left(self): return self.x
-    def _compute_right(self): return self.x + self.length
-    def _compute_top(self): return self.y - self.thickness*.5
-    def _compute_bottom(self): return self.y + self.thickness*.5
+    def _rect(self):
+        rect = SE.Rect(
+            self.x, self.y - self.thickness*.5,
+            self.length, self.thickness,
+            self.endxr, self.endyr
+            )
+        rect *= f"skew({self.skewx}, {self.skewy}, {self.x}, {self.y})"
+        rect *= f"rotate({self.rotate}deg, {self.x}, {self.y})"
+        return rect
+    # def _compute_width(self): return self.length
+    # def _compute_height(self): return self.thickness
+    # def _compute_left(self): return self.x
+    # def _compute_right(self): return self.x + self.length
+    # def _compute_top(self): return self.y - self.thickness*.5
+    # def _compute_bottom(self): return self.y + self.thickness*.5
