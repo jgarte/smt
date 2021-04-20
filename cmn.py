@@ -37,14 +37,19 @@ def reden(stm):
 
 def isstem(o): return isinstance(o, S.Stem)
 def setstem(self):
+    # self.head_punch._x_locked=1
+    # print(self.head_punch._x_locked)
     if self.duration in (.25, .5):
-        s=S.Stem(length=13,thickness=3, x=self.x,endxr=0, endyr=5
+        s=S.Stem(length=13,thickness=9
         # canvas_color = S.E.SW.utils.rgb(100,100,0,"%")
         )
+        # print(s.left)
+        s.x = self.x + 40
+        s._x_locked=1
         self.stem_graver = s #taze , appliedto =false
         # print(self.width)
         # s.x+=100
-        S.E.cmn.add(rutchS, isstem, "Just define another rule!")
+        # S.E.cmn.add(rutchS, isstem, "Just define another rule!")
         # print(self.width)
     
 def rotate(stm): 
@@ -160,7 +165,7 @@ def opachead(n): n.head_punch.opacity = .3
 S.E.cmn.add(make_notehead, noteandtrebe, "make noteheads")
 # S.E.cmn.add(make_accidental_char, isacc)
 # e.cmn.add(greenhead, noteandtrebe)
-S.E.cmn.add(setstem, isnote, "Add stems")
+S.E.cmn.add(setstem, isnote, "Set stems")
 S.E.cmn.add(setclef, isclef, "Make clefs")
 # S.E.cmn.add(opachead, isnote)
 

@@ -408,37 +408,48 @@ class _Font:
         self.font = font or tuple(_loaded_fonts.keys())[0]
 
 
-# class _Unit(_Canvas):
-    # def __init__(self,**kwargs):
-        # super().__init__(**kwargs)
-    # @_Canvas.x.setter
-    # def x(self, new):
-        # if not self._x_locked:
-            # self._x = new
-            # for a in reversed(self.ancestors):
-                # a._compute_horizontals()
-    # @_Canvas.y.setter
-    # def y(self, new):
-        # if not self._y_locked:
-            # self._y = new
-            # for a in reversed(self.ancestors):
-                # a._compute_verticals()
-    # def _bbox(self):
-        # raise NotImplementedError(f"_Unit subclass {self.__class__.__name__} must override the _bbox method!")  
-    # @property
-    # def left(self): return self._bbox()[0]
-    # @property
-    # def right(self): return self._bbox()[1]
-    # @property
-    # def top(self): return self._bbox()[2]
-    # @property
-    # def bottom(self): return self._bbox()[3]
-    # @property
-    # def width(self): return self.right - self.left
-    # @property
-    # def height(self): return self.bottom - self.top
+class _Drawable(_Canvas):
+    
+    def __init__(self,**kwargs):
+        super().__init__(**kwargs)
+    
+    @_Canvas.x.setter
+    def x(self, new):
+        if not self._x_locked:
+            self._x = new
+            for a in reversed(self.ancestors):
+                a._compute_horizontals()
+    
+    @_Canvas.y.setter
+    def y(self, new):
+        if not self._y_locked:
+            self._y = new
+            for a in reversed(self.ancestors):
+                a._compute_verticals()
+    
+    def _bbox(self):
+        raise NotImplementedError(f"_Drawable subclass {self.__class__.__name__} must override the _bbox method!")  
+    
+    @property
+    def left(self): return self._bbox()[0]
+    @property
+    def right(self): return self._bbox()[1]
+    @property
+    def top(self): return self._bbox()[2]
+    @property
+    def bottom(self): return self._bbox()[3]
+    @property
+    def width(self): return self.right - self.left
+    @property
+    def height(self): return self.bottom - self.top
+    # X Setters; as these set the x, they have any effect only when x is unlocked.
+    @left.setter
+    def left(self, new): self.x += (new - self.left)
+    @right.setter
+    def right(self, new): self.x += (new - self.right)
+    
         
-class Char(_Canvas, _Font):
+class Char(_Drawable, _Font):
     
     _idcounter = -1
     
@@ -473,18 +484,18 @@ class Char(_Canvas, _Font):
             a._compute_verticals()
         
     
-    @_Canvas.x.setter
-    def x(self, new):
-        if not self._x_locked:
-            self._x = new
-            for a in reversed(self.ancestors):
-                a._compute_horizontals()
-    @_Canvas.y.setter
-    def y(self, new):
-        if not self._y_locked:
-            self._y = new
-            for a in reversed(self.ancestors):
-                a._compute_verticals()
+    # @_Canvas.x.setter
+    # def x(self, new):
+        # if not self._x_locked:
+            # self._x = new
+            # for a in reversed(self.ancestors):
+                # a._compute_horizontals()
+    # @_Canvas.y.setter
+    # def y(self, new):
+        # if not self._y_locked:
+            # self._y = new
+            # for a in reversed(self.ancestors):
+                # a._compute_verticals()
     
     # @_Canvas.x.setter
     # def x(self, new):
@@ -577,24 +588,24 @@ class Char(_Canvas, _Font):
     # use svgpathtools bbox instead (xmin, xmax, ymin, ymax).
     def _bbox(self): return SPT.Path(self._path().d()).bbox()
     
-    @property
-    def left(self): return self._bbox()[0]
-    @property
-    def right(self): return self._bbox()[1]
-    @property
-    def top(self): return self._bbox()[2]
-    @property
-    def bottom(self): return self._bbox()[3]
-    @property
-    def width(self): return self.right - self.left
-    @property
-    def height(self): return self.bottom - self.top
+    # @property
+    # def left(self): return self._bbox()[0]
+    # @property
+    # def right(self): return self._bbox()[1]
+    # @property
+    # def top(self): return self._bbox()[2]
+    # @property
+    # def bottom(self): return self._bbox()[3]
+    # @property
+    # def width(self): return self.right - self.left
+    # @property
+    # def height(self): return self.bottom - self.top
     
-    # X Setters; as these set the x, they have any effect only when x is unlocked.
-    @left.setter
-    def left(self, new): self.x += (new - self.left)
-    @right.setter
-    def right(self, new): self.x += (new - self.right)
+    # # X Setters; as these set the x, they have any effect only when x is unlocked.
+    # @left.setter
+    # def left(self, new): self.x += (new - self.left)
+    # @right.setter
+    # def right(self, new): self.x += (new - self.right)
     
     
 
@@ -866,8 +877,6 @@ class SForm(_Form):
         self._establish_parental_relationship(children)
         for c in children:
             c.x = self.x
-            # c.x += self.x
-            # c.y += self.y
             c.y = self.y
         self.content.extend(children)
         # # Having set the content before would have caused assign_x to trigger computing horizontals for the Form,
@@ -909,7 +918,7 @@ class VForm(_Form):
             B.top = T.bottom
         
 
-class _LineSegment(_Canvas):
+class _LineSegment(_Drawable):
     """Angle in degrees"""
     _idcounter = -1
     def __init__(self, length=None, direction=None, thickness=None, angle=None, color=None, 
@@ -951,25 +960,25 @@ class _LineSegment(_Canvas):
     @property
     def length(self): return self._length
     
-    @_Canvas.x.setter
-    def x(self, new):
-        if not self._x_locked:
-            # dx = new - self.x
-            self._x = new
-            # self._left += dx
-            # self._right += dx
-            for A in reversed(self.ancestors): # An ancestor is always a Form!!
-                A._compute_horizontals()
+    # @_Canvas.x.setter
+    # def x(self, new):
+        # if not self._x_locked:
+            # # dx = new - self.x
+            # self._x = new
+            # # self._left += dx
+            # # self._right += dx
+            # for A in reversed(self.ancestors): # An ancestor is always a Form!!
+                # A._compute_horizontals()
     
-    @_Canvas.y.setter
-    def y(self, new): 
-        if not self._y_locked:
-            # dy = new - self.y
-            self._y = new
-            # self._top += dy
-            # self._bottom += dy
-            for A in reversed(self.ancestors): # An ancestor is always a Form!!
-                A._compute_verticals()
+    # @_Canvas.y.setter
+    # def y(self, new): 
+        # if not self._y_locked:
+            # # dy = new - self.y
+            # self._y = new
+            # # self._top += dy
+            # # self._bottom += dy
+            # for A in reversed(self.ancestors): # An ancestor is always a Form!!
+                # A._compute_verticals()
     
     @property
     def thickness(self): return self._thickness
@@ -978,35 +987,35 @@ class _LineSegment(_Canvas):
 class VLineSegment(_LineSegment):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+    
     def _rect(self):
         r = SE.Rect(
             self.x - self.thickness*.5, self.y, 
             self.thickness, self.length,
             self.endxr, self.endyr
             )
-        # print("B",r.d())
         r *= f"rotate({self.rotate}deg, {self.x}, {self.y})"
-        # print("A",r.d())
         return r
+    
     # xmin, xmax, ymin, ymax
     def _bbox(self): return SPT.Path(self._rect().d()).bbox()
     
-    @property
-    def left(self): return self._bbox()[0]
-    @property
-    def right(self): return self._bbox()[1]
-    @property
-    def top(self): return self._bbox()[2]
-    @property
-    def bottom(self): return self._bbox()[3]
-    @property
-    def width(self): 
-        # return self.thickness
-        return self.right-self.left
-    @property
-    def height(self):
-        # return self.length
-        return self.bottom -self.top
+    # @property
+    # def left(self): return self._bbox()[0]
+    # @property
+    # def right(self): return self._bbox()[1]
+    # @property
+    # def top(self): return self._bbox()[2]
+    # @property
+    # def bottom(self): return self._bbox()[3]
+    # @property
+    # def width(self): 
+        # # return self.thickness
+        # return self.right-self.left
+    # @property
+    # def height(self):
+        # # return self.length
+        # return self.bottom -self.top
     
     # def _compute_width(self): return self.thickness
     # def _compute_left(self): return self.x - self.thickness*.5
