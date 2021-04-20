@@ -197,8 +197,8 @@ class RuleTable:
         self.rules = dict()
         self._order = 0
         self.log = True # Print rules as they are being applied.
-        self._hooks_registry = []
-        self._constraints_registry = []
+        self._hook_registry = []
+        self._pred_registry = []
         _ruletables.add(self)
     # def __repr__(self): return f"RuleTable {self.id}"
     def _pending(self):
@@ -208,18 +208,18 @@ class RuleTable:
         # o=order, rd=rule dict
         return [(o, rd) for (o, rd) in self.rules.items() if not rd["applied"]]
     
-    def add(self, hook, constraint, desc=None):
+    def add(self, hook, pred, desc=None):
         """
-        Rule will be added only if at least hook or constraint is fresh,
+        Rule will be added only if at least hook or predicate is fresh,
         allowing combinations of both parameters.
         """
         hhash = hook.__hash__()
-        chash = constraint.__hash__()
-        if hhash not in self._hooks_registry or chash not in self._constraints_registry:
-            self.rules[self._order] = {"desc": desc, "hook": hook, "constraint": constraint, "applied": False}
+        phash = pred.__hash__()
+        if hhash not in self._hook_registry or phash not in self._pred_registry:
+            self.rules[self._order] = {"desc": desc, "hook": hook, "pred": pred, "applied": False}
             self._order += 1
-            self._hooks_registry.append(hhash)
-            self._constraints_registry.append(chash)
+            self._hook_registry.append(hhash)
+            self._pred_registry.append(phash)
             
     def __len__(self): return len(self.rules)
 
@@ -269,7 +269,7 @@ class _SMTObject:
                             print(f"RT: {rt.name}, Depth: {depth}, Order: {order}, Desc: {rule['desc']}")
                         # Dump in each round the up-to-date members (if any new objects have been added etc....)
                         for m in members(self):
-                            if rule["constraint"](m):
+                            if rule["pred"](m):
                                 rule["hook"](m)
                                 if isinstance(m, HForm): m._lineup()
                         rule["applied"] = True

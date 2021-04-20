@@ -117,7 +117,7 @@ def punctuate_line(h):
             if s < w:
                 # add rest of perfect width - sum of nonclocks
                 clock.width += (w - s)
-                clock._width_locked = True
+                # clock._width_locked = True
                 for a in nonclocks:
                     a.width += right_guard(a)
                     # dont need to lock this width, since it's not touched
@@ -152,13 +152,16 @@ S.E.cmn.add(punctuate_line, isline, "Punctuate")
 
 def addstaff(n):
     for i in range(5):
-        l=S.E.HLineSegment(length=n.width, thickness=1, endxr=0, y=i*S.E.STAFF_SPACE + n.top)
+        l=S.E.HLineSegment(length=n.width, thickness=1, y=i*S.E.STAFF_SPACE + n.top)
         n.append(l)
         # n.append(e.HLineSegment(length=n.width, thickness=1, endxr=0))
+    n._width_locked=1
 
 S.E.cmn.add(addstaff, isnote, "Draws stave.")
 
-
+def skew(staff):
+    staff.skewx = 50
+S.E.cmn.add(skew, lambda x:isinstance(x,S.E.HLineSegment), "SKEW stave")
 
 # 680.3149 pxl
 # gemischt=[
