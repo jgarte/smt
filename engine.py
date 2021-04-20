@@ -87,49 +87,49 @@ def _get_glyph(name, font): return _loaded_fonts[font][name]
 # print(_loaded_fonts)
 
 
-################################
-_fonts = {}
-current_font = "Haydn"
+# ################################
+# _fonts = {}
+# current_font = "Haydn"
 STAFF_HEIGHT_REFERENCE_GLYPH = "clefs.C"
 
-def _fontdict(fontname): return _fonts[fontname]
-def glyphs(fontname): return _fontdict(fontname).keys()
-def _getglyph(name, fontname):
-    """Returns glyph's dictionary"""
-    return _fontdict(fontname)[name]
+# def _fontdict(fontname): return _fonts[fontname]
+# def glyphs(fontname): return _fontdict(fontname).keys()
+# def _getglyph(name, fontname):
+    # """Returns glyph's dictionary"""
+    # return _fontdict(fontname)[name]
 
-def install_font(fontname, srcpath, shrg=STAFF_HEIGHT_REFERENCE_GLYPH):
-    """"""
-    glyph_pathd = {}
-    for E in ET.parse(srcpath).iter():
-        if "glyph-name" in E.attrib: # An identified glyph?
-            try:
-                glyph_pathd[E.attrib["glyph-name"]] = E.attrib["d"]
-            except KeyError: # E.g. STAFF_SPACE glyph has no pathd in haydn!
-                glyph_pathd[E.attrib["glyph-name"]] = "" # An empty string as pathd?????
-    temp_bbox_file = tempfile.NamedTemporaryFile(mode="r")
-    sp.run(["/usr/bin/fontforge", "-script", 
-            "/home/amir/Work/Python/smt/fontinstprep.ff", 
-            srcpath, temp_bbox_file.name])
-    # ~ Register glyphs and their bboxes
-    D = {}
-    for ln in temp_bbox_file:
-        if not(ln.isspace()): # Auf linien mit NUR STAFF_SPACE verzichten
-            name, minx, miny, maxx, maxy, w, h = ln.strip().split(" ")
-            # ~ Create glyph's dict
-            D[name] = {
-            "d": glyph_pathd[name],
-            "x": float(minx), "y": float(miny),
-            "left": float(minx), "right": float(maxx),
-            "top": float(miny), "bottom": float(maxy),
-            "width": float(w), "height": float(h)
-            }
-    # ~ Closing Neccessary?
-    temp_bbox_file.close()
-    _fonts[fontname] = D
+# def install_font(fontname, srcpath, shrg=STAFF_HEIGHT_REFERENCE_GLYPH):
+    # """"""
+    # glyph_pathd = {}
+    # for E in ET.parse(srcpath).iter():
+        # if "glyph-name" in E.attrib: # An identified glyph?
+            # try:
+                # glyph_pathd[E.attrib["glyph-name"]] = E.attrib["d"]
+            # except KeyError: # E.g. STAFF_SPACE glyph has no pathd in haydn!
+                # glyph_pathd[E.attrib["glyph-name"]] = "" # An empty string as pathd?????
+    # temp_bbox_file = tempfile.NamedTemporaryFile(mode="r")
+    # sp.run(["/usr/bin/fontforge", "-script", 
+            # "/home/amir/Work/Python/smt/fontinstprep.ff", 
+            # srcpath, temp_bbox_file.name])
+    # # ~ Register glyphs and their bboxes
+    # D = {}
+    # for ln in temp_bbox_file:
+        # if not(ln.isspace()): # Auf linien mit NUR STAFF_SPACE verzichten
+            # name, minx, miny, maxx, maxy, w, h = ln.strip().split(" ")
+            # # ~ Create glyph's dict
+            # D[name] = {
+            # "d": glyph_pathd[name],
+            # "x": float(minx), "y": float(miny),
+            # "left": float(minx), "right": float(maxx),
+            # "top": float(miny), "bottom": float(maxy),
+            # "width": float(w), "height": float(h)
+            # }
+    # # ~ Closing Neccessary?
+    # temp_bbox_file.close()
+    # _fonts[fontname] = D
 
-# ~ Iinstalled fonts
-# install_font("Haydn", "/home/amir/haydn/svg/haydn-11.svg")
+# # ~ Iinstalled fonts
+# # install_font("Haydn", "/home/amir/haydn/svg/haydn-11.svg")
 
 
 
