@@ -26,7 +26,7 @@ import svgpathtools as SPT
 # GLOBAL_SCALE
     # _ruleregistry.append({"T": targets, "D": domains, "F": fn})
 # __all__ = [
-    # "HForm", "VForm", "SForm", "Char", "HLineSegment", "VLineSegment",
+    # "HForm", "VForm", "SForm", "Char", "HLineSeg", "VLineSeg",
     # "cmn", "mmtopx", "render", "GLOBAL_SCALE", "STAFF_SPACE"
 # ]
 
@@ -930,7 +930,7 @@ class VForm(_Form):
             B.top = T.bottom
         
 
-class _LineSegment(_Drawable):
+class _LineSeg(_Drawable):
     """Angle in degrees"""
     _idcounter = -1
     def __init__(self, length=None, direction=None, thickness=None, angle=None, color=None, 
@@ -1002,7 +1002,7 @@ class _LineSegment(_Drawable):
     def _bbox(self): return SPT.Path(self._rect().d()).bbox()
 
 
-class VLineSegment(_LineSegment):
+class VLineSeg(_LineSeg):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
     
@@ -1041,7 +1041,7 @@ class VLineSegment(_LineSegment):
     # def _compute_height(self): return self.length
     # def _compute_bottom(self): return self.y + self.length
     # def _compute_top(self): return self.y
-    # @_LineSegment.length.setter
+    # @_LineSeg.length.setter
     # def length(self, new):
         # self._length = new
         # self._compute_verticals()
@@ -1049,7 +1049,7 @@ class VLineSegment(_LineSegment):
             # a._compute_verticals()
 
 
-class HLineSegment(_LineSegment):
+class HLineSeg(_LineSeg):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
     def _rect(self):
@@ -1067,3 +1067,4 @@ class HLineSegment(_LineSegment):
     # def _compute_right(self): return self.x + self.length
     # def _compute_top(self): return self.y - self.thickness*.5
     # def _compute_bottom(self): return self.y + self.thickness*.5
+# class MultiHLineSeg

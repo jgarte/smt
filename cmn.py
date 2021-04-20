@@ -152,9 +152,9 @@ S.E.cmn.add(punctuate_line, isline, "Punctuate")
 
 def addstaff(n):
     for i in range(5):
-        l=S.E.HLineSegment(length=n.width, thickness=1, y=i*S.E.STAFF_SPACE + n.top)
+        l=S.E.HLineSeg(length=n.width, thickness=1, y=i*S.E.STAFF_SPACE + n.top)
         n.append(l)
-        # n.append(e.HLineSegment(length=n.width, thickness=1, endxr=0))
+        # n.append(e.HLineSeg(length=n.width, thickness=1, endxr=0))
     # n._width_locked=1
 
 S.E.cmn.add(addstaff, isnote, "Draws stave.")
@@ -163,7 +163,7 @@ def skew(staff):
     print(staff.skewx)
     staff.skewx = 50
     print(staff.skewx)
-def ishline(x): return isinstance(x,S.E.HLineSegment)
+def ishline(x): return isinstance(x,S.E.HLineSeg)
 S.E.cmn.add(skew, isline, "SKEW stave")
 
 # 680.3149 pxl

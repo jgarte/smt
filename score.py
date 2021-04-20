@@ -38,7 +38,7 @@ class Staff(E.VForm):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-class Stem(E.VLineSegment):
+class Stem(E.VLineSeg):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
