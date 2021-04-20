@@ -210,8 +210,7 @@ class RuleTable:
     
     def add(self, hook, pred, desc=None):
         """
-        Rule will be added only if at least hook or predicate is fresh,
-        allowing combinations of both parameters.
+        Rule will be added only if at least one of hook or predicate are fresh.
         """
         hhash = hook.__hash__()
         phash = pred.__hash__()
@@ -272,6 +271,7 @@ class _SMTObject:
                             if rule["pred"](m):
                                 rule["hook"](m)
                                 if isinstance(m, HForm): m._lineup()
+                        # A rule is applied not more than once!
                         rule["applied"] = True
                 pending_rts = _pending_ruletables()
             else: break
@@ -412,8 +412,11 @@ class _Font:
 
 class _Drawable(_Canvas):
     
-    def __init__(self,**kwargs):
+    def __init__(self, color=None, opacity=None, visible=True, **kwargs):
         super().__init__(**kwargs)
+        self.color = color or SW.utils.rgb(0, 0, 0)
+        self.opacity = opacity or 1
+        self.visible = visible
     
     @_Canvas.x.setter
     def x(self, new):
@@ -455,10 +458,8 @@ class Char(_Drawable, _Font):
     
     _idcounter = -1
     
-    def __init__(self, name, color=None, opacity=None,
-    visible=True, font=None,
-    **kwargs):
-        _Canvas.__init__(self, **kwargs)
+    def __init__(self, name, font=None, **kwargs):
+        _Drawable.__init__(self, **kwargs)
         _Font.__init__(self, font)
         self.name = name
         # self.glyph = _getglyph(self.name, self.font)
@@ -466,9 +467,6 @@ class Char(_Drawable, _Font):
         # self._se_path = SE.Path(self.glyph, transform)
         # self.bbox = SPT.Path(self.glyph).bbox()
         # self._path = SPT.Path(_get_glyph_d(self.name, self.font))
-        self.color = color or SW.utils.rgb(0, 0, 0)
-        self.opacity = opacity or 1
-        self.visible = visible
         self.canvas_color = SW.utils.rgb(100, 0, 0, "%")
         # self._compute_horizontals()
         # self._compute_verticals()
