@@ -51,7 +51,7 @@ def rotate(stm):
     stm.rotate = 10
 def rutchS(s):
     s.parent().head_punch.xscale = 1
-    s.parent().head_punch.yscale = 1
+    s.parent().head_punch.yscale = 10
     S.E.cmn.add(rotate, isstem, """Rotates the stem by 45 degree,
     which will have big
     and 
@@ -71,7 +71,11 @@ def make_accidental_char(accobj):
 def setclef(clefobj):
     clefobj.punch = S.E.Char(name={"g": "clefs.G",
     "F":"clefs.F", "f":"clefs.F_change","c":"clefs.C"}[clefobj.pitch],
-    rotate=10)
+    rotate=0,)
+    S.E.cmn.add(strechx, isclef, """Stretches the clef on x scale""")
+    
+def strechx(clef):
+    clef.punch.xscale = 2
 
 
 def decide_unit_dur(dur_counts):

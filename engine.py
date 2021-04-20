@@ -63,7 +63,7 @@ def install_font1(path, overwrite=False):
                         # D[name][glyph.get("glyph-name")] = glyph.attrib["d"]
                     except KeyError:
                         pass
-                json.dump(D[name], file_, indent=4)
+                json.dump(D[name], file_, indent=2)
                 del path
                 del glyph
         else:
@@ -77,7 +77,7 @@ def _load_fonts():
             _loaded_fonts[os.path.splitext(json_file)[0]] = json.load(font)
 
 
-# install_font1("./fonts/svg/haydn-11.svg",1)
+install_font1("./fonts/svg/haydn-11.svg",1)
 _load_fonts()
 
 def _glyph_names(font):
