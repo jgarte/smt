@@ -235,9 +235,11 @@ class _SMTObject:
         self.domain = domain
         self.ruletable = ruletable or cmn
 
-    def _pack_svg_list_ip(self):
-        """Makes sure the derived class has implemented this method!"""
-        raise NotImplementedError(f"Forgot to override _pack_svg_list_ip for {self.__class__.__name__}?")
+    def _pack_svg_list_ip(self): self._notimplemented("_pack_svg_list_ip")
+    
+    def _notimplemented(self, method_name):
+        """Crashs if the derived class hasn't implemented this important method."""
+        raise NotImplementedError(f"{self.__class__.__name__} didn't override {method_name}")
     
     def _assign_id(self):
         self.__class__._idcounter += 1
@@ -308,7 +310,7 @@ class _Canvas(_SMTObject):
     x=None, y=None,
      # x_locked=False, y_locked=False,
     rotate=0, skewx=0, skewy=0,
-    width=None,
+    width=None, height=None,
      # width_locked=False,
     canvas_visible=True, origin_visible=True, **kwargs):
         super().__init__(**kwargs)
@@ -321,20 +323,21 @@ class _Canvas(_SMTObject):
         self.rotate=rotate
         self.canvas_opacity = canvas_opacity or 0.3
         self.canvas_visible = canvas_visible
-        self.canvas_color = canvas_color
+        self.canvas_color = canvas_color or SW.utils.rgb(20, 20, 20, "%")
         self.origin_visible = origin_visible
         self._xscale = xscale
         self._yscale = yscale
-        # Permit zeros for x and y
-        self._y_locked = False if y is None else True
-        self._x_locked = False if x is None else True
+        # Permit zeros for x and y. xy will be locked if supplied as arguments.
         self._x = 0 if x is None else x
-        # self._x = x
+        self.x_locked = False if x is None else True
         self._y = 0 if y is None else y
+        self.y_locked = False if y is None else True
         # self.y_locked = y_locked
         # self.x_locked = x_locked
         self._width = 0 if width is None else width
         self._width_locked = False if width is None else True
+        self._height = 0 if height is None else height
+        self.height_locked = False if height is None else True
         
     @property
     def xscale(self): return self._xscale
@@ -343,7 +346,7 @@ class _Canvas(_SMTObject):
     
     # def unlock(what):
         # if what == "y":
-            # self._y_locked = False
+            # self.y_locked = False
     
     @property
     def x(self): return self._x
@@ -410,7 +413,7 @@ class _Font:
         self.font = font or tuple(_loaded_fonts.keys())[0]
 
 
-class _Drawable(_Canvas):
+class _Observable(_Canvas):
     
     def __init__(self, color=None, opacity=None, visible=True, **kwargs):
         super().__init__(**kwargs)
@@ -420,20 +423,20 @@ class _Drawable(_Canvas):
     
     @_Canvas.x.setter
     def x(self, new):
-        if not self._x_locked:
+        if not self.x_locked:
             self._x = new
             for a in reversed(self.ancestors):
                 a._compute_horizontals()
     
     @_Canvas.y.setter
     def y(self, new):
-        if not self._y_locked:
+        if not self.y_locked:
             self._y = new
             for a in reversed(self.ancestors):
                 a._compute_verticals()
     
-    def _bbox(self):
-        raise NotImplementedError(f"_bbox method not overriden by {self.__class__.__name__}!")  
+    def _bbox(self): self._notimplemented("_bbox")
+        # raise NotImplementedError(f"_bbox method not overriden by {self.__class__.__name__}!")  
     
     @property
     def left(self): return self._bbox()[0]
@@ -452,14 +455,17 @@ class _Drawable(_Canvas):
     def left(self, new): self.x += (new - self.left)
     @right.setter
     def right(self, new): self.x += (new - self.right)
+    # Y setters
+    @top.setter
+    def top(self, new): self.y += (new - self.top)
     
         
-class Char(_Drawable, _Font):
+class Char(_Observable, _Font):
     
     _idcounter = -1
     
     def __init__(self, name, font=None, **kwargs):
-        _Drawable.__init__(self, **kwargs)
+        _Observable.__init__(self, **kwargs)
         _Font.__init__(self, font)
         self.name = name
         # self.glyph = _getglyph(self.name, self.font)
@@ -486,20 +492,20 @@ class Char(_Drawable, _Font):
     
     # @_Canvas.x.setter
     # def x(self, new):
-        # if not self._x_locked:
+        # if not self.x_locked:
             # self._x = new
             # for a in reversed(self.ancestors):
                 # a._compute_horizontals()
     # @_Canvas.y.setter
     # def y(self, new):
-        # if not self._y_locked:
+        # if not self.y_locked:
             # self._y = new
             # for a in reversed(self.ancestors):
                 # a._compute_verticals()
     
     # @_Canvas.x.setter
     # def x(self, new):
-        # if not self._x_locked:
+        # if not self.x_locked:
             # dx = new - self.x # save x before re-assignment!
             # self._x = new
             # self._left += dx
@@ -509,7 +515,7 @@ class Char(_Drawable, _Font):
     
     # @_Canvas.y.setter
     # def y(self, newy):
-        # if not self._y_locked:
+        # if not self.y_locked:
             # dy = newy - self.y
             # self._y = newy
             # self._top += dy
@@ -644,7 +650,7 @@ class _Form(_Canvas, _Font):
             
             # if not c.x_locked:
                 # c.x += self.x
-            if not c._y_locked:
+            if not c.y_locked:
                 # # c.y += self.y
                 # c.y = self.y
                 
@@ -693,7 +699,7 @@ class _Form(_Canvas, _Font):
 
     # @_Canvas.x.setter
     # def x(self, new):
-        # if not self._x_locked:
+        # if not self.x_locked:
             # dx = new - self.x
             # self._x = new
             # self._left += dx
@@ -708,7 +714,7 @@ class _Form(_Canvas, _Font):
                 # A._compute_horizontals()
     @_Canvas.x.setter
     def x(self, new):
-        if not self._x_locked:
+        if not self.x_locked:
             dx = new - self.x
             self._x = new
             self._left += dx
@@ -724,7 +730,7 @@ class _Form(_Canvas, _Font):
 
     # @_Canvas.y.setter
     # def y(self, new):
-        # if not self._y_locked:
+        # if not self.y_locked:
             # dy = new - self.y
             # self._y = new
             # self._top += dy
@@ -740,7 +746,7 @@ class _Form(_Canvas, _Font):
                 # A._compute_verticals()
     @_Canvas.y.setter
     def y(self, new):
-        if not self._y_locked:
+        if not self.y_locked:
             dy = new - self.y
             self._y = new
             self._top += dy
@@ -786,7 +792,7 @@ class _Form(_Canvas, _Font):
         # return max(self.fixbottom, self._bbox()[3])
     
     def _compute_height(self): 
-        return self.bottom - self.top
+        return self.height if self.height_locked else self.bottom - self.top
     
     def _pack_svg_list_ip(self):
         # Bbox
@@ -803,7 +809,8 @@ class _Form(_Canvas, _Font):
         for C in self.content:
             # C.xscale *= self.xscale
             # C.yscale *= self.yscale
-            C._pack_svg_list_ip() # Recursively gather svg elements
+            # Recursively pack svg elements of each child:
+            C._pack_svg_list_ip() 
             self._svg_list.extend(C._svg_list)
         # Origin
         if self.origin_visible: self._svg_list.extend(_origelems(self))
@@ -847,6 +854,8 @@ class _Form(_Canvas, _Font):
     @right.setter
     def right(self, new): 
         self.x += (new - self.right)
+    @top.setter
+    def top(self, new): self.y += (new - self.top)
     
     @width.setter
     def width(self, new):
@@ -896,7 +905,7 @@ class SForm(_Form):
         self._compute_horizontals()
         self._compute_verticals()
         for A in reversed(self.ancestors):
-            if isinstance(A, HForm):
+            if isinstance(A, _Form) and not isinstance(A, SForm):
                 A._lineup()
             A._compute_horizontals()
             A._compute_verticals()
@@ -916,8 +925,8 @@ class HForm(_Form):
         self._compute_verticals()
             
     def _lineup(self):
-        for L, R in zip(self.content[:-1], self.content[1:]):            
-            R.left = L.right
+        for a, b in zip(self.content[:-1], self.content[1:]):            
+            b.left = a.right
 
 class VForm(_Form):
     def __init__(self, **kwargs):
@@ -926,20 +935,36 @@ class VForm(_Form):
         self._compute_horizontals()
         self._compute_verticals()
     def _lineup(self):
-        for T, B in zip(self.content[:-1], self.content[1:]):
-            B.top = T.bottom
+        for a, b in zip(self.content[:-1], self.content[1:]):
+            b.top = a.bottom
+    def append(self, *children):
+        """Appends new children to Form's content list."""
+        self._establish_parental_relationship(children)
+        for c in children:
+            c.x = self.x
+            c.y = self.y
+        self.content.extend(children)
+        # # Having set the content before would have caused assign_x to trigger computing horizontals for the Form,
+        # # which would have been to early!????
+        self._lineup()
+        self._compute_horizontals()
+        self._compute_verticals()
+        for A in reversed(self.ancestors):
+            if isinstance(A, _Form) and not isinstance(A, SForm): # V & H
+                A._lineup()
+            A._compute_horizontals()
+            A._compute_verticals()
         
 
-class _LineSeg(_Drawable):
+class _LineSeg(_Observable):
     """Angle in degrees"""
     _idcounter = -1
-    def __init__(self, length=None, direction=None, thickness=None, angle=None, color=None, 
-    opacity=1, endxr=None, endyr=None,
+    def __init__(self, length=None, direction=None, thickness=None, angle=None, endxr=None, endyr=None,
     **kwargs):
         super().__init__(**kwargs)
-        self._length = length or 0
-        self.color = color or SW.utils.rgb(0, 0, 0)
-        self.opacity = opacity
+        self.length = length or 0
+        # self.color = color or SW.utils.rgb(0, 0, 0)
+        # self.opacity = opacity
         self._angle = angle or 0
         self._thickness = thickness or 0
         self._direction = direction
@@ -950,13 +975,7 @@ class _LineSeg(_Drawable):
         
     # Override canvas packsvglist
     def _pack_svg_list_ip(self):
-        # self._svg_list.append(SW.shapes.Rect(
-            # insert=(self.left, self.top),
-            # size=(self.width, self.height),
-            # fill=self.color, fill_opacity=self.opacity,
-            # rx=self.endxr, ry=self.endyr
-            # )
-        # )
+        # bbox
         self._svg_list.append(SW.path.Path(
                 d=SPT.bbox2path(*self._bbox()).d(),
                 fill=SW.utils.rgb(100,100,0,"%"),
@@ -973,12 +992,12 @@ class _LineSeg(_Drawable):
                 self._svg_list.append(elem)
         
         
-    @property
-    def length(self): return self._length
+    # @property
+    # def length(self): return self._length
     
     # @_Canvas.x.setter
     # def x(self, new):
-        # if not self._x_locked:
+        # if not self.x_locked:
             # # dx = new - self.x
             # self._x = new
             # # self._left += dx
@@ -988,7 +1007,7 @@ class _LineSeg(_Drawable):
     
     # @_Canvas.y.setter
     # def y(self, new): 
-        # if not self._y_locked:
+        # if not self.y_locked:
             # # dy = new - self.y
             # self._y = new
             # # self._top += dy
@@ -1008,6 +1027,7 @@ class VLineSeg(_LineSeg):
     
     def _rect(self):
         rect = SE.Rect(
+            # Rect(x, y, width, height, rx, ry, matrix, stroke, fill)
             self.x - self.thickness*.5, self.y, 
             self.thickness, self.length,
             self.endxr, self.endyr
@@ -1048,7 +1068,6 @@ class VLineSeg(_LineSeg):
         # for a in reversed(self.ancestors):
             # a._compute_verticals()
 
-
 class HLineSeg(_LineSeg):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -1067,4 +1086,17 @@ class HLineSeg(_LineSeg):
     # def _compute_right(self): return self.x + self.length
     # def _compute_top(self): return self.y - self.thickness*.5
     # def _compute_bottom(self): return self.y + self.thickness*.5
-# class MultiHLineSeg
+
+class MultiHLineSeg(VForm):
+    def __init__(self, count, dist, top, **kwargs):
+        self.count = count
+        # self.dists = dists
+        self.content=[]
+        for i in range(count):
+            l=HLineSeg(length=20, thickness=1)
+            SForm(content=l, height=dist +.5)
+            self.content.append(l)
+            # print(l.y_locked)
+        super().__init__(content=self.content, **kwargs)
+
+

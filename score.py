@@ -35,22 +35,27 @@ class _Pitch:
 
 
 class Staff(E.VForm):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, count=5, dist=3, **kwargs):
+        c = []
+        for i in range(count):
+            c.append(E.SForm(content=[E.HLineSeg(length=20, thickness=1)], height=1))
+        super().__init__(content=c, **kwargs)
 
 class Stem(E.VLineSeg):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
+# class Beam(S.E.HLineSeg)
 
 
 class Note(E.SForm, Clock, _Pitch):
-    def __init__(self, head_punch=None, stem_graver=None, duration=None, pitch=None, **kwargs):
+    def __init__(self, head_punch=None, stem_graver=None, beam_graver=None, duration=None, pitch=None, **kwargs):
         Clock.__init__(self, duration)
         _Pitch.__init__(self, pitch)
         E.SForm.__init__(self, **kwargs)
         self._head_punch = head_punch
         self._stem_graver = stem_graver
+        self.beam_graver = beam_graver
 
     @property
     def head_punch(self): return self._head_punch
@@ -85,13 +90,13 @@ class Accidental(E.SForm, _Pitch):
         self.delcont(lambda c: isinstance(c, e.Char))
         self._punch = new
         self.append(self._punch)
-        
+
 
 class Clef(E.SForm, _Pitch):
-    def __init__(self, punch=None, pitch=None, **kwargs):
+    def __init__(self, pitch=None, **kwargs):
         E.SForm.__init__(self, **kwargs)
         _Pitch.__init__(self, pitch)
-        self._punch = punch
+        self._punch = None
 
     @property
     def punch(self): return self._punch
@@ -100,3 +105,24 @@ class Clef(E.SForm, _Pitch):
         self.delcont(lambda c: isinstance(c, e.Char))
         self._punch = new
         self.append(self._punch)
+
+class TimeSig(E.VForm):
+    def __init__(self, top_=4, bottom_=4, **kwargs):
+        self.top_=top_
+        self.bottom_=bottom_
+        super().__init__(**kwargs)
+
+    @property
+    def top_punch(self): return self._top_punch
+    @top_punch.setter
+    def top_punch(self, new):
+        self._top_punch = new
+        self.append(self._top_punch)
+    
+    @property
+    def bottom_punch(self): return self._bottom_punch
+    @bottom_punch.setter
+    def bottom_punch(self, new):
+        self._bottom_punch = new
+        self.append(self._bottom_punch)
+    

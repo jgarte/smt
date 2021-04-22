@@ -32,11 +32,13 @@ instead use the set operator
 
 A named function:
 
-[set funcname [function [x y] [print [* x y]]]]
-
+[set fun [function [x y] [print [* x y]]]]
+[fun 3 4] => 12
 vs. anonymus function:
 
 [function [x y] a doc string? [print [list x y]]]
+
+[[function [a b] [* a b]] 3 4] => 12
 
 [procedure make_note [p] [note [pitch p] [duration 1] [id foo]]
 [line [toplevel yes] [make_note c4]]

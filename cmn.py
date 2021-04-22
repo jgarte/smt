@@ -39,8 +39,8 @@ def isstem(o): return isinstance(o, S.Stem)
 def setstem(self):
     # self.head_punch._x_locked=1
     if self.duration in (.25, .5):
-        s=S.Stem(length=13,thickness=1, x=self.x+.5,
-        endyr=6,endxr=1)
+        s=S.Stem(length=30,thickness=1, x=self.x+.5,
+        endyr=1,endxr=1, origin_visible=0)
         self.stem_graver = s #taze , appliedto =false
 
 def notehead_vertical_pos(note):
@@ -54,7 +54,7 @@ def make_accidental_char(accobj):
     accobj.punch = e.Char(name="accidentals.sharp")
 
 def setclef(clefobj):
-    clefobj.punch = S.E.Char(name={"g": "clefs.G",
+    clefobj.punch = S.E.Char(name={"g": "clefs.G", 1:"clefs.C",
     "F":"clefs.F", "f":"clefs.F_change","c":"clefs.C"}[clefobj.pitch],
     rotate=0,)
 
@@ -88,7 +88,7 @@ def compute_perf_punct(clocks, w):
     return perfwidths
 
 def right_guard(obj):
-    return {S.Note: 2, S.Clef:3, S.Accidental: 2,}[type(obj)]
+    return {S.Note: 2, S.Clef:3, S.Accidental: 2, S.TimeSig: 2}[type(obj)]
 def first_clock_idx(l):
     for i,x in enumerate(l):
         if isinstance(x, S.Clock):
@@ -117,7 +117,7 @@ def punctuate_line(h):
             if s < w:
                 # add rest of perfect width - sum of nonclocks
                 clock.width += (w - s)
-                # clock._width_locked = True
+                clock._width_locked = True
                 for a in nonclocks:
                     a.width += right_guard(a)
                     # dont need to lock this width, since it's not touched
@@ -146,17 +146,33 @@ S.E.cmn.add(setstem, isnote, "Set stems")
 S.E.cmn.add(setclef, isclef, "Make clefs")
 # S.E.cmn.add(opachead, isnote)
 
+def istime(x): return isinstance(x, S.TimeSig)
+def settime(ts):
+    if ts.top_ ==4:
+        ts.top_punch=S.E.Char("three")
+    if ts.bottom_==4:
+        ts.bottom_punch=S.E.Char("four")
+S.E.cmn.add(settime,istime,"Set Time...")
 
 
 S.E.cmn.add(punctuate_line, isline, "Punctuate")
 
 def addstaff(n):
+    # s=S.Staff()
+    # n.append(s)
+    # print(s.y)
+    # n.append(S.E.MultiHLineSeg(6, S.E.STAFF_SPACE, n.fixtop))
+    # m=S.E.Char(name="m")
+    # n.append(m)
+    # n.append(S.E.HLineSeg(length=30, thickness=1, y=n.fixtop))
+    # print(m.x, m.y, n.x, n.y)
     for i in range(5):
         l=S.E.HLineSeg(length=n.width, thickness=1, y=i*S.E.STAFF_SPACE + n.top)
         n.append(l)
+        
         # n.append(e.HLineSeg(length=n.width, thickness=1, endxr=0))
     # n._width_locked=1
-
+# print(S.E._glyph_names("haydn-11"))
 S.E.cmn.add(addstaff, isnote, "Draws stave.")
 
 def skew(staff):
@@ -164,7 +180,25 @@ def skew(staff):
     staff.skewx = 50
     print(staff.skewx)
 def ishline(x): return isinstance(x,S.E.HLineSeg)
-S.E.cmn.add(skew, isline, "SKEW stave")
+# S.E.cmn.add(skew, isline, "SKEW stave")
+
+def flag(note):
+    if note.duration != 1:
+        # print(note.stem_graver.y)
+        note.append(S.E.Char(name="flags.d4",y=note.stem_graver.bottom,x=note.x+.5,
+        origin_visible=1))
+# S.E.cmn.add(flag, isnote, "Flags...")
+# print(S.E._glyph_names("haydn-11"))
+
+def bm(n):
+    if n.stem_graver:
+        n.stem_graver.length -= 10
+        n.append(S.E.HLineSeg(length=10, thickness=5, y=n.stem_graver.bottom, skewy=-30, endxr=1,endyr=.5))
+
+
+S.E.cmn.add(bm, isnote, "beams")
+
+
 
 # 680.3149 pxl
 # gemischt=[
@@ -185,15 +219,19 @@ class Line(S.E.HForm):
 # s=SForm(width=5,width_locked=0,x=50)
 # s.append(Stem(length=10,thickness=30))
 # h=HForm(content=[s],width=mmtopx(20),x=40,y=200, canvas_opacity=.2, width_locked=0)
+
+
 if __name__=="__main__":
     # print(mmtopx(100))
     S.E.render(Line(
+    
     S.Clef(pitch="g"),
+    S.TimeSig(top_=4,bottom_=4,y=0,),
     # S.Clef(pitch="f"),
     # S.Clef(pitch="F"),
-    S.Clef(pitch="f"),
     # S.Clef(pitch="F"),
-    S.Clef(pitch="c"),
+    # S.Clef(pitch="F"),
+    # S.Clef(pitch="c"),
     S.Note(domain="treble", duration=.25, pitch=["c",4]), 
     S.Note(domain="treble", duration=1, pitch=["c",4]), 
     S.Note(domain="treble", duration=.25, pitch=["c",4]), 
@@ -204,5 +242,6 @@ if __name__=="__main__":
     
     width=S.E.mmtopx(100),x=200,y=100))
 
-# h=e.HForm(content=gemischt,width=e.mmtopx(100),x=40,y=200, canvas_opacity=.2, width_locked=True,id_="top")
-# e.render(h,)
+
+
+
