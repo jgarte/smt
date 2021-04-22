@@ -40,7 +40,8 @@ def setstem(self):
     # self.head_punch._x_locked=1
     if self.duration in (.25, .5):
         s=S.Stem(length=30,thickness=1, x=self.x+.5,
-        endyr=1,endxr=1, origin_visible=0)
+        endyr=1,endxr=1,
+         origin_visible=0)
         self.stem_graver = s #taze , appliedto =false
 
 def notehead_vertical_pos(note):
@@ -157,6 +158,18 @@ S.E.cmn.add(settime,istime,"Set Time...")
 
 S.E.cmn.add(punctuate_line, isline, "Punctuate")
 
+
+def setbm(l):
+    o=[x for x in l.content if isnote(x) and x.open_beam][0]
+    c=[x for x in l.content if isnote(x) and x.close_beam][0]
+    d=c.stem_graver.right -o.stem_graver.left
+    o.append(S.E.HLineSeg(length=d,thickness=5,x=o.left, y=o.stem_graver.bottom))
+
+
+S.E.cmn.add(setbm, isline, "set beam...")
+
+
+
 def addstaff(n):
     # s=S.Staff()
     # n.append(s)
@@ -190,13 +203,13 @@ def flag(note):
 # S.E.cmn.add(flag, isnote, "Flags...")
 # print(S.E._glyph_names("haydn-11"))
 
-def bm(n):
-    if n.stem_graver:
-        n.stem_graver.length -= 10
-        n.append(S.E.HLineSeg(length=10, thickness=5, y=n.stem_graver.bottom, skewy=-30, endxr=1,endyr=.5))
+# def bm(n):
+    # if n.stem_graver:
+        # n.stem_graver.length -= 10
+        # n.append(S.E.HLineSeg(length=10, thickness=5, y=n.stem_graver.bottom, skewy=-0, endxr=1,endyr=.5))
 
 
-S.E.cmn.add(bm, isnote, "beams")
+# S.E.cmn.add(bm, isnote, "beams")
 
 
 
@@ -226,7 +239,7 @@ if __name__=="__main__":
     S.E.render(Line(
     
     S.Clef(pitch="g"),
-    S.TimeSig(top_=4,bottom_=4,y=0,),
+    S.TimeSig(top_=4,bottom_=4),
     # S.Clef(pitch="f"),
     # S.Clef(pitch="F"),
     # S.Clef(pitch="F"),
@@ -234,8 +247,10 @@ if __name__=="__main__":
     # S.Clef(pitch="c"),
     S.Note(domain="treble", duration=.25, pitch=["c",4]), 
     S.Note(domain="treble", duration=1, pitch=["c",4]), 
-    S.Note(domain="treble", duration=.25, pitch=["c",4]), 
-    S.Note(domain="treble", duration=.5, pitch=["c",4]), 
+    
+    S.Note(domain="treble", duration=.25, pitch=["c",4], open_beam=True), 
+    S.Note(domain="treble", duration=.5, pitch=["c",4], close_beam=1),
+    
     S.Note(domain="treble", duration=1, pitch=["c",4]), 
     S.Note(domain="treble", duration=.5, pitch=["c",4]), 
     S.Note(domain="treble", duration=.25, pitch=["c",4]), 
