@@ -51,8 +51,8 @@ class Beam(E.HLineSeg):
         super().__init__(**kwargs)
 
 class Note(E.SForm, Clock, _Pitch):
-    def __init__(self, head_punch=None, stem_graver=None, open_beam=False,
-    close_beam=False, duration=None, pitch=None, **kwargs):
+    def __init__(self, head_punch=None, stem_graver=None, 
+    open_beam=None, close_beam=None, duration=None, pitch=None, **kwargs):
         Clock.__init__(self, duration)
         _Pitch.__init__(self, pitch)
         E.SForm.__init__(self, **kwargs)
@@ -60,9 +60,8 @@ class Note(E.SForm, Clock, _Pitch):
         self.open_beam=open_beam
         self.close_beam=close_beam
         
-        # self._head_punch = head_punch
+        self._head_punch = head_punch
         self._stem_graver = stem_graver
-        # self.beam_graver = beam_graver
 
     @property
     def head_punch(self): return self._head_punch

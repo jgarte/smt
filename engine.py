@@ -967,7 +967,7 @@ class _LineSeg(_Observable):
         # self.opacity = opacity
         self._angle = angle or 0
         self._thickness = thickness or 0
-        self._direction = direction
+        self.direction = direction or 1
         self.endxr = endxr or 0
         self.endyr = endyr or 0
         # self._compute_horizontals()
@@ -1077,6 +1077,7 @@ class HLineSeg(_LineSeg):
             self.length, self.thickness,
             self.endxr, self.endyr
             )
+        rect *= f"scale({self.direction} 1)"
         rect *= f"skew({self.skewx}, {self.skewy}, {self.x}, {self.y})"
         rect *= f"rotate({self.rotate}deg, {self.x}, {self.y})"
         return rect

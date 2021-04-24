@@ -160,10 +160,11 @@ S.E.cmn.add(punctuate_line, isline, "Punctuate")
 
 
 def setbm(l):
-    o=[x for x in l.content if isnote(x) and x.open_beam][0]
-    c=[x for x in l.content if isnote(x) and x.close_beam][0]
-    d=c.stem_graver.right -o.stem_graver.left
-    o.append(S.E.HLineSeg(length=d,thickness=5,x=o.left, y=o.stem_graver.bottom))
+    o=[x for x in l.content if isnote(x) and x.open_beam][0] #note mit openbeam
+    # c=[x for x in l.content if isnote(x) and x.close_beam][0]
+    # d=c.stem_graver.right -o.stem_graver.left
+    o.append(S.E.HLineSeg(length=o.width,direction=-1,thickness=5,x=o.left, y=o.stem_graver.bottom))
+    # c.append(S.E.HLineSeg(length=o.width,thickness=5,x=o.left, y=o.stem_graver.bottom))
 
 
 S.E.cmn.add(setbm, isline, "set beam...")
@@ -249,14 +250,10 @@ if __name__=="__main__":
     S.Note(domain="treble", duration=1, pitch=["c",4]), 
     
     S.Note(domain="treble", duration=.25, pitch=["c",4], open_beam=True), 
-    S.Note(domain="treble", duration=.5, pitch=["c",4], close_beam=1),
+    S.Note(domain="treble", duration=.5, pitch=["c",4]),
     
     S.Note(domain="treble", duration=1, pitch=["c",4]), 
     S.Note(domain="treble", duration=.5, pitch=["c",4]), 
     S.Note(domain="treble", duration=.25, pitch=["c",4]), 
     
     width=S.E.mmtopx(100),x=200,y=100))
-
-
-
-
