@@ -295,25 +295,22 @@ class _SMTObject:
             else: break
 
 
-pgw = mmtopx(210)
-pgh =mmtopx(297)
-
-
 ############ page formats
 def page_size(use):
-    """Behind Bards, pg. 481, portrait formats (width, height)
+    """Behind Bards, pg. 481, portrait formats (height, width)
     largest (A3) = Largest practical """
     return {
-        "largest": (mmtopx(297), mmtopx(420)), 
-        "largest_instrumental": (mmtopx(250), mmtopx(353)),
-        "smallest_instrumental": (mmtopx(210), mmtopx(297)),
-        "printed_sheet_music": (mmtopx(229), mmtopx(305)),
-        "printed_choral_music": (mmtopx(178), mmtopx(254))
+        "largest": (mmtopx(420), mmtopx(297)), 
+        "largest_instrumental": (mmtopx(353), mmtopx(250)),
+        "smallest_instrumental": (mmtopx(297), mmtopx(210)),
+        "printed_sheet_music": (mmtopx(305), mmtopx(229)),
+        "printed_choral_music": (mmtopx(254), mmtopx(178))
     }[use]
 
+PAGEH, PAGEW = page_size("largest")
 
 def render(*objs):
-    D = SW.drawing.Drawing(filename="/tmp/smt.svg", size=page_size("largest"), debug=True)
+    D = SW.drawing.Drawing(filename="/tmp/smt.svg", size=(PAGEW, PAGEH), debug=True)
     for obj in objs:
         obj._apply_rules()
         # Form's packsvglst will call packsvglst on descendants recursively
