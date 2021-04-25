@@ -146,15 +146,17 @@ def gould_rastral_height(rastral_number):
         "zero": mmtopx(9.2*.25), "one": mmtopx(7.9*.25), "two": mmtopx(7.4*.25),
         "three": mmtopx(7*.25), "four": mmtopx(6.5*.25), "five": mmtopx(6*.25),
         "six": mmtopx(5.5*.25), "seven": mmtopx(4.8*.25), "eight": mmtopx(3.7*.25)
-    }
+    }[rastral_number]
 
 def chlapik_rastral_height(rastral_number):
     return {
-    "zwei": mmtopx(1.88), 3: mmtopx(1.755), 4: mmtopx(1.6),
-    5: mmtopx(1.532), 6: mmtopx(1.4), 7: mmtopx(1.19),
-    8: mmtopx(1.02)}[rastral_number]
+    "zwei": mmtopx(1.88), "drei": mmtopx(1.755), "vier": mmtopx(1.6),
+    "fuenf": mmtopx(1.532), "sechs": mmtopx(1.4), "sieben": mmtopx(1.19),
+    "acht": mmtopx(1.02)}[rastral_number]
 
-STAFF_SPACE = chlapik_rastral_height("zwei")
+
+# STAFF_SPACE = chlapik_rastral_height("fuenf")
+STAFF_SPACE = gould_rastral_height("zero")
 GLOBAL_SCALE = 1.0
 # print(_get_glyph("clefs.C", "haydn-11"))
 def _scale():
@@ -292,9 +294,26 @@ class _SMTObject:
                 pending_rts = _pending_ruletables()
             else: break
 
-    
+
+pgw = mmtopx(210)
+pgh =mmtopx(297)
+
+
+############ page formats
+def page_size(use):
+    """Behind Bards, pg. 481, portrait formats (width, height)
+    largest (A3) = Largest practical """
+    return {
+        "largest": (mmtopx(297), mmtopx(420)), 
+        "largest_instrumental": (mmtopx(250), mmtopx(353)),
+        "smallest_instrumental": (mmtopx(210), mmtopx(297)),
+        "printed_sheet_music": (mmtopx(229), mmtopx(305)),
+        "printed_choral_music": (mmtopx(178), mmtopx(254))
+    }[use]
+
+
 def render(*objs):
-    D = SW.drawing.Drawing(filename="/tmp/smt.svg", size=(pgw,pgh), debug=True)
+    D = SW.drawing.Drawing(filename="/tmp/smt.svg", size=page_size("largest"), debug=True)
     for obj in objs:
         obj._apply_rules()
         # Form's packsvglst will call packsvglst on descendants recursively
@@ -302,20 +321,6 @@ def render(*objs):
         for elem in obj._svg_list:
             D.add(elem)
     D.save(pretty=True)
-
-
-# ~ _Canvas, Origin's Circle, Origin's Cross, Origin's Circle Contour
-mchar_cnv = __mchar_orgcrcl = __mchar_orgcrs = __mchar_orgcrcl_cntr = "deeppink"
-__sform_cnv = __sform_orgcrcl = __sform_orgcrs = __sform_orgcrcl_cntr = "tomato"
-__hform_cnv = __hform_orgcrcl = __hform_orgcrs = __hform_orgcrcl_cntr = "green"
-__vform_cnv = __vform_orgcrcl = __vform_orgcrs = __vform_orgcrcl_cntr = "blue"
-__orgcrs_len = 20
-__orgcrcl_r = 4
-__orgcrcl_opac = 0.3
-__orgln_thickness = 0.06
-pgw = mmtopx(210)
-pgh =mmtopx(297)
-
 
 
 class _Canvas(_SMTObject):
