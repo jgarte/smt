@@ -39,8 +39,9 @@ def isstem(o): return isinstance(o, S.Stem)
 def setstem(self):
     # self.head_punch._x_locked=1
     if self.duration in (.25, .5):
-        s=S.Stem(length=30,thickness=1, x=self.x+.5,
-        endyr=1,endxr=1,
+        # self.stem_graver = S.E._LineSeg(x2=0, y2=10,thickness=2)
+        s=S.Stem(length=20,thickness=1, x=self.x+.5,
+        endyr=1,endxr=1,rotate=0,
          origin_visible=0)
         self.stem_graver = s #taze , appliedto =false
 
@@ -163,11 +164,11 @@ def setbm(l):
     o=[x for x in l.content if isnote(x) and x.open_beam][0] #note mit openbeam
     # c=[x for x in l.content if isnote(x) and x.close_beam][0]
     # d=c.stem_graver.right -o.stem_graver.left
-    o.append(S.E.HLineSeg(length=o.width,direction=-1,thickness=5,x=o.left, y=o.stem_graver.bottom))
+    o.append(S.E.HLineSeg(length=o.width,thickness=5,x=o.left, y=o.stem_graver.bottom))
     # c.append(S.E.HLineSeg(length=o.width,thickness=5,x=o.left, y=o.stem_graver.bottom))
 
 
-S.E.cmn.add(setbm, isline, "set beam...")
+# S.E.cmn.add(setbm, isline, "Set beams after Noten stehen fest (punctuation)")
 
 
 
@@ -239,21 +240,21 @@ if __name__=="__main__":
     # print(mmtopx(100))
     S.E.render(Line(
     
-    S.Clef(pitch="g"),
-    S.TimeSig(top_=4,bottom_=4),
-    # S.Clef(pitch="f"),
-    # S.Clef(pitch="F"),
-    # S.Clef(pitch="F"),
-    # S.Clef(pitch="F"),
-    # S.Clef(pitch="c"),
-    S.Note(domain="treble", duration=.25, pitch=["c",4]), 
-    S.Note(domain="treble", duration=1, pitch=["c",4]), 
-    
-    S.Note(domain="treble", duration=.25, pitch=["c",4], open_beam=True), 
-    S.Note(domain="treble", duration=.5, pitch=["c",4]),
-    
-    S.Note(domain="treble", duration=1, pitch=["c",4]), 
-    S.Note(domain="treble", duration=.5, pitch=["c",4]), 
-    S.Note(domain="treble", duration=.25, pitch=["c",4]), 
+        S.Clef(pitch="g"),
+        # S.TimeSig(top_=4,bottom_=4),
+        # S.Clef(pitch="f"),
+        # S.Clef(pitch="F"),
+        # S.Clef(pitch="F"),
+        # S.Clef(pitch="F"),
+        # S.Clef(pitch="c"),
+        S.Note(domain="treble", duration=.25, pitch=["c",4]), 
+        S.Note(domain="treble", duration=1, pitch=["c",4]), 
+        # Wir entscheiden über beam, wie stem einfach in Rules!
+        S.Note(domain="treble", duration=.25, pitch=["c",4]), 
+        S.Note(domain="treble", duration=.5, pitch=["c",4]),
+        *[S.Note(domain="treble", duration=choice([.25]), pitch=["c",4]) for _ in range(10)],
+        S.Note(domain="treble", duration=1, pitch=["c",4]), 
+        S.Note(domain="treble", duration=.5, pitch=["c",4]), 
+        S.Note(domain="treble", duration=.25, pitch=["c",4]), 
     
     width=S.E.mmtopx(100),x=200,y=100))

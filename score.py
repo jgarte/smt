@@ -1,5 +1,10 @@
 
 
+"""
+Conveniece for creating score objects
+"""
+
+
 # from engine import *
 import engine as E
 
@@ -45,20 +50,19 @@ class Stem(E.VLineSeg):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-class Beam(E.HLineSeg):
-    def __init__(self, state="open", **kwargs):
-        self.state=state
+class OpenBeam(E.HLineSeg):
+    def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
 class Note(E.SForm, Clock, _Pitch):
-    def __init__(self, head_punch=None, stem_graver=None, 
-    open_beam=None, close_beam=None, duration=None, pitch=None, **kwargs):
+    def __init__(self, head_punch=None, stem_graver=None, obeam_graver=None, cbeam_graver=None,
+    duration=None, pitch=None, **kwargs):
         Clock.__init__(self, duration)
         _Pitch.__init__(self, pitch)
         E.SForm.__init__(self, **kwargs)
         
-        self.open_beam=open_beam
-        self.close_beam=close_beam
+        self._obeam_graver=obeam_graver
+        self._cbeam_graver=cbeam_graver
         
         self._head_punch = head_punch
         self._stem_graver = stem_graver

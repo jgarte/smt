@@ -12,6 +12,7 @@ import copy as cp
 import svgwrite as SW
 import svgelements as SE
 import svgpathtools as SPT
+from math import atan2, hypot
 # from svgwrite.shapes import Line as svgline
 # from svgwrite.utils import svg.utils.rgb
 
@@ -955,11 +956,12 @@ class VForm(_Form):
             A._compute_horizontals()
             A._compute_verticals()
         
-
+# https://github.com/meerk40t/svgelements/issues/102
 class _LineSeg(_Observable):
     """Angle in degrees"""
     _idcounter = -1
     def __init__(self, length=None, direction=None, thickness=None, angle=None, endxr=None, endyr=None,
+    # start=None, end=None,
     **kwargs):
         super().__init__(**kwargs)
         self.length = length or 0
@@ -970,9 +972,14 @@ class _LineSeg(_Observable):
         self.direction = direction or 1
         self.endxr = endxr or 0
         self.endyr = endyr or 0
+        # self.start = start
+        # self.end = end
+        # self._x2 = 
+        # self._y2=y2
         # self._compute_horizontals()
         # self._compute_verticals()
-        
+
+
     # Override canvas packsvglist
     def _pack_svg_list_ip(self):
         # bbox
@@ -1018,12 +1025,28 @@ class _LineSeg(_Observable):
     @property
     def thickness(self): return self._thickness
     # xmin, xmax, ymin, ymax
-    def _bbox(self): return SPT.Path(self._rect().d()).bbox()
+    def _bbox(self): 
+        return SPT.Path(self._rect().d()).bbox()
+
+
+
+
+
+
 
 
 class VLineSeg(_LineSeg):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        
+    # def angle(self):
+        # """Inverse tangent of the line in radians"""
+        # return atan2(self.y2 - self.y, self.x2 - self.x)
+    # def _recty(self): return self.y - self.thickness*.5
+    # def _rect(self):
+        # R = SE.Rect(self.x, self._recty(), hypot(self.x2-self.x, self.y2-self.y), self.thickness)
+        # R *= f"rotate({self.angle()}rad {self.x} {self.y})"
+        # return R
     
     def _rect(self):
         rect = SE.Rect(
@@ -1088,16 +1111,6 @@ class HLineSeg(_LineSeg):
     # def _compute_top(self): return self.y - self.thickness*.5
     # def _compute_bottom(self): return self.y + self.thickness*.5
 
-class MultiHLineSeg(VForm):
-    def __init__(self, count, dist, top, **kwargs):
-        self.count = count
-        # self.dists = dists
-        self.content=[]
-        for i in range(count):
-            l=HLineSeg(length=20, thickness=1)
-            SForm(content=l, height=dist +.5)
-            self.content.append(l)
-            # print(l.y_locked)
-        super().__init__(content=self.content, **kwargs)
+
 
 
