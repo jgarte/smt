@@ -81,7 +81,7 @@ def _load_fonts():
 # install_font1("./fonts/svg/haydn-11.svg",1)
 _load_fonts()
 
-def _glyph_names(font):
+def glyph_names(font):
     return _loaded_fonts[font].keys()
 
 def _get_glyph(name, font): return _loaded_fonts[font][name]
@@ -226,7 +226,8 @@ class RuleTable:
 
 # Common Music Notation, default ruletable for all objects
 cmn = RuleTable(name="CMN")
-
+_registry = {}
+def getbyid(id_): return _registry[id_]
 class _SMTObject:
     def __init__(self, id_=None, domain=None, ruletable=None, toplevel=False):
         self.toplevel = toplevel
@@ -235,6 +236,7 @@ class _SMTObject:
         self._svg_list = []
         self.domain = domain
         self.ruletable = ruletable or cmn
+        _registry[self.id] = self
 
     def _pack_svg_list_ip(self): self._notimplemented("_pack_svg_list_ip")
     
@@ -243,8 +245,9 @@ class _SMTObject:
         raise NotImplementedError(f"{self.__class__.__name__} didn't override {method_name}")
     
     def _assign_id(self):
+        id_ = f"{self.__class__.__name__}{self.__class__._idcounter}"
         self.__class__._idcounter += 1
-        return self.__class__.__name__ + str(self.__class__._idcounter)
+        return id_
 
     def addsvg(self, *elements):
         self._svg_list.extend(elements)
@@ -662,9 +665,10 @@ class _Form(_Canvas, _Font):
                     c.fixbottom += self.y
                     # Fixheight never changes!
     
-    def delcont(self, cond):
+    def delcont(self, test):
         for i, c in enumerate(self.content):
-            if cond(c): del self.content[i]
+            if test(c): del self.content[i]
+    
     def _compute_horizontals(self):
         self._left = self._compute_left()
         self._right = self._compute_right()

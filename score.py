@@ -10,22 +10,22 @@ import engine as E
 
 # __all__ = engine.__all__ + [
     # "Stem", "Note", "Accidental", "Clef", 
-    # "allclocks", "clock_chunks", "Clock"
+    # "allclocks", "clock_chunks", "Rhythm"
     # ]
 
 
-class Clock:
+class Rhythm:
     def __init__(self, duration=None):
         self.duration = duration or 0.25
 
 def allclocks(form):
     """Returns True if form's content is made up of Clocks only."""
-    return all(map(lambda C: isinstance(C, Clock), form.content))
+    return all(map(lambda C: isinstance(C, Rhythm), form.content))
 
 def clock_chunks(content_list):
     indices = []
     for i in range(len(content_list)):
-        if isinstance(content_list[i], Clock):
+        if isinstance(content_list[i], Rhythm):
             indices.append(i)
     chunks = []
     for start, end in zip(indices[:-1], indices[1:]):
@@ -54,10 +54,10 @@ class OpenBeam(E.HLineSeg):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-class Note(E.SForm, Clock, _Pitch):
+class Note(E.SForm, Rhythm, _Pitch):
     def __init__(self, head_punch=None, stem_graver=None, obeam_graver=None, cbeam_graver=None,
     duration=None, pitch=None, **kwargs):
-        Clock.__init__(self, duration)
+        Rhythm.__init__(self, duration)
         _Pitch.__init__(self, pitch)
         E.SForm.__init__(self, **kwargs)
         
@@ -116,23 +116,27 @@ class Clef(E.SForm, _Pitch):
         self._punch = new
         self.append(self._punch)
 
-class TimeSig(E.VForm):
-    def __init__(self, top_=4, bottom_=4, **kwargs):
-        self.top_=top_
-        self.bottom_=bottom_
+class SimpleTimeSig(E.VForm):
+    def __init__(self, num=4, denom=4, **kwargs):
+        self.num=num
+        self.denom=denom
+        self._num_punch=None
+        self._denom_punch=None
         super().__init__(**kwargs)
 
     @property
-    def top_punch(self): return self._top_punch
-    @top_punch.setter
-    def top_punch(self, new):
-        self._top_punch = new
-        self.append(self._top_punch)
+    def num_punch(self): return self._num_punch
+    @num_punch.setter
+    def num_punch(self, new):
+        self._num_punch = new
+        self.append(self._num_punch)
     
     @property
-    def bottom_punch(self): return self._bottom_punch
-    @bottom_punch.setter
-    def bottom_punch(self, new):
-        self._bottom_punch = new
-        self.append(self._bottom_punch)
+    def denom_punch(self): return self._denom_punch
+    @denom_punch.setter
+    def denom_punch(self, new):
+        if self._denom_punch: # First time setting in a rule
+            self.delcont(lambda c: c.id == self._denom_punch.id)
+        self._denom_punch = new
+        self.append(self._denom_punch)
     
