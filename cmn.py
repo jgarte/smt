@@ -6,35 +6,31 @@ import score as S
 
 def istime(x): return isinstance(x, S.SimpleTimeSig)
 def settime(ts):
-    ts.num_punch=S.E.Char({3: "three", 4:"four", 5:"five"}.get(ts.num, ".notdef"))
-    ts.denom_punch=S.E.Char({.25: "four", .5:"two"}.get(ts.denom, ".notdef"))
+    ts.num_punch=S.E.MChar({3: "three", 4:"four", 5:"five"}.get(ts.num, ".notdef"))
+    ts.denom_punch=S.E.MChar({4: "four", 2:"two", 1: "one"}.get(ts.denom, ".notdef"))
+    if ts.denom == 1:
+        d=ts.denom_punch.parent().width - ts.denom_punch.width
+        ts.denom_punch.right = ts.denom_punch.parent().right
+        
 # print(S.E.glyph_names("haydn-11"))
 S.E.cmn.add(settime,istime,"Set Time...")
 
-def resettime(ts):
-    if isinstance(ts.denom, str):
-        ts.denom_punch=S.E.Char({"q": "four", "h": "two", "w": "one"}.get(ts.denom, ".notdef"))
-        if ts.denom =="w":
-            d=ts.denom_punch.parent().width - ts.denom_punch.width
-            ts.denom_punch.right = ts.denom_punch.parent().right
-
-S.E.cmn.add(resettime,istime,"Just Fun!")
 
 
-# S.E.cmn.add(punctuate_line, isline, "Punctuate")
+
 
 
 # Setting noteheads
 def make_notehead(note):
     # setter for head? to append automatically
     if isinstance(note.duration, str):
-        note.head_punch = S.E.Char(name={
+        note.head_punch = S.E.MChar(name={
             "w": "noteheads.s0",
             "h": "noteheads.s1",
             "q": "noteheads.s2"
         }[note.duration])
     # elif isinstance(note.duration, (float, int)):
-        # note.head_punch = S.E.Char(name={
+        # note.head_punch = S.E.MChar(name={
             # 1: "noteheads.s0",
             # .5: "noteheads.s1",
             # .25: "noteheads.s2"
@@ -62,20 +58,21 @@ def notehead_vertical_pos(note):
 
         
 def make_accidental_char(accobj):
-    accobj.punch = e.Char(name="accidentals.sharp")
+    if accobj.punch:
+        accobj.punch = S.E.MChar(name="accidentals.sharp")
 
 def setclef(clefobj):
-    clefobj.punch = S.E.Char(name={"g": "clefs.G", 1:"clefs.C",
+    clefobj.punch = S.E.MChar(name={"g": "clefs.G", 1:"clefs.C",
     "F":"clefs.F", "f":"clefs.F_change","c":"clefs.C"}[clefobj.pitch],
     rotate=0,)
 
-
+############################# punctuation
 
 def decide_unit_dur(dur_counts):
     # return list(sorted(dur_counts.items()))[1][1]
     return list(sorted(dur_counts, key=lambda l:l[0]))[0][1]
 
-punct_units = {1:7, .5: 5, .25: 3.5, 1/8: 2.5, 1/16: 2}
+punct_units = {"w":7, "h": 5, "q": 3.5, "e": 2.5, "s": 2}
 
 def ufactor(udur, dur2):
     return punct_units[dur2] / punct_units[udur]
@@ -99,14 +96,14 @@ def compute_perf_punct(clocks, w):
     return perfwidths
 
 def right_guard(obj):
-    return {S.Note: 2, S.Clef:3, S.Accidental: 2, S.TimeSig: 2}[type(obj)]
+    return {S.Note: 2, S.Clef:3, S.Accidental: 2, S.SimpleTimeSig: 1}[type(obj)]
 def first_clock_idx(l):
     for i,x in enumerate(l):
         if isinstance(x, S.Clock):
             return i
             
             
-def punctuate_line(h):
+def punctsys(h):
     # print("---punct----")
     first_clock_idx_ = first_clock_idx(h.content)
     startings=h.content[0:first_clock_idx_]
@@ -145,18 +142,18 @@ def reden(x):
     print(x.id, x.content)
     x.content[0].color = e.SW.utils.rgb(100,0,0,"%")
 def Sid(x): return x.id == "S"
-def isline(x): return isinstance(x, Line)
+def isline(x): return isinstance(x, System)
 def ish(x): return isinstance(x, e.HForm)
 def isclef(x): return isinstance(x, S.Clef)
 def opachead(n): n.head_punch.opacity = .3
 
 S.E.cmn.add(make_notehead, noteandtrebe, "make noteheads")
-# S.E.cmn.add(make_accidental_char, isacc)
+S.E.cmn.add(make_accidental_char, isacc, "Making Accidental Characters")
 # e.cmn.add(greenhead, noteandtrebe)
 S.E.cmn.add(setstem, isnote, "Set stems")
 S.E.cmn.add(setclef, isclef, "Make clefs")
 # S.E.cmn.add(opachead, isnote)
-
+S.E.cmn.add(punctsys, isline, "Punctuate")
 
 
 def setbm(l):
@@ -176,7 +173,7 @@ def addstaff(n):
     # n.append(s)
     # print(s.y)
     # n.append(S.E.MultiHLineSeg(6, S.E.STAFF_SPACE, n.fixtop))
-    # m=S.E.Char(name="m")
+    # m=S.E.MChar(name="m")
     # n.append(m)
     # n.append(S.E.HLineSeg(length=30, thickness=1, y=n.fixtop))
     # print(m.x, m.y, n.x, n.y)
@@ -199,7 +196,7 @@ def ishline(x): return isinstance(x,S.E.HLineSeg)
 def flag(note):
     if note.duration != 1:
         # print(note.stem_graver.y)
-        note.append(S.E.Char(name="flags.d4",y=note.stem_graver.bottom,x=note.x+.5,
+        note.append(S.E.MChar(name="flags.d4",y=note.stem_graver.bottom,x=note.x+.5,
         origin_visible=1))
 # S.E.cmn.add(flag, isnote, "Flags...")
 # print(S.E._glyph_names("haydn-11"))
@@ -238,17 +235,13 @@ class System(S.E.HForm):
     # return {"type": "note", "pitch":pitch, "dur":dur,**kwargs}
 # def sethead(n):
     # print(n["dur"])
-    # return S.E.SForm(content=S.E.Char(n["name"]))
+    # return S.E.SForm(content=S.E.MChar(n["name"]))
 # print(sethead(note(0,1,name="noteheads.s0")))
 if __name__=="__main__":
     # print(mmtopx(100))
     S.E.render(System(
     
-        S.SimpleTimeSig(denom="w"),
-        S.SimpleTimeSig(denom="w"),
-        S.SimpleTimeSig(denom="w"),
-        S.SimpleTimeSig(denom="w"),
-        S.SimpleTimeSig(denom="w"),
+        S.SimpleTimeSig(denom=1),
         # S.Clef(pitch="g"),
         # # S.Clef(pitch="f"),
         # # S.Clef(pitch="F"),
@@ -256,14 +249,15 @@ if __name__=="__main__":
         # # S.Clef(pitch="F"),
         # # S.Clef(pitch="c"),
         # S.Note(domain="treble", duration=.25, pitch=["c",4]), 
-        # S.Note(domain="treble", duration=1, pitch=["c",4]), 
-        # # Wir entscheiden über beam, wie stem einfach in Rules!
-        # S.Note(domain="treble", duration=.25, pitch=["c",4]), 
-        # S.Note(domain="treble", duration=.5, pitch=["c",4]),
-        # *[S.Note(domain="treble", duration=choice([.25]), pitch=["c",4]) for _ in range(10)],
-        # S.Note(domain="treble", duration=1, pitch=["c",4]), 
-        # S.Note(domain="treble", duration=.5, pitch=["c",4]), 
-        # S.Note(domain="treble", duration=.25, pitch=["c",4]), 
+        S.Note(domain="treble", duration="q", pitch=["c",4]), 
+        # Wir entscheiden über beam, wie stem einfach in Rules!
+        S.Note(domain="treble", duration="h", pitch=["c",4]), 
+        S.Note(domain="treble", duration="h", pitch=["c",4]),
+        S.Accidental(pitch="c", punch=S.E.MChar(name="accidentals.flat")),
+        *[S.Note(domain="treble", duration=choice(["q", "h"]), pitch=["c",4]) for _ in range(10)],
+        S.Note(domain="treble", duration="w", pitch=["c",4]), 
+        S.Note(domain="treble", duration="q", pitch=["c",4]), 
+        S.Note(domain="treble", duration="q", pitch=["c",4]), 
     
     width=S.E.mmtopx(100),x=200,y=100))
     

@@ -5,27 +5,21 @@ Conveniece for creating score objects
 """
 
 
-# from engine import *
 import engine as E
 
-# __all__ = engine.__all__ + [
-    # "Stem", "Note", "Accidental", "Clef", 
-    # "allclocks", "clock_chunks", "Rhythm"
-    # ]
 
-
-class Rhythm:
+class Clock:
     def __init__(self, duration=None):
         self.duration = duration or 0.25
 
 def allclocks(form):
     """Returns True if form's content is made up of Clocks only."""
-    return all(map(lambda C: isinstance(C, Rhythm), form.content))
+    return all(map(lambda C: isinstance(C, Clock), form.content))
 
 def clock_chunks(content_list):
     indices = []
     for i in range(len(content_list)):
-        if isinstance(content_list[i], Rhythm):
+        if isinstance(content_list[i], Clock):
             indices.append(i)
     chunks = []
     for start, end in zip(indices[:-1], indices[1:]):
@@ -54,10 +48,10 @@ class OpenBeam(E.HLineSeg):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-class Note(E.SForm, Rhythm, _Pitch):
+class Note(E.SForm, Clock, _Pitch):
     def __init__(self, head_punch=None, stem_graver=None, obeam_graver=None, cbeam_graver=None,
     duration=None, pitch=None, **kwargs):
-        Rhythm.__init__(self, duration)
+        Clock.__init__(self, duration)
         _Pitch.__init__(self, pitch)
         E.SForm.__init__(self, **kwargs)
         
@@ -92,12 +86,14 @@ class Accidental(E.SForm, _Pitch):
         E.SForm.__init__(self, **kwargs)
         _Pitch.__init__(self, pitch)
         self._punch = punch
+        if punch:
+            self.append(self._punch)
         
     @property
     def punch(self): return self._punch
     @punch.setter
     def punch(self, new):
-        self.delcont(lambda c: isinstance(c, e.Char))
+        self.delcont(lambda c: isinstance(c, E.MChar))
         self._punch = new
         self.append(self._punch)
 

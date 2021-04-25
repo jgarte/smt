@@ -23,11 +23,11 @@ from math import atan2, hypot
 # def rule(targets, domains, fn):
     # for r in _ruleregistry:
         # if fn is r["F"]:
-            # return///////////////STAFF_SPACE = chlapik_staff_space("zwei")
+            # return///////////////STAFF_SPACE = chlapik_rastral_height("zwei")
 # GLOBAL_SCALE
     # _ruleregistry.append({"T": targets, "D": domains, "F": fn})
 # __all__ = [
-    # "HForm", "VForm", "SForm", "Char", "HLineSeg", "VLineSeg",
+    # "HForm", "VForm", "SForm", "MChar", "HLineSeg", "VLineSeg",
     # "cmn", "mmtopx", "render", "GLOBAL_SCALE", "STAFF_SPACE"
 # ]
 
@@ -136,15 +136,25 @@ STAFF_HEIGHT_REFERENCE_GLYPH = "clefs.C"
 
 ##### Rastral, Dimensions, Margins
 _PXLPERMM = 3.7795275591 # Pixel per mm
-
 def mmtopx(mm): return mm * _PXLPERMM
-def chlapik_staff_space(rastral):
+
+def gould_rastral_height(rastral_number):
+    """Behind Bars, pg. 482-3:
+    The rastral height is the measurement of one staff-space.
+    """
+    return {
+        "zero": mmtopx(9.2*.25), "one": mmtopx(7.9*.25), "two": mmtopx(7.4*.25),
+        "three": mmtopx(7*.25), "four": mmtopx(6.5*.25), "five": mmtopx(6*.25),
+        "six": mmtopx(5.5*.25), "seven": mmtopx(4.8*.25), "eight": mmtopx(3.7*.25)
+    }
+
+def chlapik_rastral_height(rastral_number):
     return {
     "zwei": mmtopx(1.88), 3: mmtopx(1.755), 4: mmtopx(1.6),
     5: mmtopx(1.532), 6: mmtopx(1.4), 7: mmtopx(1.19),
-    8: mmtopx(1.02)}[rastral]
+    8: mmtopx(1.02)}[rastral_number]
 
-STAFF_SPACE = chlapik_staff_space("zwei")
+STAFF_SPACE = chlapik_rastral_height("zwei")
 GLOBAL_SCALE = 1.0
 # print(_get_glyph("clefs.C", "haydn-11"))
 def _scale():
@@ -412,7 +422,7 @@ def _origelems(obj):
 
 
 class _Font:
-    """Adds font to Char & Form"""
+    """Adds font to MChar & Form"""
     def __init__(self, font=None):
         self.font = font or tuple(_loaded_fonts.keys())[0]
 
@@ -464,7 +474,7 @@ class _Observable(_Canvas):
     def top(self, new): self.y += (new - self.top)
     
         
-class Char(_Observable, _Font):
+class MChar(_Observable, _Font):
     
     _idcounter = -1
     
@@ -529,7 +539,7 @@ class Char(_Observable, _Font):
             
     # @_Canvas.width.setter
     # def width(self, neww):
-        # raise Exception("Char's width is immutable!")
+        # raise Exception("MChar's width is immutable!")
 
     # def _compute_left(self):
         # return self.x + toplevel_scale(self.glyph["left"])
