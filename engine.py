@@ -309,13 +309,13 @@ def page_size(use):
 
 PAGEH, PAGEW = page_size("largest")
 
-def render(*objs):
+def render(*items):
     D = SW.drawing.Drawing(filename="/tmp/smt.svg", size=(PAGEW, PAGEH), debug=True)
-    for obj in objs:
-        obj._apply_rules()
+    for item in items:
+        item._apply_rules()
         # Form's packsvglst will call packsvglst on descendants recursively
-        obj._pack_svg_list_ip()
-        for elem in obj._svg_list:
+        item._pack_svg_list_ip()
+        for elem in item._svg_list:
             D.add(elem)
     D.save(pretty=True)
 
@@ -637,7 +637,7 @@ class MChar(_Observable, _Font):
 
 class _Form(_Canvas, _Font):
 
-    _idcounter = -1
+    _idcounter = 0
 
     def __init__(self, font=None, content=None, **kwargs):
         self.content = content or []
@@ -651,7 +651,7 @@ class _Form(_Canvas, _Font):
         # self.fixtop = self.y + toplevel_scale(_getglyph(STAFF_HEIGHT_REFERENCE_GLYPH, self.font)["top"])
         # self.fixbottom = self.y + toplevel_scale(_getglyph(STAFF_HEIGHT_REFERENCE_GLYPH, self.font)["bottom"])
         # self.FIXHEIGHT = toplevel_scale(_getglyph(STAFF_HEIGHT_REFERENCE_GLYPH, self.font)["height"])
-        
+        # print(">>>", self.id, toplevel_scale(_get_glyph(STAFF_HEIGHT_REFERENCE_GLYPH, self.font)["top"]))
         self.fixtop = self.y + toplevel_scale(_get_glyph(STAFF_HEIGHT_REFERENCE_GLYPH, self.font)["top"])
         self.fixbottom = self.y + toplevel_scale(_get_glyph(STAFF_HEIGHT_REFERENCE_GLYPH, self.font)["bottom"])
         self.FIXHEIGHT = toplevel_scale(_get_glyph(STAFF_HEIGHT_REFERENCE_GLYPH, self.font)["height"])
@@ -674,6 +674,7 @@ class _Form(_Canvas, _Font):
                 # the original values, but must move along with the parent.
                 if isinstance(c, _Form):
                     c.fixtop += self.y
+                    # c.fixtop = self.y
                     c.fixbottom += self.y
                     # Fixheight never changes!
     
@@ -705,30 +706,6 @@ class _Form(_Canvas, _Font):
                     for D in descendants(child, False):
                         D.ancestors.insert(0, A)
 
-    # @_Canvas.width.setter
-    # def width(self, neww):
-        # if not self.width_locked:
-            # self._right = self.left + neww
-            # self._width = neww
-            # for A in reversed(self.ancestors):
-                # A._compute_horizontals()
-
-
-    # @_Canvas.x.setter
-    # def x(self, new):
-        # if not self.x_locked:
-            # dx = new - self.x
-            # self._x = new
-            # self._left += dx
-            # self._right += dx
-            # for D in descendants(self, False):
-                # # Descendants' x are shifted by delta-x. 
-                # D._x += dx
-                # if isinstance(D, _Form):
-                    # D._left += dx
-                    # D._right += dx
-            # for A in reversed(self.ancestors):
-                # A._compute_horizontals()
     @_Canvas.x.setter
     def x(self, new):
         if not self.x_locked:
@@ -745,22 +722,6 @@ class _Form(_Canvas, _Font):
             for A in reversed(self.ancestors):
                 A._compute_horizontals()
 
-    # @_Canvas.y.setter
-    # def y(self, new):
-        # if not self.y_locked:
-            # dy = new - self.y
-            # self._y = new
-            # self._top += dy
-            # self._bottom += dy
-            # for D in descendants(self, False):
-                # D._y += dy
-                # if isinstance(D, _Form):
-                    # # D._y += dy
-                    # D._top += dy
-                    # D._bottom += dy
-            # # Shifting Y might have an impact on ancestor's width!
-            # for A in reversed(self.ancestors):
-                # A._compute_verticals()
     @_Canvas.y.setter
     def y(self, new):
         if not self.y_locked:

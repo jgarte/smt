@@ -1,6 +1,6 @@
 from random import randint, choice
 import score as S
-
+import copy 
 
 ################# time signature
 
@@ -58,7 +58,7 @@ def notehead_vertical_pos(note):
 
         
 def make_accidental_char(accobj):
-    if accobj.punch:
+    if not accobj.punch:
         accobj.punch = S.E.MChar(name="accidentals.sharp")
 
 def setclef(clefobj):
@@ -225,8 +225,8 @@ def flag(note):
 # ]
 
 class System(S.E.HForm):
-    def __init__(self, *objs, **kw):
-        S.E.HForm.__init__(self, content=objs, **kw)
+    def __init__(self, cnt, **kw):
+        S.E.HForm.__init__(self, content=cnt, **kw)
 # s=SForm(width=5,width_locked=0,x=50)
 # s.append(Stem(length=10,thickness=30))
 # h=HForm(content=[s],width=mmtopx(20),x=40,y=200, canvas_opacity=.2, width_locked=0)
@@ -239,8 +239,8 @@ class System(S.E.HForm):
 # print(sethead(note(0,1,name="noteheads.s0")))
 if __name__=="__main__":
     # print(mmtopx(100))
-    S.E.render(System(
-    
+    s1=System(
+        [
         S.SimpleTimeSig(denom=1),
         # S.Clef(pitch="g"),
         # # S.Clef(pitch="f"),
@@ -257,7 +257,12 @@ if __name__=="__main__":
         *[S.Note(domain="treble", duration=choice(["q", "h"]), pitch=["c",4]) for _ in range(10)],
         S.Note(domain="treble", duration="w", pitch=["c",4]), 
         S.Note(domain="treble", duration="q", pitch=["c",4]), 
-        S.Note(domain="treble", duration="q", pitch=["c",4]), 
+        S.Note(domain="treble", duration="q", pitch=["c",4])],
+    width=S.E.mmtopx(100))
     
-    width=S.E.mmtopx(100),x=200,y=100))
+    s2=System([S.SimpleTimeSig(denom=4),*[S.Note(domain="treble", duration=choice(["q", "h"]), pitch=["c",4]) for _ in range(10)]], width=S.E.mmtopx(100))
+    
+    C= S.E.VForm(content=[s1], x=200, y=120)
+    print(C.y,C.fixtop,C.top)
+    S.E.render(C)
     
