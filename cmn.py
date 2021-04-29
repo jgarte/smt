@@ -263,6 +263,6 @@ if __name__=="__main__":
     s2=System([S.SimpleTimeSig(denom=4),*[S.Note(domain="treble", duration=choice(["q", "h"]), pitch=["c",4]) for _ in range(10)]], width=S.E.mmtopx(100))
     
     C= S.E.VForm(content=[s1], x=200, y=120)
-    print(C.y,C.fixtop,C.top)
+    # print(C.y,C.fixtop,C.top)
     S.E.render(C)
     
