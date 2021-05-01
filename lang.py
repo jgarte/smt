@@ -1,4 +1,5 @@
 """
+
 Wir brauchen auch eine Konsole zum printen
 
 [print Hello world, welcome to the SMTPad, a text-editor for 
