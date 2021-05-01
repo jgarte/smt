@@ -258,11 +258,11 @@ if __name__=="__main__":
         S.Note(domain="treble", duration="w", pitch=["c",4]), 
         S.Note(domain="treble", duration="q", pitch=["c",4]), 
         S.Note(domain="treble", duration="q", pitch=["c",4])],
-    width=S.E.mmtopx(100))
+    width=S.E.mmtopx(100),y=40,x=40)
     
     s2=System([S.SimpleTimeSig(denom=4),*[S.Note(domain="treble", duration=choice(["q", "h"]), pitch=["c",4]) for _ in range(10)]], width=S.E.mmtopx(100))
     
-    C= S.E.VForm(content=[s1], x=200, y=120)
+    # C= S.E.VForm(content=[s1], x=200, y=120)
     # print(C.y,C.fixtop,C.top)
-    S.E.render(C)
+    S.E.render(s1)
     
