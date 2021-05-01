@@ -12,8 +12,7 @@ def settime(ts):
         d=ts.denom_punch.parent().width - ts.denom_punch.width
         ts.denom_punch.right = ts.denom_punch.parent().right
         
-# print(S.E.glyph_names("haydn-11"))
-S.E.cmn.add(settime,istime,"Set Time...")
+
 
 
 
@@ -42,12 +41,13 @@ def isnote(x): return isinstance(x,S.Note)
 
 def isstem(o): return isinstance(o, S.Stem)
 def setstem(self):
-    # self.head_punch._x_locked=1
-    if self.duration in (.25, .5):
+    if self.duration in (.25, .5, "q", "h"):
         # self.stem_graver = S.E._LineSeg(x2=0, y2=10,thickness=2)
-        s=S.Stem(length=20,thickness=1, x=self.x+.5,
+        s=S.Stem(length=15,thickness=1, 
+        # color=S.E.SW.utils.rgb(0,50,0,"%"),
+        x=self.x+.5, # Eigentlich wenn wir dieses X eingeben, es wird als absolut-X gesehen.
         endyr=1,endxr=1,rotate=0,
-         origin_visible=0)
+        origin_visible=0)
         self.stem_graver = s #taze , appliedto =false
 
 def notehead_vertical_pos(note):
@@ -56,7 +56,7 @@ def notehead_vertical_pos(note):
         okt = note.pitch[1]
         note.headsymbol.y = ((note.fixbottom - {"c":-STAFF_SPACE, "d":-(.5 * STAFF_SPACE)}[p]) + ((4 - okt) * 7/8 * note.FIXHEIGHT))
 
-        
+
 def make_accidental_char(accobj):
     if not accobj.punch:
         accobj.punch = S.E.MChar(name="accidentals.sharp")
@@ -96,7 +96,7 @@ def compute_perf_punct(clocks, w):
     return perfwidths
 
 def right_guard(obj):
-    return {S.Note: 2, S.Clef:3, S.Accidental: 2, S.SimpleTimeSig: 1}[type(obj)]
+    return {S.Note: 2, S.Clef:3, S.Accidental: 2, S.SimpleTimeSig: 5}[type(obj)]
 def first_clock_idx(l):
     for i,x in enumerate(l):
         if isinstance(x, S.Clock):
@@ -147,6 +147,9 @@ def ish(x): return isinstance(x, e.HForm)
 def isclef(x): return isinstance(x, S.Clef)
 def opachead(n): n.head_punch.opacity = .3
 
+# Rules adding
+
+S.E.cmn.add(settime,istime,"Set Time...")
 S.E.cmn.add(make_notehead, noteandtrebe, "make noteheads")
 S.E.cmn.add(make_accidental_char, isacc, "Making Accidental Characters")
 # e.cmn.add(greenhead, noteandtrebe)
@@ -253,8 +256,10 @@ if __name__=="__main__":
         # Wir entscheiden über beam, wie stem einfach in Rules!
         S.Note(domain="treble", duration="h", pitch=["c",4]), 
         S.Note(domain="treble", duration="h", pitch=["c",4]),
-        S.Accidental(pitch="c", punch=S.E.MChar(name="accidentals.flat")),
-        *[S.Note(domain="treble", duration=choice(["q", "h"]), pitch=["c",4]) for _ in range(10)],
+        S.Accidental(pitch="c", 
+        # punch=S.E.MChar(name="accidentals.flat")
+        ),
+        # *[S.Note(domain="treble", duration=choice(["q", "h"]), pitch=["c",4]) for _ in range(10)],
         S.Note(domain="treble", duration="w", pitch=["c",4]), 
         S.Note(domain="treble", duration="q", pitch=["c",4]), 
         S.Note(domain="treble", duration="q", pitch=["c",4])],

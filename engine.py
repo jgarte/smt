@@ -13,23 +13,6 @@ import svgwrite as SW
 import svgelements as SE
 import svgpathtools as SPT
 from math import atan2, hypot
-# from svgwrite.shapes import Line as svgline
-# from svgwrite.utils import svg.utils.rgb
-
-
-############### rules
-# ruletable class with multiple rule hooks?
-# _ruleregistry = []
-# def rule(targets, domains, fn):
-    # for r in _ruleregistry:
-        # if fn is r["F"]:
-            # return///////////////STAFF_SPACE = chlapik_rastral_height("zwei")
-# GLOBAL_SCALE
-    # _ruleregistry.append({"T": targets, "D": domains, "F": fn})
-# __all__ = [
-    # "HForm", "VForm", "SForm", "MChar", "HLineSeg", "VLineSeg",
-    # "cmn", "mmtopx", "render", "GLOBAL_SCALE", "STAFF_SPACE"
-# ]
 
 
 ##### Font
@@ -92,46 +75,6 @@ def _get_glyph(name, font): return _loaded_fonts[font][name]
 # _fonts = {}
 # current_font = "Haydn"
 STAFF_HEIGHT_REFERENCE_GLYPH = "clefs.C"
-
-# def _fontdict(fontname): return _fonts[fontname]
-# def glyphs(fontname): return _fontdict(fontname).keys()
-# def _getglyph(name, fontname):
-    # """Returns glyph's dictionary"""
-    # return _fontdict(fontname)[name]
-
-# def install_font(fontname, srcpath, shrg=STAFF_HEIGHT_REFERENCE_GLYPH):
-    # """"""
-    # glyph_pathd = {}
-    # for E in ET.parse(srcpath).iter():
-        # if "glyph-name" in E.attrib: # An identified glyph?
-            # try:
-                # glyph_pathd[E.attrib["glyph-name"]] = E.attrib["d"]
-            # except KeyError: # E.g. STAFF_SPACE glyph has no pathd in haydn!
-                # glyph_pathd[E.attrib["glyph-name"]] = "" # An empty string as pathd?????
-    # temp_bbox_file = tempfile.NamedTemporaryFile(mode="r")
-    # sp.run(["/usr/bin/fontforge", "-script", 
-            # "/home/amir/Work/Python/smt/fontinstprep.ff", 
-            # srcpath, temp_bbox_file.name])
-    # # ~ Register glyphs and their bboxes
-    # D = {}
-    # for ln in temp_bbox_file:
-        # if not(ln.isspace()): # Auf linien mit NUR STAFF_SPACE verzichten
-            # name, minx, miny, maxx, maxy, w, h = ln.strip().split(" ")
-            # # ~ Create glyph's dict
-            # D[name] = {
-            # "d": glyph_pathd[name],
-            # "x": float(minx), "y": float(miny),
-            # "left": float(minx), "right": float(maxx),
-            # "top": float(miny), "bottom": float(maxy),
-            # "width": float(w), "height": float(h)
-            # }
-    # # ~ Closing Neccessary?
-    # temp_bbox_file.close()
-    # _fonts[fontname] = D
-
-# # ~ Iinstalled fonts
-# # install_font("Haydn", "/home/amir/haydn/svg/haydn-11.svg")
-
 
 
 ##### Rastral, Dimensions, Margins
@@ -254,7 +197,7 @@ class _SMTObject:
     
     def _notimplemented(self, method_name):
         """Crashs if the derived class hasn't implemented this important method."""
-        raise NotImplementedError(f"{self.__class__.__name__} didn't override {method_name}")
+        raise NotImplementedError(f"{self.__class__.__name__} must override {method_name}!")
     
     def _assign_id(self):
         id_ = f"{self.__class__.__name__}{self.__class__._idcounter}"
