@@ -2,7 +2,7 @@ from random import randint, choice
 import score as S
 import copy 
 
-################# time signature
+################ time signature
 
 def istime(x): return isinstance(x, S.SimpleTimeSig)
 def settime(ts):
