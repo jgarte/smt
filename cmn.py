@@ -121,8 +121,9 @@ def punctsys(h):
         for c,w in zip(clkchunks, perfwidths):
             clock = c[0]
             nonclocks = c[1:]
-            s=sum(map(lambda x:x.width + right_guard(x), nonclocks))
-            if s < w:
+            s=sum([nc.width + right_guard(nc) for nc in nonclocks])
+            # s=sum(map(lambda x:x.width + right_guard(x), nonclocks))
+            if s <= w:
                 # add rest of perfect width - sum of nonclocks
                 clock.width += (w - s)
                 clock._width_locked = True
@@ -130,7 +131,8 @@ def punctsys(h):
                     a.width += right_guard(a)
                     # dont need to lock this width, since it's not touched
                     # by setstem: setstem only impacts it's papa: the NOTE object
-                    # a.width_locked = 0
+                    # a._width_locked = 1
+    # h._lineup()
 
 
 def noteandtrebe(x): return isinstance(x, S.Note) and x.domain == "treble"
@@ -154,7 +156,7 @@ S.E.cmn.add(make_notehead, noteandtrebe, "make noteheads")
 S.E.cmn.add(make_accidental_char, isacc, "Making Accidental Characters")
 # e.cmn.add(greenhead, noteandtrebe)
 S.E.cmn.add(setstem, isnote, "Set stems")
-S.E.cmn.add(setclef, isclef, "Make clefs")
+# S.E.cmn.add(setclef, isclef, "Make clefs")
 # S.E.cmn.add(opachead, isnote)
 S.E.cmn.add(punctsys, isline, "Punctuate")
 
@@ -180,14 +182,18 @@ def addstaff(n):
     # n.append(m)
     # n.append(S.E.HLineSeg(length=30, thickness=1, y=n.fixtop))
     # print(m.x, m.y, n.x, n.y)
-    for i in range(5):
-        l=S.E.HLineSeg(length=n.width, thickness=1, y=i*S.E.STAFF_SPACE + n.top)
+    # print(n.FIXHEIGHT)
+    x=10
+    h=n.FIXHEIGHT / (x-1)
+    for i in range(x):
+        l=S.E.HLineSeg(length=n.width, thickness=1, y=i*h + n.top)
         n.append(l)
+        # print(i)
         
         # n.append(e.HLineSeg(length=n.width, thickness=1, endxr=0))
     # n._width_locked=1
 # print(S.E._glyph_names("haydn-11"))
-# S.E.cmn.add(addstaff, isnote, "Draws stave.")
+S.E.cmn.add(addstaff, isnote, "Draws stave.")
 
 def skew(staff):
     print(staff.skewx)
@@ -256,10 +262,8 @@ if __name__=="__main__":
         # Wir entscheiden über beam, wie stem einfach in Rules!
         S.Note(domain="treble", duration="h", pitch=["c",4]), 
         S.Note(domain="treble", duration="h", pitch=["c",4]),
-        S.Accidental(pitch="c", 
-        # punch=S.E.MChar(name="accidentals.flat")
-        ),
-        # *[S.Note(domain="treble", duration=choice(["q", "h"]), pitch=["c",4]) for _ in range(10)],
+        S.Accidental(pitch="c",         ),
+        # *[S.Note(domain="treble", duration=choice(["q", "h"]), pitch=["c",4]) for _ in range(60)],
         S.Note(domain="treble", duration="w", pitch=["c",4]), 
         S.Note(domain="treble", duration="q", pitch=["c",4]), 
         S.Note(domain="treble", duration="q", pitch=["c",4])],

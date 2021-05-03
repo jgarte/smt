@@ -227,11 +227,13 @@ class _SMTObject:
                     for order, rule in sorted(rt._pending(), key=lambda o_rd: o_rd[0]):
                         if rt.log:
                             print(f"RT: {rt.name}, Depth: {depth}, Order: {order}, Desc: {rule['desc']}")
-                        # Dump in each round the up-to-date members (if any new objects have been added etc....)
+                        # get in each round the up-to-date list of members (possibly new objects have been added etc....)
                         for m in members(self):
                             if rule["pred"](m):
                                 rule["hook"](m)
-                                if isinstance(m, HForm): m._lineup()
+                                if isinstance(m, HForm): m._lineup() # Das untenstehende scheint sinvoller??!
+                                # for a in reversed(m.ancestors):
+                                    # if isinstance(a, HForm): a._lineup()
                         # A rule is applied not more than once!
                         rule["applied"] = True
                 pending_rts = _pending_ruletables()
