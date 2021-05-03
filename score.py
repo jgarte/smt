@@ -63,7 +63,6 @@ class Note(E.SForm, Clock, _Pitch):
 
     @property
     def head_punch(self): return self._head_punch
-    
     @head_punch.setter
     def head_punch(self, newhead):
         # wird auch flag sein!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -72,13 +71,24 @@ class Note(E.SForm, Clock, _Pitch):
 
     @property
     def stem_graver(self): return self._stem_graver
-    
     @stem_graver.setter
     def stem_graver(self, newstem):
         # Allow only a single stem_graver per note?
         self.delcont(lambda c: isinstance(c, Stem))
         self._stem_graver = newstem
         self.append(self._stem_graver)
+    @property
+    def obeam_graver(self): return self._obeam_graver
+    @obeam_graver.setter
+    def obeam_graver(self, new):
+        self._obeam_graver = new
+        self.append(self._obeam_graver)
+    @property
+    def cbeam_graver(self): return self._cbeam_graver
+    @cbeam_graver.setter
+    def cbeam_graver(self, new):
+        self._cbeam_graver = new
+        self.append(self._cbeam_graver)
 
 
 class Accidental(E.SForm, _Pitch):

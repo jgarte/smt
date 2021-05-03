@@ -26,7 +26,8 @@ def make_notehead(note):
         note.head_punch = S.E.MChar(name={
             "w": "noteheads.s0",
             "h": "noteheads.s1",
-            "q": "noteheads.s2"
+            "q": "noteheads.s2",
+            "8": "eight"
         }[note.duration])
     # elif isinstance(note.duration, (float, int)):
         # note.head_punch = S.E.MChar(name={
@@ -41,7 +42,7 @@ def isnote(x): return isinstance(x,S.Note)
 
 def isstem(o): return isinstance(o, S.Stem)
 def setstem(self):
-    if self.duration in (.25, .5, "q", "h"):
+    if self.duration in (.25, .5, "q", "h", "8"):
         # self.stem_graver = S.E._LineSeg(x2=0, y2=10,thickness=2)
         s=S.Stem(length=15,thickness=1, 
         # color=S.E.SW.utils.rgb(0,50,0,"%"),
@@ -72,7 +73,7 @@ def decide_unit_dur(dur_counts):
     # return list(sorted(dur_counts.items()))[1][1]
     return list(sorted(dur_counts, key=lambda l:l[0]))[0][1]
 
-punct_units = {"w":7, "h": 5, "q": 3.5, "e": 2.5, "s": 2}
+punct_units = {"w":7, "h": 5, "q": 3.5,"8":3.5, "e": 2.5, "s": 2}
 
 def ufactor(udur, dur2):
     return punct_units[dur2] / punct_units[udur]
@@ -156,16 +157,19 @@ S.E.cmn.add(make_notehead, noteandtrebe, "make noteheads")
 S.E.cmn.add(make_accidental_char, isacc, "Making Accidental Characters")
 # e.cmn.add(greenhead, noteandtrebe)
 S.E.cmn.add(setstem, isnote, "Set stems")
-# S.E.cmn.add(setclef, isclef, "Make clefs")
+S.E.cmn.add(setclef, isclef, "Make clefs")
 # S.E.cmn.add(opachead, isnote)
 S.E.cmn.add(punctsys, isline, "Punctuate")
 
 
 def setbm(l):
-    o=[x for x in l.content if isnote(x) and x.open_beam][0] #note mit openbeam
+    o=[x for x in l.content if isnote(x) and x.duration in ("q","h")] #note mit openbeam
     # c=[x for x in l.content if isnote(x) and x.close_beam][0]
     # d=c.stem_graver.right -o.stem_graver.left
-    o.append(S.E.HLineSeg(length=o.width,thickness=5,x=o.left, y=o.stem_graver.bottom))
+    print(o)
+    for a in o:
+        o.obeam_graver = S.E.HLineSeg(length=o.width,thickness=5,x=o.left, y=o.stem_graver.bottom)
+    # o.append(S.E.HLineSeg(length=o.width,thickness=5,x=o.left, y=o.stem_graver.bottom))
     # c.append(S.E.HLineSeg(length=o.width,thickness=5,x=o.left, y=o.stem_graver.bottom))
 
 
@@ -247,23 +251,23 @@ class System(S.E.HForm):
     # return S.E.SForm(content=S.E.MChar(n["name"]))
 # print(sethead(note(0,1,name="noteheads.s0")))
 if __name__=="__main__":
-    # print(mmtopx(100))
+    print(S.E.mmtopx(100))
     s1=System(
         [
+        S.Clef(pitch="g"),
         S.SimpleTimeSig(denom=1),
-        # S.Clef(pitch="g"),
         # # S.Clef(pitch="f"),
         # # S.Clef(pitch="F"),
         # # S.Clef(pitch="F"),
         # # S.Clef(pitch="F"),
         # # S.Clef(pitch="c"),
-        # S.Note(domain="treble", duration=.25, pitch=["c",4]), 
+        S.Note(domain="treble", duration="h", pitch=["c",4]), 
         S.Note(domain="treble", duration="q", pitch=["c",4]), 
         # Wir entscheiden über beam, wie stem einfach in Rules!
         S.Note(domain="treble", duration="h", pitch=["c",4]), 
         S.Note(domain="treble", duration="h", pitch=["c",4]),
         S.Accidental(pitch="c",         ),
-        # *[S.Note(domain="treble", duration=choice(["q", "h"]), pitch=["c",4]) for _ in range(60)],
+        *[S.Note(domain="treble", duration=choice(["q", "h"]), pitch=["c",4]) for _ in range(4)],
         S.Note(domain="treble", duration="w", pitch=["c",4]), 
         S.Note(domain="treble", duration="q", pitch=["c",4]), 
         S.Note(domain="treble", duration="q", pitch=["c",4])],
