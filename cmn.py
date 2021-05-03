@@ -166,14 +166,17 @@ def setbm(l):
     o=[x for x in l.content if isnote(x) and x.duration in ("q","h")] #note mit openbeam
     # c=[x for x in l.content if isnote(x) and x.close_beam][0]
     # d=c.stem_graver.right -o.stem_graver.left
-    print(o)
     for a in o:
-        o.obeam_graver = S.E.HLineSeg(length=o.width,thickness=5,x=o.left, y=o.stem_graver.bottom)
+        a.obeam_graver = S.E.HLineSeg(length=a.width,thickness=5,
+        x=a.left,
+        y=a.stem_graver.bottom,
+        # rotate=45,
+        )
     # o.append(S.E.HLineSeg(length=o.width,thickness=5,x=o.left, y=o.stem_graver.bottom))
     # c.append(S.E.HLineSeg(length=o.width,thickness=5,x=o.left, y=o.stem_graver.bottom))
 
 
-# S.E.cmn.add(setbm, isline, "Set beams after Noten stehen fest (punctuation)")
+S.E.cmn.add(setbm, isline, "Set beams after Noten stehen fest (punctuation)")
 
 
 
@@ -187,7 +190,7 @@ def addstaff(n):
     # n.append(S.E.HLineSeg(length=30, thickness=1, y=n.fixtop))
     # print(m.x, m.y, n.x, n.y)
     # print(n.FIXHEIGHT)
-    x=10
+    x=5
     h=n.FIXHEIGHT / (x-1)
     for i in range(x):
         l=S.E.HLineSeg(length=n.width, thickness=1, y=i*h + n.top)
@@ -267,7 +270,7 @@ if __name__=="__main__":
         S.Note(domain="treble", duration="h", pitch=["c",4]), 
         S.Note(domain="treble", duration="h", pitch=["c",4]),
         S.Accidental(pitch="c",         ),
-        *[S.Note(domain="treble", duration=choice(["q", "h"]), pitch=["c",4]) for _ in range(4)],
+        *[S.Note(domain="treble", duration=choice(["q", "h"]), pitch=["c",4]) for _ in range(7)],
         S.Note(domain="treble", duration="w", pitch=["c",4]), 
         S.Note(domain="treble", duration="q", pitch=["c",4]), 
         S.Note(domain="treble", duration="q", pitch=["c",4])],
