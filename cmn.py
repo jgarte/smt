@@ -151,15 +151,18 @@ def isclef(x): return isinstance(x, S.Clef)
 def opachead(n): n.head_punch.opacity = .3
 
 # Rules adding
-
-S.E.cmn.add(settime,istime,"Set Time...")
-S.E.cmn.add(make_notehead, noteandtrebe, "make noteheads")
-S.E.cmn.add(make_accidental_char, isacc, "Making Accidental Characters")
+"""
+hook mehrmals überall, 
+test
+"""
+S.E.cmn.add(settime,istime,"Set Time...",)
+S.E.cmn.add(make_notehead, noteandtrebe, "make noteheads",)
+S.E.cmn.add(make_accidental_char, isacc, "Making Accidental Characters",)
 # e.cmn.add(greenhead, noteandtrebe)
-S.E.cmn.add(setstem, isnote, "Set stems")
-S.E.cmn.add(setclef, isclef, "Make clefs")
+S.E.cmn.add(setstem, isnote, "Set stems",)
+S.E.cmn.add(setclef, isclef, "Make clefs",)
 # S.E.cmn.add(opachead, isnote)
-S.E.cmn.add(punctsys, isline, "Punctuate")
+S.E.cmn.add(punctsys, isline, "Punctuate",)
 
 
 def setbm(l):
@@ -176,9 +179,11 @@ def setbm(l):
     # c.append(S.E.HLineSeg(length=o.width,thickness=5,x=o.left, y=o.stem_graver.bottom))
 
 
-S.E.cmn.add(setbm, isline, "Set beams after Noten stehen fest (punctuation)")
-
-
+S.E.cmn.add(setbm, isline, "Set beams after Noten stehen fest (punctuation)",)
+def foo(a): print(", Hallo!")
+def rescale(obj): 
+    obj.punch.yscale *=3
+    S.E.cmn.add(foo, isacc, f"Jurij")
 
 def addstaff(n):
     # s=S.Staff()
@@ -195,12 +200,21 @@ def addstaff(n):
     for i in range(x):
         l=S.E.HLineSeg(length=n.width, thickness=1, y=i*h + n.top)
         n.append(l)
-        # print(i)
-        
-        # n.append(e.HLineSeg(length=n.width, thickness=1, endxr=0))
-    # n._width_locked=1
-# print(S.E._glyph_names("haydn-11"))
+        S.E.cmn.add(rescale, isacc, "Reset acc xscale.",aux=False)
+        # S.E.cmn.add(rescale, pred(obj, isinstance(obj, int)), "Reset acc xscale.")
+        # print(S.E.cmn.rules.keys())
+
+# class pred:
+    # def __init__(self, obj, *exprs):
+        # self.obj = obj
+        # self.exprs = exprs
+    # def _replace(self):
+        # for e in self.exprs:
+            # print(e)
+# # pred(isinstance(int), )
+    
 S.E.cmn.add(addstaff, isnote, "Draws stave.")
+
 
 def skew(staff):
     print(staff.skewx)
@@ -274,7 +288,7 @@ if __name__=="__main__":
         S.Note(domain="treble", duration="w", pitch=["c",4]), 
         S.Note(domain="treble", duration="q", pitch=["c",4]), 
         S.Note(domain="treble", duration="q", pitch=["c",4])],
-    width=S.E.mmtopx(100),y=40,x=40)
+    width=S.E.mmtopx(100))
     
     s2=System([S.SimpleTimeSig(denom=4),*[S.Note(domain="treble", duration=choice(["q", "h"]), pitch=["c",4]) for _ in range(10)]], width=S.E.mmtopx(100))
     

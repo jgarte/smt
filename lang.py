@@ -8,8 +8,22 @@
 setting:
 [= a 2]
 
+[comment Folgendes ist immer yes!]
+[ja [= 2 3] [ja] [ja] [< 3 4 5]]
 
+[defrule cmn
+  
+  [comment predicate können soviele sein wie man will!]
+  [comment und können alle in ,,,,]
+  [true [< [height %] 100]
+        [= [farbe %] rot]
+        [false [= [farbe [stemGraver %]] rot]]]
 
+  [comment Und hier kommt action!]
+  [set [farbe [stemGraver %] grün]]
+  
+  [defrule cmn pred funcs [aux true]]
+  ]
 
 
 

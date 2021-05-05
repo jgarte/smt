@@ -164,18 +164,24 @@ class RuleTable:
         # o=order, rd=rule dict
         return [(o, rd) for (o, rd) in self.rules.items() if not rd["applied"]]
     
-    def add(self, hook, pred, desc=None):
+    def add(self, hook, pred, desc=None, aux=False):
         """
         Rule will be added only if at least one of hook or predicate are fresh.
         """
         hhash = hook.__hash__()
         phash = pred.__hash__()
-        if hhash not in self._hook_registry or phash not in self._pred_registry:
+        if hhash not in self._hook_registry or phash not in self._pred_registry or aux:
             self.rules[self._order] = {"desc": desc, "hook": hook, "pred": pred, "applied": False}
             self._order += 1
             self._hook_registry.append(hhash)
             self._pred_registry.append(phash)
-            
+        
+
+    # def add(self, hook, pred, desc=None,index=None):
+        # """
+        # """
+        # self.rules[index] = {"desc": desc, "hook": hook, "pred": pred, "applied": False}
+    
     def __len__(self): return len(self.rules)
 
 
@@ -221,6 +227,8 @@ class _SMTObject:
         while True:
             pending_rts = _pending_ruletables()
             if pending_rts:
+                # Gehe eine Stufe tiefer rein, nach jedes Mal alle pendings 
+                # bearbeitet zu haben.
                 depth += 1
                 for rt in pending_rts:
                     # o_rd=(order, ruledictionary), sort pending rules based on their order.
