@@ -27,7 +27,6 @@ def make_notehead(note):
             "w": "noteheads.s0",
             "h": "noteheads.s1",
             "q": "noteheads.s2",
-            "8": "eight"
         }[note.duration])
     # elif isinstance(note.duration, (float, int)):
         # note.head_punch = S.E.MChar(name={
@@ -47,6 +46,7 @@ def setstem(self):
         s=S.Stem(length=15,thickness=1, 
         # color=S.E.SW.utils.rgb(0,50,0,"%"),
         x=self.x+.5, # Eigentlich wenn wir dieses X eingeben, es wird als absolut-X gesehen.
+        y=self.head_punch.y,
         endyr=1,endxr=1,rotate=0,
         origin_visible=0)
         self.stem_graver = s #taze , appliedto =false
@@ -55,7 +55,11 @@ def notehead_vertical_pos(note):
     if isinstance(note.pitch, list):
         p = note.pitch[0]
         okt = note.pitch[1]
-        note.headsymbol.y = ((note.fixbottom - {"c":-STAFF_SPACE, "d":-(.5 * STAFF_SPACE)}[p]) + ((4 - okt) * 7/8 * note.FIXHEIGHT))
+        note.head_punch.y = ((note.fixbottom - {
+            "c":-S.E.STAFF_SPACE, 
+            "d":-(.5 * S.E.STAFF_SPACE),
+            
+        }[p]) + ((4 - okt) * 7/8 * note.FIXHEIGHT))
 
 
 def make_accidental_char(accobj):
@@ -136,7 +140,7 @@ def punctsys(h):
     # h._lineup()
 
 
-def noteandtrebe(x): return isinstance(x, S.Note) and x.domain == "treble"
+def noteandtreble(x): return isinstance(x, S.Note) and x.domain == "treble"
 def isacc(x): return isinstance(x, S.Accidental)
 
 
@@ -155,14 +159,15 @@ def opachead(n): n.head_punch.opacity = .3
 hook mehrmals überall, 
 test
 """
-S.E.cmn.add(settime,istime,"Set Time...",)
-S.E.cmn.add(make_notehead, noteandtrebe, "make noteheads",)
-S.E.cmn.add(make_accidental_char, isacc, "Making Accidental Characters",)
-# e.cmn.add(greenhead, noteandtrebe)
-S.E.cmn.add(setstem, isnote, "Set stems",)
-S.E.cmn.add(setclef, isclef, "Make clefs",)
-# S.E.cmn.add(opachead, isnote)
-S.E.cmn.add(punctsys, isline, "Punctuate",)
+S.E.cmn.unsafeadd(settime,istime,"Set Time...",)
+S.E.cmn.unsafeadd(make_notehead, noteandtreble, "make noteheads",)
+S.E.cmn.unsafeadd(notehead_vertical_pos, noteandtreble)
+S.E.cmn.unsafeadd(make_accidental_char, isacc, "Making Accidental Characters",)
+# e.cmn.unsafeadd(greenhead, noteandtreble)
+S.E.cmn.unsafeadd(setstem, isnote, "Set stems",)
+S.E.cmn.unsafeadd(setclef, isclef, "Make clefs",)
+# S.E.cmn.unsafeadd(opachead, isnote)
+S.E.cmn.unsafeadd(punctsys, isline, "Punctuate",)
 
 
 def setbm(l):
@@ -179,11 +184,8 @@ def setbm(l):
     # c.append(S.E.HLineSeg(length=o.width,thickness=5,x=o.left, y=o.stem_graver.bottom))
 
 
-S.E.cmn.add(setbm, isline, "Set beams after Noten stehen fest (punctuation)",)
-def foo(a): print(", Hallo!")
-def rescale(obj): 
-    obj.punch.yscale *=3
-    S.E.cmn.add(foo, isacc, f"Jurij")
+S.E.cmn.unsafeadd(setbm, isline, "Set beams after Noten stehen fest (punctuation)",)
+
 
 def addstaff(n):
     # s=S.Staff()
@@ -200,7 +202,6 @@ def addstaff(n):
     for i in range(x):
         l=S.E.HLineSeg(length=n.width, thickness=1, y=i*h + n.top)
         n.append(l)
-        S.E.cmn.add(rescale, isacc, "Reset acc xscale.",aux=False)
         # S.E.cmn.add(rescale, pred(obj, isinstance(obj, int)), "Reset acc xscale.")
         # print(S.E.cmn.rules.keys())
 
@@ -213,7 +214,7 @@ def addstaff(n):
             # print(e)
 # # pred(isinstance(int), )
     
-S.E.cmn.add(addstaff, isnote, "Draws stave.")
+S.E.cmn.unsafeadd(addstaff, isnote, "Draws stave.")
 
 
 def skew(staff):
@@ -282,7 +283,7 @@ if __name__=="__main__":
         S.Note(domain="treble", duration="q", pitch=["c",4]), 
         # Wir entscheiden über beam, wie stem einfach in Rules!
         S.Note(domain="treble", duration="h", pitch=["c",4]), 
-        S.Note(domain="treble", duration="h", pitch=["c",4]),
+        S.Note(domain="treble", duration="h", pitch=["d",4]),
         S.Accidental(pitch="c",         ),
         *[S.Note(domain="treble", duration=choice(["q", "h"]), pitch=["c",4]) for _ in range(7)],
         S.Note(domain="treble", duration="w", pitch=["c",4]), 

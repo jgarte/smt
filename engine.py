@@ -176,11 +176,10 @@ class RuleTable:
             self._hook_registry.append(hhash)
             self._pred_registry.append(phash)
         
-
-    # def add(self, hook, pred, desc=None,index=None):
-        # """
-        # """
-        # self.rules[index] = {"desc": desc, "hook": hook, "pred": pred, "applied": False}
+    def unsafeadd(self, hook,pred,desc="..."):
+        self.rules[self._order] = {"desc": desc, "hook": hook, "pred": pred, "applied": False}
+        self._order +=1
+        
     
     def __len__(self): return len(self.rules)
 
