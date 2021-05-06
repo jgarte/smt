@@ -5,6 +5,17 @@
 
 """
 
+[note [pitch ]]
+
+
+
+
+
+[cond [[= 2 3] [print hello world!]]
+      true [print 2 was not = to [+ 3 4]]]
+
+[[function 123]] => 123
+
 setting:
 [= a 2]
 
@@ -86,120 +97,95 @@ foo]
 # import inspect
 # import re
 import rply
-from score import *
+
+
+OPEN = r"\["
+CLOSE = r"\]"
+
+
+########################################## Lexer
+srclexgen = rply.LexerGenerator()
+srclexgen.add("TOPLEVEL", r"{0}.*{1}".format(OPEN, CLOSE))
+srclexgen.ignore(r"\s+")
+srclexer = srclexgen.build()
+
 
 
 lg = rply.LexerGenerator()
 
-# lg.add('NUMBER', r'\d+')
-lg.add('NUMBER', r'[\d\s]+')
-lg.add('PLUS', r'\+')
-lg.add('OPEN', r'\[')
-lg.add('CLOSE', r'\]')
+NUMTOK = r"\-{0,1}\d+\.{0,1}\d*"
+TOKENS = (
+    # ("STREAM", r"[{0}\s*]+".format(NUMTOK)),
+    ("NUMBER", NUMTOK),
+    ("OPEN", OPEN),
+    ("CLOSE",CLOSE),
+    ("INC",r"inc "),
+    ("ADD", r"\+")
+    )
 
-lg.ignore('\s+')
+for tok, patt in TOKENS:
+    lg.add(tok, patt)
 
+# for k, v in TOKENS.items():
+    # lg.add(k, v)
+
+lg.ignore(r"[\n]+")
+
+# Build the lexer
 lexer = lg.build()
+# print([r.name for r in lexer.rules])
+
+# for t in lexer.lex("+ 8123873.878 34 0 0.23"):
+    # print(t,)
+
+######################################### Parser
+pg = rply.ParserGenerator([x[0] for x in TOKENS])
+
+"""
+[! 3/4 [timesig 3 4] [toplvl yes]]
+[! 3/4copy 3/4 [x 10] [y 10]]
+[! sol [clef treble]]
+[staff [content sol 3/4 [note fis 4 [headcolor red]] [note ges 4] [note c 4] [barline end]]
+       [width 20] [toplvl yes]]
+       
+"""
+# @pg.production("stat : exp")
+# def exp(p):
+    # print(p)
+    # return p
+
+# @pg.production("exp : EMPTY_STREAM")
+# def expr_empty(p): return []
+
+# @pg.production("exp : NUMBER_STREAM")
+# def _number_stream(p):
+    # print("NS", p)
+
+@pg.production("exp : NUMBER")
+def _number(p):
+    # print(dir(p[0]), p[0])
+    return float(p[0].value)
 
 
-class Number(rply.token.BaseBox):
-    def __init__(self, value):
-        self.value = value
-    def eval(self):
-        return self.value
-class Numbers(rply.token.BaseBox):
-    def __init__(self, *value):
-        self.value = value
-    def eval(self):
-        return self.value
+@pg.production("exp : OPEN INC NUMBER CLOSE")
+def _inc(p):
+    return float(p[2].value) + 1
 
-# class Prefix(rply.token.BaseBox):
-    # def __init__(self, cdr):
-        # # self.left = left
-        # self.cdr = cdr
+@pg.production("exp : OPEN ADD exp CLOSE")
+def _add(p):
+    print(p)
 
-class Add(rply.token.BaseBox):
-   def __init__(self, cdr):
-      self.cdr =cdr
-   def eval(self):
-      # print("CDR",self.cdr)
-      return sum(self.cdr[0].eval())
-      # return self.cdr.eval()+.2
-
-
-pg = rply.ParserGenerator(
-    # A list of all token names, accepted by the parser.
-    ['NUMBER', 'OPEN', 'CLOSE',
-     'PLUS'
-    ],
-    # A list of precedence rules with ascending precedence, to
-    # disambiguate ambiguous production rules.
-    # precedence=[
-        # ('left', ['PLUS', 'MINUS']),
-        # ('left', ['MUL', 'DIV'])
-    # ]
-)
-
-@pg.production('expression : NUMBER')
-def expression_number_____(p):
-    # p is a list of the pieces matched by the right hand side of the
-    # rule
-    # print("---------",p[0].getstr().split(" "))
-    # print("==========",Number([int(x) for x in p[0].getstr().split(" ")]).eval())
-    return(Number([int(x) for x in p[0].getstr().split(" ")]))
-    # return Number(int(p[0].getstr()))
-
-# @pg.production('expression : OPEN expression CLOSE')
-# def expression_parens(p):
-   # print(">>>>", p)
-   # return p[1]
-
-@pg.production('expression : OPEN PLUS expression CLOSE')
-# @pg.production('expression : expression MINUS expression')
-# @pg.production('expression : expression MUL expression')
-# @pg.production('expression : expression DIV expression')
-def expression_binop(p):
-    # left = p[0]
-    # right = p[2]
-   # print(">>",p[1].gettokentype())
-   if p[1].gettokentype() == 'PLUS':
-      return Add(p[2:-1])
-   else:
-      raise AssertionError('Oops, this should not be possible!')
+# @pg.production("exp : OPEN STREAM CLOSE")
+# def _stream(p):
+    # print(p)
 
 parser = pg.build()
-
-print(parser.parse(lexer.lex('[+ 102 3 45]')).eval())
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-smtobjs = {
-   "hform": HForm, "sform": SForm, "vform": VForm, "char": Char,
-   "note": Note
-}
-smt_pubattrs = {
-   "note": [x for x in dir(Note) if not x.startswith("_") and not callable(x)] 
-}
-
-
-
-
-# print(pubattrs["note"], not callable(Note.addsvg))
-# print([x for x in dir(Note) if not x.startswith("_") and not inspect.isfunction(x)])
-# pattern = "\[[\w]\]"
-# print(re.fullmatch(pattern, "[note [pitch [+1 3]]]"))
+with open("./etude~", "r") as src:
+    s = src.read()
+    # print(s)
+    # l = lexer.lex(s)
+    l = srclexer.lex(s)
+    for tok in l:
+        # print(tok)
+        p = parser.parse(lexer.lex(tok.value))
+        print(p)
