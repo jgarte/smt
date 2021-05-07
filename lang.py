@@ -97,6 +97,7 @@ foo]
 # import inspect
 # import re
 import rply
+from functools import reduce
 
 
 OPEN = r"\["
@@ -113,14 +114,16 @@ srclexer = srclexgen.build()
 
 lg = rply.LexerGenerator()
 
-NUMTOK = r"\-{0,1}\d+\.{0,1}\d*"
+NUMPATT = r"[\-\+]?\d+(?:\.\d+)?"
+# print(NUMPATT)
 TOKENS = (
-    # ("STREAM", r"[{0}\s*]+".format(NUMTOK)),
-    ("NUMBER", NUMTOK),
+    # ("STREAM", r"({0})\s*".format(NUMPATT)),
+    # ("NUMBER", NUMPATT),
     ("OPEN", OPEN),
     ("CLOSE",CLOSE),
-    ("INC",r"inc "),
-    ("ADD", r"\+")
+    # ("INC",r"inc\s+"),
+    ("BINOP", r"[\+\*\-\/]"),
+    ("OPERANDS", r"{0}(?:\s{1})*".format(NUMPATT, NUMPATT))
     )
 
 for tok, patt in TOKENS:
@@ -129,7 +132,7 @@ for tok, patt in TOKENS:
 # for k, v in TOKENS.items():
     # lg.add(k, v)
 
-lg.ignore(r"[\n]+")
+lg.ignore(r"\s+")
 
 # Build the lexer
 lexer = lg.build()
@@ -149,35 +152,53 @@ pg = rply.ParserGenerator([x[0] for x in TOKENS])
        [width 20] [toplvl yes]]
        
 """
-# @pg.production("stat : exp")
-# def exp(p):
+# @pg.production("stat : symbol")
+# def symbol(p):
     # print(p)
     # return p
 
-# @pg.production("exp : EMPTY_STREAM")
+# @pg.production("symbol : EMPTY_STREAM")
 # def expr_empty(p): return []
 
-# @pg.production("exp : NUMBER_STREAM")
+# @pg.production("symbol : NUMBER_STREAM")
 # def _number_stream(p):
     # print("NS", p)
 
-@pg.production("exp : NUMBER")
-def _number(p):
+# @pg.production("symbol : NUMBER")
+# def _number(p):
     # print(dir(p[0]), p[0])
-    return float(p[0].value)
+    # return float(p[0].value)
 
+# @pg.production("symbol : OPERANDS")
+# def _operands(expr):
+    # print(expr)
 
-@pg.production("exp : OPEN INC NUMBER CLOSE")
-def _inc(p):
-    return float(p[2].value) + 1
+# @pg.production("symbol : OPERATOR")
+# def _operator(expr):
+    # print(expr)
+    # return {
+        # "+": None
+    # }[expr]
 
-@pg.production("exp : OPEN ADD exp CLOSE")
-def _add(p):
-    print(p)
+@pg.production("symbol : OPEN BINOP OPERANDS CLOSE")
+def _operation(expr):
+    op = expr[1].value
+    try:
+        # All nums? Math
+        operands = [float(e) for e in expr[2].value.split()]
+        if op == "+":
+            return sum(operands)
+        elif op == "*":
+            return reduce(lambda x, y: x*y, operands)
+        elif op == "-":
+            return reduce(lambda x, y: x-y, operands)
+        elif op == "/":
+            return reduce(lambda x, y: x/y, operands)
+        else:
+            raise NotImplementedError
+    except ValueError:
+        pass
 
-# @pg.production("exp : OPEN STREAM CLOSE")
-# def _stream(p):
-    # print(p)
 
 parser = pg.build()
 with open("./etude~", "r") as src:
@@ -185,7 +206,8 @@ with open("./etude~", "r") as src:
     # print(s)
     # l = lexer.lex(s)
     l = srclexer.lex(s)
-    for tok in l:
-        # print(tok)
-        p = parser.parse(lexer.lex(tok.value))
+    for toplvl_tok in l:
+        L = lexer.lex(toplvl_tok.value)
+        # print(list(L))
+        p = parser.parse(L)
         print(p)
