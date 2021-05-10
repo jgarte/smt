@@ -295,5 +295,5 @@ if __name__=="__main__":
     
     # C= S.E.VForm(content=[s1], x=200, y=120)
     # print(C.y,C.fixtop,C.top)
-    S.E.render(s1)
+    S.E.render(S.Note(domain="treble", duration="q", pitch=["c",4]))
     

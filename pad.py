@@ -3,56 +3,66 @@
 smtpad: the text editor for smt
 """
 
-import tkinter as tk
-from tkinter.filedialog import askopenfilename, asksaveasfilename
-# import score
-# import cmn
+# import tkinter as tk
+# from tkinter.filedialog import askopenfilename, asksaveasfilename
+# # import score
+# # import cmn
+# from lang import *
 from lang import *
+from cmn import *
+from engine import render
+
+
+# print(toplevel(toks))
+p=parse("(note (pitch F#5) (duration 4))")
+# p=parse("(+ 2 (* 2 (+ 1 3)))")
+# print(p)
+e=eval(p)
+print(render(e))
 
 
 
+# def render_toplevel():
+    # D = SW.drawing.Drawing(filename="/tmp/smt.svg", size=(pgw,pgh), debug=True)
+    # """
+    # for obj in _smtns:if obj.toplevel:
+    # """
+    # for obj in smt_toplevel:
+        # if obj.toplevel:
+            # obj._apply_rules()
+            # # Form's packsvglst will call packsvglst on descendants recursively
+            # obj._pack_svg_list()
+            # for elem in obj._svg_list:
+                # D.add(elem)
+    # D.save(pretty=True)
 
-def render_toplevel():
-    D = SW.drawing.Drawing(filename="/tmp/smt.svg", size=(pgw,pgh), debug=True)
-    """
-    for obj in _smtns:if obj.toplevel:
-    """
-    for obj in smt_toplevel:
-        if obj.toplevel:
-            obj._apply_rules()
-            # Form's packsvglst will call packsvglst on descendants recursively
-            obj._pack_svg_list()
-            for elem in obj._svg_list:
-                D.add(elem)
-    D.save(pretty=True)
+# _CAPTION = "SMTPad"
 
-_CAPTION = "SMTPad"
+# def open_file():
+    # """Open a file for editing."""
+    # filepath = askopenfilename(
+        # filetypes=[("Text Files", "*.txt"), ("All Files", "*.*")]
+    # )
+    # if not filepath:
+        # return
+    # txt_edit.delete(1.0, tk.END)
+    # with open(filepath, "r") as input_file:
+        # text = input_file.read()
+        # txt_edit.insert(tk.END, text)
+    # window.title(f"{_CAPTION} - {filepath}")
 
-def open_file():
-    """Open a file for editing."""
-    filepath = askopenfilename(
-        filetypes=[("Text Files", "*.txt"), ("All Files", "*.*")]
-    )
-    if not filepath:
-        return
-    txt_edit.delete(1.0, tk.END)
-    with open(filepath, "r") as input_file:
-        text = input_file.read()
-        txt_edit.insert(tk.END, text)
-    window.title(f"{_CAPTION} - {filepath}")
-
-def save_file():
-    """Save the current file as a new file."""
-    filepath = asksaveasfilename(
-        defaultextension="txt",
-        filetypes=[("Text Files", "*.txt"), ("All Files", "*.*")],
-    )
-    if not filepath:
-        return
-    with open(filepath, "w") as output_file:
-        text = txt_edit.get(1.0, tk.END)
-        output_file.write(text)
-    window.title(f"{_CAPTION} - {filepath}")
+# def save_file():
+    # """Save the current file as a new file."""
+    # filepath = asksaveasfilename(
+        # defaultextension="txt",
+        # filetypes=[("Text Files", "*.txt"), ("All Files", "*.*")],
+    # )
+    # if not filepath:
+        # return
+    # with open(filepath, "w") as output_file:
+        # text = txt_edit.get(1.0, tk.END)
+        # output_file.write(text)
+    # window.title(f"{_CAPTION} - {filepath}")
 
 
 

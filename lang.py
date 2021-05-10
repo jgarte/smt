@@ -94,120 +94,101 @@ foo]
 
 
 """
-# import inspect
-# import re
-import rply
-from functools import reduce
+import math
+import operator as op
+from score import *
 
+SCOREOBJS = {
+    "note": Note, 
+}
+OPEN = "["
+CLOSE = "]"
+# Lispy by Peter Norvig
+def tokenize(chars: str) -> list:
+    "Convert a string of characters into a list of tokens."
+    return chars.replace(OPEN, ' ( ').replace(CLOSE, ' ) ').split()
 
-OPEN = r"\["
-CLOSE = r"\]"
+def parse(program):
+    "Read a Scheme expression from a string."
+    return tokens_to_list(tokenize(program))
 
+X=[]
+def tokens_to_list(tokens):
+    "Read an expression from a sequence of tokens."
+    if len(tokens) == 0:
+        raise SyntaxError('unexpected EOF')
+    token = tokens.pop(0)
+    if token == '(':
+        L = []
+        while tokens[0] != ')':
+            L.append(tokens_to_list(tokens))
+        tokens.pop(0) # pop off ')'
+        # print(tokens)
+        return L
+        # whole.append(L)
+    elif token == ')':
+        raise SyntaxError('unexpected )')
+    else:
+        return atom(token)
 
-########################################## Lexer
-srclexgen = rply.LexerGenerator()
-srclexgen.add("TOPLEVEL", r"{0}.*{1}".format(OPEN, CLOSE))
-srclexgen.ignore(r"\s+")
-srclexer = srclexgen.build()
-
-
-
-lg = rply.LexerGenerator()
-
-NUMPATT = r"[\-\+]?\d+(?:\.\d+)?"
-# print(NUMPATT)
-TOKENS = (
-    # ("STREAM", r"({0})\s*".format(NUMPATT)),
-    # ("NUMBER", NUMPATT),
-    ("OPEN", OPEN),
-    ("CLOSE",CLOSE),
-    # ("INC",r"inc\s+"),
-    ("BINOP", r"[\+\*\-\/]"),
-    ("OPERANDS", r"{0}(?:\s{1})*".format(NUMPATT, NUMPATT))
-    )
-
-for tok, patt in TOKENS:
-    lg.add(tok, patt)
-
-# for k, v in TOKENS.items():
-    # lg.add(k, v)
-
-lg.ignore(r"\s+")
-
-# Build the lexer
-lexer = lg.build()
-# print([r.name for r in lexer.rules])
-
-# for t in lexer.lex("+ 8123873.878 34 0 0.23"):
-    # print(t,)
-
-######################################### Parser
-pg = rply.ParserGenerator([x[0] for x in TOKENS])
-
-"""
-[! 3/4 [timesig 3 4] [toplvl yes]]
-[! 3/4copy 3/4 [x 10] [y 10]]
-[! sol [clef treble]]
-[staff [content sol 3/4 [note fis 4 [headcolor red]] [note ges 4] [note c 4] [barline end]]
-       [width 20] [toplvl yes]]
-       
-"""
-# @pg.production("stat : symbol")
-# def symbol(p):
-    # print(p)
-    # return p
-
-# @pg.production("symbol : EMPTY_STREAM")
-# def expr_empty(p): return []
-
-# @pg.production("symbol : NUMBER_STREAM")
-# def _number_stream(p):
-    # print("NS", p)
-
-# @pg.production("symbol : NUMBER")
-# def _number(p):
-    # print(dir(p[0]), p[0])
-    # return float(p[0].value)
-
-# @pg.production("symbol : OPERANDS")
-# def _operands(expr):
-    # print(expr)
-
-# @pg.production("symbol : OPERATOR")
-# def _operator(expr):
-    # print(expr)
-    # return {
-        # "+": None
-    # }[expr]
-
-@pg.production("symbol : OPEN BINOP OPERANDS CLOSE")
-def _operation(expr):
-    op = expr[1].value
-    try:
-        # All nums? Math
-        operands = [float(e) for e in expr[2].value.split()]
-        if op == "+":
-            return sum(operands)
-        elif op == "*":
-            return reduce(lambda x, y: x*y, operands)
-        elif op == "-":
-            return reduce(lambda x, y: x-y, operands)
-        elif op == "/":
-            return reduce(lambda x, y: x/y, operands)
-        else:
-            raise NotImplementedError
+def atom(token):
+    "Numbers become numbers; every other token is a symbol."
+    try: return int(token)
     except ValueError:
-        pass
+        try: return float(token)
+        except ValueError:
+            return token
 
 
-parser = pg.build()
-with open("./etude~", "r") as src:
-    s = src.read()
+def standard_env():
+    "An environment with some Scheme standard procedures."
+    env = {}
+    # env.update(vars(math)) # sin, cos, sqrt, pi, ...
+    env.update({
+        '+':op.add, '-':op.sub, '*':op.mul, '/':op.truediv, 
+        '>':op.gt, '<':op.lt, '>=':op.ge, '<=':op.le, '=':op.eq,
+        'list': lambda *args: list(args),
+    })
+    return env
+
+global_env = standard_env()
+
+def eval(x, env=global_env):
+    "Evaluate an expression in an environment."
+    if isinstance(x, (int, float)):      # constant number
+        return x                
+    elif x[0] == 'if':               # conditional
+        (_, test, conseq, alt) = x
+        exp = (conseq if eval(test, env) else alt)
+        return eval(exp, env)
+    elif x[0] == 'set':           # definition
+        (_, symbol, exp) = x
+        env[symbol] = eval(exp, env)
+    elif isinstance(x, list):
+        # SMT zeug
+        if x[0] in SCOREOBJS:
+            return SCOREOBJS[x[0]](**dict(x[1:]))
+        else: #Lispy
+            proc = eval(x[0], env)
+            args = [eval(arg, env) for arg in x[1:]]
+            return proc(*args)
+    else:
+        return env[x]
+
+p=[]
+if __name__ == "__main__":
+    s="[[[]]] [[]]"
+    toks=tokenize(s)
+    i=0
+    # iclose=0
+    for t in toks:
+        print(t)  
+        if t=="(":
+            p.append(f"{i}open")
+            i+=1
+        elif t==")":
+            i-=1
+            p.append(f"{i}closed")
+    print(p)
     # print(s)
-    # l = lexer.lex(s)
-    l = srclexer.lex(s)
-    for toplvl_tok in l:
-        L = lexer.lex(toplvl_tok.value)
-        # print(list(L))
-        p = parser.parse(L)
-        print(p)
+    # print(eval())
