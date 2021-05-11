@@ -94,6 +94,7 @@ foo]
 
 
 """
+from functools import reduce
 import math
 import operator as op
 from score import *
@@ -103,30 +104,25 @@ SCOREOBJS = {
 }
 OPEN = "["
 CLOSE = "]"
-# Lispy by Peter Norvig
-def tokenize(chars: str) -> list:
-    "Convert a string of characters into a list of tokens."
-    return chars.replace(OPEN, ' ( ').replace(CLOSE, ' ) ').split()
 
 def parse(program):
     "Read a Scheme expression from a string."
-    return tokens_to_list(tokenize(program))
+    return tokens_to_list(program)
 
-X=[]
 def tokens_to_list(tokens):
     "Read an expression from a sequence of tokens."
     if len(tokens) == 0:
         raise SyntaxError('unexpected EOF')
     token = tokens.pop(0)
-    if token == '(':
+    if token == OPEN:
         L = []
-        while tokens[0] != ')':
+        while tokens[0] != CLOSE:
             L.append(tokens_to_list(tokens))
         tokens.pop(0) # pop off ')'
         # print(tokens)
         return L
         # whole.append(L)
-    elif token == ')':
+    elif token == CLOSE:
         raise SyntaxError('unexpected )')
     else:
         return atom(token)
@@ -145,9 +141,11 @@ def standard_env():
     env = {}
     # env.update(vars(math)) # sin, cos, sqrt, pi, ...
     env.update({
-        '+':op.add, '-':op.sub, '*':op.mul, '/':op.truediv, 
+        # '+':op.add, '-':op.sub, '*':op.mul, '/':op.truediv, 
         '>':op.gt, '<':op.lt, '>=':op.ge, '<=':op.le, '=':op.eq,
         'list': lambda *args: list(args),
+        "+": lambda *args: sum(args),
+        "*": lambda *args: reduce(lambda x, y: x*y, args)
     })
     return env
 
@@ -167,28 +165,48 @@ def eval(x, env=global_env):
     elif isinstance(x, list):
         # SMT zeug
         if x[0] in SCOREOBJS:
-            return SCOREOBJS[x[0]](**dict(x[1:]))
+            return SCOREOBJS[x[0]](**dict([[a[0], eval(a[1])] for a in x[1:]]))
         else: #Lispy
             proc = eval(x[0], env)
             args = [eval(arg, env) for arg in x[1:]]
             return proc(*args)
     else:
         return env[x]
+def tokenize_source(src):
+    return src.replace(OPEN, f" {OPEN} ").replace(CLOSE, f" {CLOSE} ").split()
+def index_open_close(tokens):
+    L = []
+    i = 0
+    for tok in tokens:
+        if tok == "[":
+            L.append((tok, i))
+            i += 1
+        elif tok == "]":
+            i -= 1
+            L.append((tok, i))
+        else:
+            L.append(tok)
+    return L
 
-p=[]
+def toplevel_tokens(indexed):
+    L = []
+    toplevel=[]
+    for tok in indexed:
+        if isinstance(tok, tuple):
+            if tok[0] == "[" and tok[1]==0:
+                toplevel.append(tok[0])
+            elif tok[0]=="]" and tok[1]==0:
+                toplevel.append(tok[0])
+                L.append(toplevel)
+                toplevel=[]
+            else:
+                toplevel.append(tok[0])
+        else:
+            toplevel.append(tok)
+    return L
+
 if __name__ == "__main__":
-    s="[[[]]] [[]]"
-    toks=tokenize(s)
-    i=0
-    # iclose=0
-    for t in toks:
-        print(t)  
-        if t=="(":
-            p.append(f"{i}open")
-            i+=1
-        elif t==")":
-            i-=1
-            p.append(f"{i}closed")
-    print(p)
-    # print(s)
-    # print(eval())
+    s="[note]"
+    i=index_open_close(tokenize_source(s))
+    for tl in toplevel_tokens(i):
+        print(parse(tl))

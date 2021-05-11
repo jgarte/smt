@@ -12,13 +12,22 @@ from lang import *
 from cmn import *
 from engine import render
 
+s="""
+[note [pitch 3]]
+[note [pitch [+ 2 3 [* 2 2 2]]]]
+[note [pitch [* 3 100.5]]]
+"""
+
+for tl in toplevel_tokens(index_open_close(tokenize_source(s))):
+    print(eval(parse(tl)).pitch)
+
 
 # print(toplevel(toks))
-p=parse("(note (pitch F#5) (duration 4))")
+# p=parse("(note (pitch F#5) (duration 4))")
 # p=parse("(+ 2 (* 2 (+ 1 3)))")
 # print(p)
-e=eval(p)
-print(render(e))
+# e=eval(p)
+# print(render(e))
 
 
 
