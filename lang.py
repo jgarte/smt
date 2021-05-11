@@ -105,35 +105,35 @@ SCOREOBJS = {
 OPEN = "["
 CLOSE = "]"
 
-def parse(program):
-    "Read a Scheme expression from a string."
-    return tokens_to_list(program)
+# def parse(program):
+    # "Read a Scheme expression from a string."
+    # return tokens_to_list(program)
 
-def tokens_to_list(tokens):
-    "Read an expression from a sequence of tokens."
-    if len(tokens) == 0:
-        raise SyntaxError('unexpected EOF')
-    token = tokens.pop(0)
-    if token == OPEN:
-        L = []
-        while tokens[0] != CLOSE:
-            L.append(tokens_to_list(tokens))
-        tokens.pop(0) # pop off ')'
-        # print(tokens)
-        return L
-        # whole.append(L)
-    elif token == CLOSE:
-        raise SyntaxError('unexpected )')
-    else:
-        return atom(token)
+# def tokens_to_list(tokens):
+    # "Read an expression from a sequence of tokens."
+    # if len(tokens) == 0:
+        # raise SyntaxError('unexpected EOF')
+    # token = tokens.pop(0)
+    # if token == OPEN:
+        # L = []
+        # while tokens[0] != CLOSE:
+            # L.append(tokens_to_list(tokens))
+        # tokens.pop(0) # pop off ')'
+        # # print(tokens)
+        # return L
+        # # whole.append(L)
+    # elif token == CLOSE:
+        # raise SyntaxError('unexpected )')
+    # else:
+        # return atom(token)
 
-def atom(token):
-    "Numbers become numbers; every other token is a symbol."
-    try: return int(token)
-    except ValueError:
-        try: return float(token)
-        except ValueError:
-            return token
+# def atom(token):
+    # "Numbers become numbers; every other token is a symbol."
+    # try: return int(token)
+    # except ValueError:
+        # try: return float(token)
+        # except ValueError:
+            # return token
 
 
 def standard_env():
@@ -172,41 +172,110 @@ def eval(x, env=global_env):
             return proc(*args)
     else:
         return env[x]
+
+
 def tokenize_source(src):
     return src.replace(OPEN, f" {OPEN} ").replace(CLOSE, f" {CLOSE} ").split()
-def index_open_close(tokens):
+
+def index_lists(tokens):
     L = []
     i = 0
     for tok in tokens:
-        if tok == "[":
+        if tok == OPEN:
             L.append((tok, i))
             i += 1
-        elif tok == "]":
+        elif tok == CLOSE:
             i -= 1
             L.append((tok, i))
         else:
             L.append(tok)
     return L
 
-def toplevel_tokens(indexed):
-    L = []
-    toplevel=[]
-    for tok in indexed:
+# def listify(toks, L):
+    # if toks:
+        # tok = toks[0]
+        # # if isinstance(tok, tuple) and tok[0] == OPEN:
+        # if isinstance(tok, str):
+            # L.append(tok)
+            # listify(toks[1:], L)
+        # elif tok[0]==OPEN:
+            # L.append(listify(toks[1:], []))
+        # else: #discard CLOSE
+            # listify(toks[1:], L)
+    # return L
+
+
+# def listify(toks, L):
+    # if toks:
+        # tok = toks[0]
+        # if isinstance(tok, tuple):
+            # if tok[0] == OPEN:
+                # L.append(listify(toks[1:], []))
+            # else: # Discard CLOSE
+                # listify(toks[1:], L)
+        # else: # Token I care about!
+            # L.append(tok)
+            # listify(toks[1:], L)
+    # return L
+
+def listify(toks, L=None):
+    if toks:
+        tok = toks[0]
         if isinstance(tok, tuple):
-            if tok[0] == "[" and tok[1]==0:
-                toplevel.append(tok[0])
-            elif tok[0]=="]" and tok[1]==0:
-                toplevel.append(tok[0])
-                L.append(toplevel)
-                toplevel=[]
-            else:
-                toplevel.append(tok[0])
+            if tok[0] == OPEN:
+                if L is None:
+                    return listify(toks[1:], [])
+                else:
+                    L.append(listify(toks[1:], []))
+            else: # Discard CLOSE
+                return listify(toks[1:], L)
         else:
-            toplevel.append(tok)
+            # The token I care about!
+            try: L.append(tok)
+            # Random texts flying around, aka comment!
+            except AttributeError: pass
+            return listify(toks[1:], L)
     return L
 
+def toplevels(indexed_tokens):
+    TL = []
+    L = []
+    for tok in indexed_tokens:
+        L.append(tok)
+        if isinstance(tok, tuple):
+            if tok[0] == CLOSE and tok[1] == 0:
+                TL.append(L)
+                L = []
+    return TL
+        
+
 if __name__ == "__main__":
-    s="[note]"
-    i=index_open_close(tokenize_source(s))
-    for tl in toplevel_tokens(i):
-        print(parse(tl))
+    # s="[1 [2 [3 [4 [5 Amir [6 7 8]]]]]]"
+    s="""
+    We 
+    Have
+    now
+    implemented
+    comments
+    !
+    [1 [2 [3 [4]]]]
+    Yo
+    Ho
+    [* 2 3 [+ 1 2]]
+    """
+    i=index_lists(tokenize_source(s))
+    # print(i)
+    # print(listify(i,[]))
+    # print(toplevels(i))
+    
+    # print([listify(t, []) for t in toplevels(index_lists(tokenize_source(s)))])
+    
+    # print(toplevels(i))
+    
+    for tl in toplevels(i):
+        # print(tl)
+        # l=
+        # listify(tl)
+        print(listify(tl))
+        # print(tl)
+        # print(eval(l))
