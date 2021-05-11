@@ -105,35 +105,6 @@ SCOREOBJS = {
 OPEN = "["
 CLOSE = "]"
 
-# def parse(program):
-    # "Read a Scheme expression from a string."
-    # return tokens_to_list(program)
-
-# def tokens_to_list(tokens):
-    # "Read an expression from a sequence of tokens."
-    # if len(tokens) == 0:
-        # raise SyntaxError('unexpected EOF')
-    # token = tokens.pop(0)
-    # if token == OPEN:
-        # L = []
-        # while tokens[0] != CLOSE:
-            # L.append(tokens_to_list(tokens))
-        # tokens.pop(0) # pop off ')'
-        # # print(tokens)
-        # return L
-        # # whole.append(L)
-    # elif token == CLOSE:
-        # raise SyntaxError('unexpected )')
-    # else:
-        # return atom(token)
-
-# def atom(token):
-    # "Numbers become numbers; every other token is a symbol."
-    # try: return int(token)
-    # except ValueError:
-        # try: return float(token)
-        # except ValueError:
-            # return token
 
 
 def standard_env():
@@ -219,7 +190,7 @@ def index_lists(tokens):
     # return L
 
 def listify(toks, L=None):
-    if toks:
+    if toks:        
         tok = toks[0]
         if isinstance(tok, tuple):
             if tok[0] == OPEN:
@@ -231,11 +202,17 @@ def listify(toks, L=None):
                 return listify(toks[1:], L)
         else:
             # The token I care about!
-            try: L.append(tok)
+            try: L.append(atom(tok))
             # Random texts flying around, aka comment!
             except AttributeError: pass
             return listify(toks[1:], L)
     return L
+
+def atom(tok):
+    try: return int(tok)
+    except ValueError:
+        try: return float(tok)
+        except ValueError: return tok
 
 def toplevels(indexed_tokens):
     TL = []
@@ -258,7 +235,7 @@ if __name__ == "__main__":
     implemented
     comments
     !
-    [1 [2 [3 [4]]]]
+    [* 2 3]
     Yo
     Ho
     [* 2 3 [+ 1 2]]
@@ -276,6 +253,6 @@ if __name__ == "__main__":
         # print(tl)
         # l=
         # listify(tl)
-        print(listify(tl))
+        print(eval(listify(tl)))
         # print(tl)
         # print(eval(l))
