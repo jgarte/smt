@@ -1,0 +1,9 @@
+
+[! meinC [Note [Pitch 640]]]
+
+[Pitch meinC]
+[? meinC Pitch]
+
+[print Pitch]
+[Note]
+[print 31.32]

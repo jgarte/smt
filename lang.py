@@ -100,47 +100,72 @@ import operator as op
 from score import *
 
 SCOREOBJS = {
-    "note": Note, 
+    "Note": Note, 
 }
+
 OPEN = "["
 CLOSE = "]"
 
 
 
-def standard_env():
+def env():
     "An environment with some Scheme standard procedures."
     env = {}
     # env.update(vars(math)) # sin, cos, sqrt, pi, ...
     env.update({
-        # '+':op.add, '-':op.sub, '*':op.mul, '/':op.truediv, 
         '>':op.gt, '<':op.lt, '>=':op.ge, '<=':op.le, '=':op.eq,
-        'list': lambda *args: list(args),
+        'List': lambda *args: list(args),
         "+": lambda *args: sum(args),
-        "*": lambda *args: reduce(lambda x, y: x*y, args)
+        "*": lambda *args: reduce(lambda x, y: x*y, args),
+        "print": print,
+        'int': int, 'float': float,
+        # SMT object getters
+        "Pitch": lambda obj: getattr(obj, "pitch")
     })
     return env
 
-global_env = standard_env()
+global_env = env()
 
 def eval(x, env=global_env):
-    "Evaluate an expression in an environment."
+    """
+    function ???
+    """
     if isinstance(x, (int, float)):      # constant number
-        return x                
-    elif x[0] == 'if':               # conditional
-        (_, test, conseq, alt) = x
-        exp = (conseq if eval(test, env) else alt)
-        return eval(exp, env)
-    elif x[0] == 'set':           # definition
-        (_, symbol, exp) = x
-        env[symbol] = eval(exp, env)
+        return x
     elif isinstance(x, list):
-        # SMT zeug
-        if x[0] in SCOREOBJS:
-            return SCOREOBJS[x[0]](**dict([[a[0], eval(a[1])] for a in x[1:]]))
-        else: #Lispy
-            proc = eval(x[0], env)
+        if x[0] == 'if':               # conditional
+            (_, test, conseq, alt) = x
+            exp = (conseq if eval(test, env) else alt)
+            return eval(exp, env)
+        # Setter & Getter, defining variabls
+        elif x[0] == '!':
+            (_, var, exp) = x
+            val = eval(exp, env)
+            env[var] = val
+            return var
+        elif x[0] == "?":
+            (_, objname, attr) = x
+            return getattr(env[objname], attr.lower())
+        elif x[0] == 'comment': pass
+        elif x[0] == "is?":
+            # [is? x type1 type2 type3]
+            thing = x[1]
+            types = x[2:]
+            return isinstance(eval(thing), tuple([eval(type) for type in types]))
+        elif x[0] == "function":
+            raise NotImplementedError
+        # In env named functions call
+        elif x[0] in env:
+            op = eval(x[0], env)
             args = [eval(arg, env) for arg in x[1:]]
-            return proc(*args)
+            return op(*args)
+        # Create SMT objects
+        elif x[0] in SCOREOBJS:
+            # I wanted Attrs be camelcase 
+            attrs = [(a[0].lower(), eval(a[1])) for a in x[1:]]
+            return SCOREOBJS[x[0]](**dict(attrs))
+        else:
+            raise NameError(f"Unknown operator {x[0]}")
     else:
         return env[x]
 
@@ -148,7 +173,11 @@ def eval(x, env=global_env):
 def tokenize_source(src):
     return src.replace(OPEN, f" {OPEN} ").replace(CLOSE, f" {CLOSE} ").split()
 
-def index_lists(tokens):
+def index_tokens(tokens):
+    """
+    Mark openings and closings of lists, eg [[]] ->
+    [open0, open1, close1, close0]
+    """
     L = []
     i = 0
     for tok in tokens:
@@ -161,33 +190,6 @@ def index_lists(tokens):
         else:
             L.append(tok)
     return L
-
-# def listify(toks, L):
-    # if toks:
-        # tok = toks[0]
-        # # if isinstance(tok, tuple) and tok[0] == OPEN:
-        # if isinstance(tok, str):
-            # L.append(tok)
-            # listify(toks[1:], L)
-        # elif tok[0]==OPEN:
-            # L.append(listify(toks[1:], []))
-        # else: #discard CLOSE
-            # listify(toks[1:], L)
-    # return L
-
-
-# def listify(toks, L):
-    # if toks:
-        # tok = toks[0]
-        # if isinstance(tok, tuple):
-            # if tok[0] == OPEN:
-                # L.append(listify(toks[1:], []))
-            # else: # Discard CLOSE
-                # listify(toks[1:], L)
-        # else: # Token I care about!
-            # L.append(tok)
-            # listify(toks[1:], L)
-    # return L
 
 def listify(toks, L=None):
     if toks:        
@@ -203,7 +205,7 @@ def listify(toks, L=None):
         else:
             # The token I care about!
             try: L.append(atom(tok))
-            # Random texts flying around, aka comment!
+            # Random texts flying around, I don't care about them!
             except AttributeError: pass
             return listify(toks[1:], L)
     return L
@@ -215,6 +217,7 @@ def atom(tok):
         except ValueError: return tok
 
 def toplevels(indexed_tokens):
+    "Returns a list of all top-level lists."
     TL = []
     L = []
     for tok in indexed_tokens:
@@ -227,25 +230,15 @@ def toplevels(indexed_tokens):
         
 
 if __name__ == "__main__":
-    # s="[1 [2 [3 [4 [5 Amir [6 7 8]]]]]]"
     s="""
-    We 
-    Have
-    now
-    implemented
-    comments
-    !
-    [* 2 3]
-    Yo
-    Ho
-    [* 2 3 [+ 1 2]]
+    [is? 7.34 int float]
     """
-    i=index_lists(tokenize_source(s))
+    i=index_tokens(tokenize_source(s))
     # print(i)
     # print(listify(i,[]))
     # print(toplevels(i))
     
-    # print([listify(t, []) for t in toplevels(index_lists(tokenize_source(s)))])
+    # print([listify(t, []) for t in toplevels(index_tokens(tokenize_source(s)))])
     
     # print(toplevels(i))
     
