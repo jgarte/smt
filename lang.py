@@ -114,6 +114,7 @@ ENV = {
     'List': lambda *args: list(args),
     "+": lambda *args: sum(args),
     "*": lambda *args: reduce(lambda x, y: x*y, args),
+    "=": lambda *args: len(set(args)) == 1,
     "Print": print,
     # Boolean
     "True": True, "False": False,
@@ -192,7 +193,7 @@ def evalexp(x, env=ENV):
         
         
         else:
-            raise NameError
+            raise NameError(f"{x}")
         
     else:
         return env[x]
@@ -266,9 +267,12 @@ def atom(tok):
 
 if __name__ == "__main__":
     s="""
-    [Case [False [Print 34]]
-          [True [Print [[Case [True *]] 2 3 10]]]]
-    
+    [Print
+    [Case [False 3]
+        [False 8]
+        [[= [[Case [False *]
+                    [True +]] 2 3] 5] [* 2 10]]
+        ]]
     """
     i=index_tokens(tokenize_source(s))
     # print(read_from_tokens(tokenize_source(s)))
