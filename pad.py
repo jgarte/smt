@@ -79,12 +79,18 @@ def evalsrc(e):
         for toplevel_expr in toplevels(index_tokens(tokenize_source(src.read()))):
             evalexp(read_from_tokens(toplevel_expr))
 
+# paredit
+def insert_rbracket(_):
+    txt_edit.mark_gravity(tk.INSERT, tk.LEFT)
+    txt_edit.insert(txt_edit.index(tk.INSERT), CLOSE)
+    txt_edit.mark_gravity(tk.INSERT, tk.RIGHT)
+
 CAPTION = "SMTPad"
 
 window = tk.Tk()
 window.title(CAPTION)
-window.rowconfigure(0, minsize=400, weight=1)
-window.columnconfigure(1, minsize=300, weight=1)
+window.rowconfigure(0, minsize=300, weight=1)
+window.columnconfigure(1, minsize=250, weight=1)
 
 txt_edit = tk.Text(window)
 fr_buttons = tk.Frame(window, relief=tk.RAISED, bd=2)
@@ -92,6 +98,8 @@ btn_open = tk.Button(fr_buttons, text="Open", command=open_file)
 btn_save = tk.Button(fr_buttons, text="Save As", command=save_file)
 
 window.bind("<Control_L>e", evalsrc)
+# window.bind("[", lambda e: txt_edit.insert(tk.INSERT-1, "]"))
+window.bind(OPEN, insert_rbracket)
 # btn_eval = tk.Button(fr_buttons, text="eval", command=evalsrc)
 
 

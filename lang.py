@@ -107,31 +107,32 @@ TYPENV = {
     "Note": Note
 }
 
-# Everything which can be expressed as a function comes here,
-# plus variables
-ENV = {
-    # '>':op.gt, '<':op.lt, '>=':op.ge, '<=':op.le, '=':op.eq,
-    'List': lambda *args: list(args),
-    "+": lambda *args: sum(args),
-    "*": lambda *args: reduce(lambda x, y: x*y, args),
-    "=": lambda *args: len(set(args)) == 1,
-    "Print": print,
-    # Boolean
-    "True": True, "False": False,
-    # SMT objects
-    "Pitch": lambda pitchobj: getattr(pitchobj, "pitch"),
-}
+    
+
+def env():
+    return {
+        'List': lambda *args: list(args),
+        "+": lambda *args: reduce(lambda x,y: x+y, args),
+        "*": lambda *args: reduce(lambda x, y: x*y, args),
+        "=": lambda *args: args.count(args[0]) == len(args),
+        "Print": print,
+        # Boolean
+        "True": True, "False": False,
+        # SMT objects
+        "Pitch": lambda pitchobj: getattr(pitchobj, "pitch"),
+    }
 
 OPEN = "["
 CLOSE = "]"
 
 
-def evalexp(x, env=ENV):
+global_env = env()
+
+def evalexp(x, env=global_env):
     """
     function ???
     """
-    if isinstance(x, (int, float)):      # constant number
-        return x
+    if isinstance(x, (int, float)): return x
     elif isinstance(x, list):
         
         if x[0] == "Case":
@@ -139,23 +140,13 @@ def evalexp(x, env=ENV):
                 if evalexp(pred): return evalexp(expr)
             return False
         
-        # if x[0] == 'If':               # conditional
-            # (_, test, conseq, alt) = x
-            # exp = (conseq if evalexp(test, env) else alt)
-            # return evalexp(exp, env)
-        
         # Setter & Getter, defining variabls
         elif x[0] == 'Set':
             # (set x 34) -> variable
             # (set y x)
             (_, var, exp) = x
             env[var] = evalexp(exp, env)
-        
-        elif x[0] == "get":
-            # (get note pitch)
-            (_, objname, attr) = x
-            return getattr(env[objname], attr)
-        
+                
         elif x[0] == 'Comment': pass
         
         elif x[0] == "Is":
@@ -174,27 +165,31 @@ def evalexp(x, env=ENV):
             # args = [evalexp(arg, env) for arg in x[1:]]
             # return op(*args)
         
-        
         # Function call
-        elif isinstance(x[0], list) or x[0] in env:
+        elif isinstance(x[0], list):
             op = evalexp(x[0])
             args = [evalexp(arg, env) for arg in x[1:]]
             return op(*args)
         
+        elif x[0] in env:
+            op = env[x[0]]
+            args = [evalexp(arg, env) for arg in x[1:]]
+            return op(*args)
+            
+        
         # Create SMT objects
         elif x[0] in SMTCONS:
-            # print(x)
-            return SMTCONS[x[0]](**dict([(a[0], evalexp(a[1])) for a in x[1:]]))
+            attrs = [(a[0].lower(), evalexp(a[1])) for a in x[1:]]
+            return SMTCONS[x[0]](**dict(attrs))
         # # In env saved names
         # elif :
             # op = evalexp(x[0], env)
             # args = [evalexp(arg, env) for arg in x[1:]]
             # return op(*args)
         
-        
         else:
             raise NameError(f"{x}")
-        
+    elif x.startswith(("\"", "\'")): return x[1:-1]
     else:
         return env[x]
 
@@ -252,7 +247,7 @@ def read_from_tokens(tokens):
         tokens.pop(0) # pop off ')'
         return L
     elif token == CLOSE:
-        raise SyntaxError('unexpected )')
+        raise SyntaxError(f'unexpected {CLOSE}')
     else:
         return atom(token)
 
@@ -267,12 +262,7 @@ def atom(tok):
 
 if __name__ == "__main__":
     s="""
-    [Print
-    [Case [False 3]
-        [False 8]
-        [[= [[Case [False *]
-                    [True +]] 2 3] 5] [* 2 10]]
-        ]]
+    
     """
     i=index_tokens(tokenize_source(s))
     # print(read_from_tokens(tokenize_source(s)))
@@ -285,8 +275,7 @@ if __name__ == "__main__":
     # print(read_from_tokens(t))
     
     for tl in toplevels(i):
+        # print(read_from_tokens(tl))
         # print(tl)
-        # l=
-        # listify(tl)
         evalexp(read_from_tokens(tl))
         
