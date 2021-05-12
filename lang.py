@@ -99,73 +99,101 @@ import math
 import operator as op
 from score import *
 
-SCOREOBJS = {
+SMTCONS = {
     "Note": Note, 
+}
+TYPENV = {
+    "List": list, "Integer": int, "Float": float,
+    "Note": Note
+}
+
+# Everything which can be expressed as a function comes here,
+# plus variables
+ENV = {
+    # '>':op.gt, '<':op.lt, '>=':op.ge, '<=':op.le, '=':op.eq,
+    'List': lambda *args: list(args),
+    "+": lambda *args: sum(args),
+    "*": lambda *args: reduce(lambda x, y: x*y, args),
+    "Print": print,
+    # Boolean
+    "True": True, "False": False,
+    # SMT objects
+    "Pitch": lambda pitchobj: getattr(pitchobj, "pitch"),
 }
 
 OPEN = "["
 CLOSE = "]"
 
 
-
-def env():
-    "An environment with some Scheme standard procedures."
-    env = {}
-    # env.update(vars(math)) # sin, cos, sqrt, pi, ...
-    env.update({
-        '>':op.gt, '<':op.lt, '>=':op.ge, '<=':op.le, '=':op.eq,
-        'List': lambda *args: list(args),
-        "+": lambda *args: sum(args),
-        "*": lambda *args: reduce(lambda x, y: x*y, args),
-        "print": print,
-        'int': int, 'float': float,
-        # SMT object getters
-        "Pitch": lambda obj: getattr(obj, "pitch")
-    })
-    return env
-
-global_env = env()
-
-def eval(x, env=global_env):
+def evalexp(x, env=ENV):
     """
     function ???
     """
     if isinstance(x, (int, float)):      # constant number
         return x
     elif isinstance(x, list):
-        if x[0] == 'if':               # conditional
-            (_, test, conseq, alt) = x
-            exp = (conseq if eval(test, env) else alt)
-            return eval(exp, env)
+        
+        if x[0] == "Case":
+            for pred, expr in x[1:]:
+                if evalexp(pred): return evalexp(expr)
+            return False
+        
+        # if x[0] == 'If':               # conditional
+            # (_, test, conseq, alt) = x
+            # exp = (conseq if evalexp(test, env) else alt)
+            # return evalexp(exp, env)
+        
         # Setter & Getter, defining variabls
-        elif x[0] == '!':
+        elif x[0] == 'Set':
+            # (set x 34) -> variable
+            # (set y x)
             (_, var, exp) = x
-            val = eval(exp, env)
-            env[var] = val
-            return var
-        elif x[0] == "?":
+            env[var] = evalexp(exp, env)
+        
+        elif x[0] == "get":
+            # (get note pitch)
             (_, objname, attr) = x
-            return getattr(env[objname], attr.lower())
-        elif x[0] == 'comment': pass
-        elif x[0] == "is?":
+            return getattr(env[objname], attr)
+        
+        elif x[0] == 'Comment': pass
+        
+        elif x[0] == "Is":
             # [is? x type1 type2 type3]
             thing = x[1]
             types = x[2:]
-            return isinstance(eval(thing), tuple([eval(type) for type in types]))
+            return isinstance(evalexp(thing), tuple([TYPENV[type_] for type_ in types]))
+        
         elif x[0] == "function":
             raise NotImplementedError
-        # In env named functions call
-        elif x[0] in env:
-            op = eval(x[0], env)
-            args = [eval(arg, env) for arg in x[1:]]
+        
+        # elif x[0] in env:
+        
+        # elif isinstance(x[0], str): # A named function
+            # op = env[x[0]]
+            # args = [evalexp(arg, env) for arg in x[1:]]
+            # return op(*args)
+        
+        
+        # Function call
+        elif isinstance(x[0], list) or x[0] in env:
+            op = evalexp(x[0])
+            args = [evalexp(arg, env) for arg in x[1:]]
             return op(*args)
+        
         # Create SMT objects
-        elif x[0] in SCOREOBJS:
-            # I wanted Attrs be camelcase 
-            attrs = [(a[0].lower(), eval(a[1])) for a in x[1:]]
-            return SCOREOBJS[x[0]](**dict(attrs))
+        elif x[0] in SMTCONS:
+            # print(x)
+            return SMTCONS[x[0]](**dict([(a[0], evalexp(a[1])) for a in x[1:]]))
+        # # In env saved names
+        # elif :
+            # op = evalexp(x[0], env)
+            # args = [evalexp(arg, env) for arg in x[1:]]
+            # return op(*args)
+        
+        
         else:
-            raise NameError(f"Unknown operator {x[0]}")
+            raise NameError
+        
     else:
         return env[x]
 
@@ -191,24 +219,42 @@ def index_tokens(tokens):
             L.append(tok)
     return L
 
-def listify(toks, L=None):
-    if toks:        
-        tok = toks[0]
+def toplevels(indexed_tokens):
+    "Returns a list of all top-level lists."
+    TL = []
+    L = []
+    for tok in indexed_tokens:
+        # L.append(tok)
+        # if isinstance(tok, tuple):
+            # if tok[0] == CLOSE and tok[1] == 0:
+                # TL.append(L)
+                # L = []
         if isinstance(tok, tuple):
-            if tok[0] == OPEN:
-                if L is None:
-                    return listify(toks[1:], [])
-                else:
-                    L.append(listify(toks[1:], []))
-            else: # Discard CLOSE
-                return listify(toks[1:], L)
+            L.append(tok[0])
+            if tok[0] == CLOSE and tok[1] == 0:
+                TL.append(L)
+                L = []
         else:
-            # The token I care about!
-            try: L.append(atom(tok))
-            # Random texts flying around, I don't care about them!
-            except AttributeError: pass
-            return listify(toks[1:], L)
-    return L
+            L.append(tok)
+    return TL
+
+
+def read_from_tokens(tokens):
+    "Read an expression from a sequence of tokens."
+    if len(tokens) == 0:
+        raise SyntaxError('unexpected EOF')
+    token = tokens.pop(0)
+    if token == OPEN:
+        L = []
+        while tokens[0] != CLOSE:
+            L.append(read_from_tokens(tokens))
+        tokens.pop(0) # pop off ')'
+        return L
+    elif token == CLOSE:
+        raise SyntaxError('unexpected )')
+    else:
+        return atom(token)
+
 
 def atom(tok):
     try: return int(tok)
@@ -216,36 +262,27 @@ def atom(tok):
         try: return float(tok)
         except ValueError: return tok
 
-def toplevels(indexed_tokens):
-    "Returns a list of all top-level lists."
-    TL = []
-    L = []
-    for tok in indexed_tokens:
-        L.append(tok)
-        if isinstance(tok, tuple):
-            if tok[0] == CLOSE and tok[1] == 0:
-                TL.append(L)
-                L = []
-    return TL
         
 
 if __name__ == "__main__":
     s="""
-    [is? 7.34 int float]
+    [Case [False [Print 34]]
+          [True [Print [[Case [True *]] 2 3 10]]]]
+    
     """
     i=index_tokens(tokenize_source(s))
+    # print(read_from_tokens(tokenize_source(s)))
     # print(i)
     # print(listify(i,[]))
     # print(toplevels(i))
     
     # print([listify(t, []) for t in toplevels(index_tokens(tokenize_source(s)))])
-    
-    # print(toplevels(i))
+    # t =toplevels(i)[0]
+    # print(read_from_tokens(t))
     
     for tl in toplevels(i):
         # print(tl)
         # l=
         # listify(tl)
-        print(eval(listify(tl)))
-        # print(tl)
-        # print(eval(l))
+        evalexp(read_from_tokens(tl))
+        
