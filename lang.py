@@ -109,7 +109,7 @@ TYPENV = {
 
     
 
-def env():
+def environment():
     return {
         'List': lambda *args: list(args),
         "+": lambda *args: reduce(lambda x,y: x+y, args),
@@ -126,9 +126,9 @@ OPEN = "["
 CLOSE = "]"
 
 
-global_env = env()
 
-def evalexp(x, env=global_env):
+
+def evalexp(x, env):
     """
     function ???
     """
@@ -137,7 +137,7 @@ def evalexp(x, env=global_env):
         
         if x[0] == "Case":
             for pred, expr in x[1:]:
-                if evalexp(pred): return evalexp(expr)
+                if evalexp(pred, env): return evalexp(expr, env)
             return False
         
         # Setter & Getter, defining variabls
@@ -153,7 +153,7 @@ def evalexp(x, env=global_env):
             # [is? x type1 type2 type3]
             thing = x[1]
             types = x[2:]
-            return isinstance(evalexp(thing), tuple([TYPENV[type_] for type_ in types]))
+            return isinstance(evalexp(thing, env), tuple([TYPENV[type_] for type_ in types]))
         
         elif x[0] == "function":
             raise NotImplementedError
@@ -179,7 +179,7 @@ def evalexp(x, env=global_env):
         
         # Create SMT objects
         elif x[0] in SMTCONS:
-            attrs = [(a[0].lower(), evalexp(a[1])) for a in x[1:]]
+            attrs = [(a[0].lower(), evalexp(a[1], env)) for a in x[1:]]
             return SMTCONS[x[0]](**dict(attrs))
         # # In env saved names
         # elif :
@@ -262,7 +262,8 @@ def atom(tok):
 
 if __name__ == "__main__":
     s="""
-    
+    [Set x 0]
+    [Print x]
     """
     i=index_tokens(tokenize_source(s))
     # print(read_from_tokens(tokenize_source(s)))
@@ -273,9 +274,9 @@ if __name__ == "__main__":
     # print([listify(t, []) for t in toplevels(index_tokens(tokenize_source(s)))])
     # t =toplevels(i)[0]
     # print(read_from_tokens(t))
-    
+    e = environment()
     for tl in toplevels(i):
         # print(read_from_tokens(tl))
         # print(tl)
-        evalexp(read_from_tokens(tl))
+        evalexp(read_from_tokens(tl), e)
         
