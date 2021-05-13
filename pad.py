@@ -96,7 +96,6 @@ btn_open = tk.Button(fr_buttons, text="Open", command=open_file)
 btn_save = tk.Button(fr_buttons, text="Save As", command=save_file)
 
 window.bind("<Control_L>e", evalsrc)
-# window.bind("[", lambda e: txt_edit.insert(tk.INSERT-1, "]"))
 window.bind(LBRACKET, insert_rbracket)
 
 
