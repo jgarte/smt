@@ -122,8 +122,8 @@ def environment():
         "Pitch": lambda pitchobj: getattr(pitchobj, "pitch"),
     }
 
-OPEN = "["
-CLOSE = "]"
+LBRACKET = "["
+RBRACKET = "]"
 
 
 
@@ -195,7 +195,7 @@ def evalexp(x, env):
 
 
 def tokenize_source(src):
-    return src.replace(OPEN, f" {OPEN} ").replace(CLOSE, f" {CLOSE} ").split()
+    return src.replace(LBRACKET, f" {LBRACKET} ").replace(RBRACKET, f" {RBRACKET} ").split()
 
 def index_tokens(tokens):
     """
@@ -205,10 +205,10 @@ def index_tokens(tokens):
     L = []
     i = 0
     for tok in tokens:
-        if tok == OPEN:
+        if tok == LBRACKET:
             L.append((tok, i))
             i += 1
-        elif tok == CLOSE:
+        elif tok == RBRACKET:
             i -= 1
             L.append((tok, i))
         else:
@@ -222,12 +222,12 @@ def toplevels(indexed_tokens):
     for tok in indexed_tokens:
         # L.append(tok)
         # if isinstance(tok, tuple):
-            # if tok[0] == CLOSE and tok[1] == 0:
+            # if tok[0] == RBRACKET and tok[1] == 0:
                 # TL.append(L)
                 # L = []
         if isinstance(tok, tuple):
             L.append(tok[0])
-            if tok[0] == CLOSE and tok[1] == 0:
+            if tok[0] == RBRACKET and tok[1] == 0:
                 TL.append(L)
                 L = []
         else:
@@ -240,14 +240,14 @@ def read_from_tokens(tokens):
     if len(tokens) == 0:
         raise SyntaxError('unexpected EOF')
     token = tokens.pop(0)
-    if token == OPEN:
+    if token == LBRACKET:
         L = []
-        while tokens[0] != CLOSE:
+        while tokens[0] != RBRACKET:
             L.append(read_from_tokens(tokens))
         tokens.pop(0) # pop off ')'
         return L
-    elif token == CLOSE:
-        raise SyntaxError(f'unexpected {CLOSE}')
+    elif token == RBRACKET:
+        raise SyntaxError(f'unexpected {RBRACKET}')
     else:
         return atom(token)
 

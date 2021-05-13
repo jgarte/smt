@@ -80,7 +80,7 @@ def evalsrc(e):
 # paredit
 def insert_rbracket(_):
     txt_edit.mark_gravity(tk.INSERT, tk.LEFT)
-    txt_edit.insert(txt_edit.index(tk.INSERT), CLOSE)
+    txt_edit.insert(txt_edit.index(tk.INSERT), RBRACKET)
     txt_edit.mark_gravity(tk.INSERT, tk.RIGHT)
 
 CAPTION = "SMTPad"
@@ -97,7 +97,7 @@ btn_save = tk.Button(fr_buttons, text="Save As", command=save_file)
 
 window.bind("<Control_L>e", evalsrc)
 # window.bind("[", lambda e: txt_edit.insert(tk.INSERT-1, "]"))
-window.bind(OPEN, insert_rbracket)
+window.bind(LBRACKET, insert_rbracket)
 # btn_eval = tk.Button(fr_buttons, text="eval", command=evalsrc)
 
 
