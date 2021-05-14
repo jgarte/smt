@@ -186,6 +186,11 @@ class RuleTable:
 
 # Common Music Notation, default ruletable for all objects
 cmn = RuleTable(name="CMN")
+
+
+
+
+
 _registry = {}
 def getbyid(id_): return _registry[id_]
 class _SMTObject:

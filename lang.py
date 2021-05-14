@@ -1,99 +1,9 @@
 
-
-
-
-
+"""
+[AddRule cmn pred]
+[Is $ Note]
 """
 
-[note [pitch ]]
-
-
-
-
-
-[cond [[= 2 3] [print hello world!]]
-      true [print 2 was not = to [+ 3 4]]]
-
-[[function 123]] => 123
-
-setting:
-[= a 2]
-
-[comment Folgendes ist immer yes!]
-[ja [= 2 3] [ja] [ja] [< 3 4 5]]
-
-[defrule cmn
-  
-  [comment predicate können soviele sein wie man will!]
-  [comment und können alle in ,,,,]
-  [true [< [height %] 100]
-        [= [farbe %] rot]
-        [false [= [farbe [stemGraver %]] rot]]]
-
-  [comment Und hier kommt action!]
-  [set [farbe [stemGraver %] grün]]
-  
-  [defrule cmn pred funcs [aux true]]
-  ]
-
-
-
-Wir brauchen auch eine Konsole zum printen
-
-[print Hello world, welcome to the SMTPad, a text-editor for 
-Semantic Music Typesetting!]
-[print
- [pitch [note [pitch 60]]]
-]
-
-[Function [a b c]
-  [loop x in [range 10 21]
-     [print [+ a b c]]]]
-
-[defrule [note clef hform accidental]
- 	 [treble bass alto]
-	 [function [self]
-	    comment line, dont do this: [inc [x self]] 
-instead use the set operator
-	    [assign [x self] [* [x self] 10]]
-	 [function [self]
-	   [set [color self] green]]
-	 [function [self parent]
-	   [set [xscale parent] [* 3 4 .5 2]]]
-]]
-
-@ = Object to which rule must be applied!
-@color = [color object]
-@0color = [color [at 0 [content object]]]
-@-1color = [color [ancestors object]]
-[defrule [set @color [list [random 0 101] 0 0]]]
-
-
-A named function:
-
-[set fun [function [x y] [print [* x y]]]]
-[fun 3 4] => 12
-vs. anonymus function:
-
-[function [x y] a doc string? [print [list x y]]]
-
-[[function [a b] [* a b]] 3 4] => 12
-
-[procedure make_note [p] [note [pitch p] [duration 1] [id foo]]
-[line [toplevel yes] [make_note c4]]
-
-comment whole line, aber das wird trotzdem gemach [+ 2 1]
-[print [getby pitch c4] 
-[getby id 
-foo]
-]
-
-
-
-[fun FoBar]
-
-
-"""
 from functools import reduce
 import math
 import operator as op
@@ -148,64 +58,67 @@ class _Function:
         return evalexp(self.body[-1], self.env)
         
 
-
-def evalexp(x, env):
+def evalexp(exp, env):
     """
-    function ???
     """
-    if isinstance(x, (int, float)): return x
-    elif isinstance(x, list):
+    if isinstance(exp, (int, float)): return exp
+    elif isinstance(exp, list):
         
-        if x[0] == "Case":
-            for pred, expr in x[1:]:
-                if evalexp(pred, env): return evalexp(expr, env)
+        car = exp[0]
+        cdr = exp[1:]
+        
+        if car == "Case":
+            for pred, x in cdr:
+                if evalexp(pred, env): return evalexp(x, env)
             return False
         
+        elif car == "And":
+            return all([evalexp(a, env) for a in cdr])
+            
         # Setter defining variabls
-        elif x[0] == 'Set':
-            # (set x 34) -> variable
-            # (set y x)
-            (_, var, exp) = x
-            env[var] = evalexp(exp, env)
+        elif car == 'Set':
+            var, val = cdr
+            env[var] = evalexp(val, env)
+            
                 
         # Comment
-        elif x[0] == 'Comment': pass
+        elif car == 'Comment': pass
         
-        elif x[0] == "Inc": 
-            curr = evalexp(x[1], env)
+        elif car == "Inc": 
+            curr = evalexp(exp[1], env)
             print("??????????????")
         
-        elif x[0] == "Is":
-            thing = x[1]
-            type = x[2]
+        elif car == "Is":
+            thing = cdr[0]
+            type = cdr[1]
             return isinstance(evalexp(thing, env), TYPENV[type])
         
         # init = [Function [x y] [* x y] [+ x y]]
         # call = F(x, y)
-        elif x[0] == "Function":
-            if isinstance(x[1], str): # Named function
+        elif car == "Function":
+            if isinstance(cdr[0], str): # Named function
                 pass
             else: # anonymus function
-                params = x[1]
-                body = x[2:]
+                params = cdr[0]
+                body = cdr[1:]
                 return _Function(params, body)
         
         # Function call
-        elif isinstance(x[0], list):
-            op = evalexp(x[0], env)
-            args = [evalexp(arg, env) for arg in x[1:]]
+        elif isinstance(car, list):
+            op = evalexp(car, env)
+            args = [evalexp(arg, env) for arg in cdr]
             return op(*args)
         
-        elif x[0] in env:
-            op = env[x[0]]
-            args = [evalexp(arg, env) for arg in x[1:]]
+        elif car in env:
+            op = env[car]
+            args = [evalexp(arg, env) for arg in cdr]
             return op(*args)
             
         
         # Create SMT objects
-        elif x[0] in SMTCONS:
-            attrs = [(a[0].lower(), evalexp(a[1], env)) for a in x[1:]]
-            return SMTCONS[x[0]](**dict(attrs))
+        elif car in SMTCONS:
+            attrs = [(a[0].lower(), evalexp(a[1], env)) for a in cdr]
+            return SMTCONS[car](**dict(attrs))
         # # In env saved names
         # elif :
             # op = evalexp(x[0], env)
@@ -213,10 +126,10 @@ def evalexp(x, env):
             # return op(*args)
         
         else:
-            raise NameError(f"{x}")
-    elif x.startswith(("\"", "\'")): return x[1:-1]
+            raise NameError(f"{exp}")
+    elif exp.startswith(("\"", "\'")): return exp[1:-1]
     else:
-        return env[x]
+        return env[exp]
 
 
 def tokenize_source(src):
@@ -287,7 +200,9 @@ def atom(tok):
 
 if __name__ == "__main__":
     s="""
-    [Print [* [[Function [] 3]] 10]]
+    [Print [And True  [= 2 2.0 [+ 1 1]]
+    [[Function [x y] [= x y]] 2 20]
+    ]]
 
     """
     i=index_tokens(tokenize_source(s))
