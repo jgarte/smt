@@ -99,20 +99,22 @@ import math
 import operator as op
 from score import *
 
-print(E.MChar)
+
+# S.E.cmn.unsafeadd(settime,istime,"Set Time...",)
 
 SMTCONS = {
-    "Note": Note, 
+    "Note": Note, "MChar": E.MChar, "SimpleTimeSig": SimpleTimeSig
 }
+
 TYPENV = {
-    "List": list, "Number": (int, float),
+    "List": list, "Num": (int, float),
     "Note": Note
 }
 
     
 
-def environment():
-    return {
+def make_env(*others):
+    D = {
         'List': lambda *args: list(args),
         "+": lambda *args: reduce(lambda x,y: x+y, args),
         "*": lambda *args: reduce(lambda x, y: x*y, args),
@@ -123,11 +125,28 @@ def environment():
         # SMT objects
         "Pitch": lambda pitchobj: getattr(pitchobj, "pitch"),
     }
+    if others:
+        for other in others:
+            D.update(other)
+    return D
+    
 
 LBRACKET = "["
 RBRACKET = "]"
 
-
+class _Function:
+    def __init__(self, params, body):
+        self.params = params #["a","b"]
+        self.body = body
+        self.env = make_env()
+    
+    def __call__(self, *args):
+        assert len(self.params) == len(args)
+        self.env.update(zip(self.params, args))
+        for exp in self.body[:-1]: # Side effects
+            evalexp(exp, self.env)
+        return evalexp(self.body[-1], self.env)
+        
 
 
 def evalexp(x, env):
@@ -142,34 +161,38 @@ def evalexp(x, env):
                 if evalexp(pred, env): return evalexp(expr, env)
             return False
         
-        # Setter & Getter, defining variabls
+        # Setter defining variabls
         elif x[0] == 'Set':
             # (set x 34) -> variable
             # (set y x)
             (_, var, exp) = x
             env[var] = evalexp(exp, env)
                 
+        # Comment
         elif x[0] == 'Comment': pass
+        
+        elif x[0] == "Inc": 
+            curr = evalexp(x[1], env)
+            print("??????????????")
         
         elif x[0] == "Is":
             thing = x[1]
             type_ = x[2]
             return isinstance(evalexp(thing, env), TYPENV[type_])
-            # return isinstance(evalexp(thing, env), tuple([TYPENV[type_] for type_ in types]))
         
-        elif x[0] == "function":
-            raise NotImplementedError
-        
-        # elif x[0] in env:
-        
-        # elif isinstance(x[0], str): # A named function
-            # op = env[x[0]]
-            # args = [evalexp(arg, env) for arg in x[1:]]
-            # return op(*args)
+        # init = [Function [x y] [* x y] [+ x y]]
+        # call = F(x, y)
+        elif x[0] == "Function":
+            if isinstance(x[1], str): # Named function
+                pass
+            else: # anonymus function
+                params = x[1]
+                body = x[2:]
+                return _Function(params, body)
         
         # Function call
         elif isinstance(x[0], list):
-            op = evalexp(x[0])
+            op = evalexp(x[0], env)
             args = [evalexp(arg, env) for arg in x[1:]]
             return op(*args)
         
@@ -264,8 +287,8 @@ def atom(tok):
 
 if __name__ == "__main__":
     s="""
-    [Set x 0]
-    [Print x]
+    [Print [* [[Function [] 3]] 10]]
+
     """
     i=index_tokens(tokenize_source(s))
     # print(read_from_tokens(tokenize_source(s)))
@@ -276,7 +299,7 @@ if __name__ == "__main__":
     # print([listify(t, []) for t in toplevels(index_tokens(tokenize_source(s)))])
     # t =toplevels(i)[0]
     # print(read_from_tokens(t))
-    e = environment()
+    e = make_env()
     for tl in toplevels(i):
         # print(read_from_tokens(tl))
         # print(tl)
