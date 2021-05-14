@@ -99,11 +99,13 @@ import math
 import operator as op
 from score import *
 
+print(E.MChar)
+
 SMTCONS = {
     "Note": Note, 
 }
 TYPENV = {
-    "List": list, "Integer": int, "Float": float,
+    "List": list, "Number": (int, float),
     "Note": Note
 }
 
@@ -150,10 +152,10 @@ def evalexp(x, env):
         elif x[0] == 'Comment': pass
         
         elif x[0] == "Is":
-            # [is? x type1 type2 type3]
             thing = x[1]
-            types = x[2:]
-            return isinstance(evalexp(thing, env), tuple([TYPENV[type_] for type_ in types]))
+            type_ = x[2]
+            return isinstance(evalexp(thing, env), TYPENV[type_])
+            # return isinstance(evalexp(thing, env), tuple([TYPENV[type_] for type_ in types]))
         
         elif x[0] == "function":
             raise NotImplementedError
