@@ -177,8 +177,8 @@ def evalexp(x, env):
         
         elif x[0] == "Is":
             thing = x[1]
-            type_ = x[2]
-            return isinstance(evalexp(thing, env), TYPENV[type_])
+            type = x[2]
+            return isinstance(evalexp(thing, env), TYPENV[type])
         
         # init = [Function [x y] [* x y] [+ x y]]
         # call = F(x, y)
