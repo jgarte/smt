@@ -75,6 +75,7 @@ def evalsrc(e):
     env = make_env()
     for toplevel_expr in toplevels(index_tokens(tokenize_source(srctxt))):
         evalexp(read_from_tokens(toplevel_expr), env)
+    # print(index_tokens(tokenize_source(srctxt)))
 
 
 # paredit
@@ -91,19 +92,19 @@ window.rowconfigure(0, minsize=300, weight=1)
 window.columnconfigure(1, minsize=250, weight=1)
 
 txt_edit = tk.Text(window)
-fr_buttons = tk.Frame(window, relief=tk.RAISED, bd=2)
-btn_open = tk.Button(fr_buttons, text="Open", command=open_file)
-btn_save = tk.Button(fr_buttons, text="Save As", command=save_file)
+# fr_buttons = tk.Frame(window, relief=tk.RAISED, bd=2)
+# btn_open = tk.Button(fr_buttons, text="Open", command=open_file)
+# btn_save = tk.Button(fr_buttons, text="Save As", command=save_file)
 
 window.bind("<Control_L>e", evalsrc)
 window.bind(LBRACKET, insert_rbracket)
 
 
-btn_open.grid(row=0, column=0, sticky="ew", padx=5, pady=5)
-btn_save.grid(row=1, column=0, sticky="ew", padx=5)
+# btn_open.grid(row=0, column=0, sticky="ew", padx=5, pady=5)
+# btn_save.grid(row=1, column=0, sticky="ew", padx=5)
 # btn_eval.grid(row=2, column=0, sticky="ew", padx=5)
 
-fr_buttons.grid(row=0, column=0, sticky="ns")
+# fr_buttons.grid(row=0, column=0, sticky="ns")
 txt_edit.grid(row=0, column=1, sticky="nsew")
 
 window.mainloop()

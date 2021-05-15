@@ -13,12 +13,13 @@ from score import *
 # S.E.cmn.unsafeadd(settime,istime,"Set Time...",)
 
 SMTCONS = {
+    "SForm": E.SForm,
     "Note": Note, "MChar": E.MChar, "SimpleTimeSig": SimpleTimeSig
 }
 
 TYPENV = {
     "List": list, "Num": (int, float),
-    "Note": Note
+    "Note": Note, "SForm": E.SForm
 }
 
     
@@ -80,6 +81,8 @@ def evalexp(exp, env):
             var, val = cdr
             env[var] = evalexp(val, env)
             
+        elif car == "RuleTable":
+            return E.RuleTable()
                 
         # Comment
         elif car == 'Comment': pass
@@ -133,6 +136,10 @@ def evalexp(exp, env):
 
 
 def tokenize_source(src):
+    """
+    [Print "Hello World"]
+    """
+    print(src)
     return src.replace(LBRACKET, f" {LBRACKET} ").replace(RBRACKET, f" {RBRACKET} ").split()
 
 def index_tokens(tokens):
@@ -200,9 +207,16 @@ def atom(tok):
 
 if __name__ == "__main__":
     s="""
-    [Print [And True  [= 2 2.0 [+ 1 1]]
-    [[Function [x y] [= x y]] 2 20]
-    ]]
+    
+    [Print "Hello"]
+    
+    
+    
+    
+    
+    
+    
+    
 
     """
     i=index_tokens(tokenize_source(s))
@@ -217,6 +231,6 @@ if __name__ == "__main__":
     e = make_env()
     for tl in toplevels(i):
         # print(read_from_tokens(tl))
-        # print(tl)
+        print(tl)
         evalexp(read_from_tokens(tl), e)
         
