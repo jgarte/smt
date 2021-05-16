@@ -2,23 +2,35 @@
 """
 [AddRule cmn pred]
 [Is $ Note]
-"""
 
+This is a comment,
+so write any thing you
+like here, and it will all thrown away for you!
+[Define cmn ]
+[! Here is an inline comment
+which can be multiple lines
+and etc.]
+"""
+import re
 from functools import reduce
 import math
 import operator as op
 from score import *
 
 
+
 # S.E.cmn.unsafeadd(settime,istime,"Set Time...",)
+LBRACKET = "["
+RBRACKET = "]"
 
 SMTCONS = {
     "SForm": E.SForm,
-    "Note": Note, "MChar": E.MChar, "SimpleTimeSig": SimpleTimeSig
+    "Note": Note, "mchar": E.MChar, "SimpleTimeSig": SimpleTimeSig
 }
 
+
 TYPENV = {
-    "List": list, "Num": (int, float),
+    "List": list, "Number": (int, float), "String": str,
     "Note": Note, "SForm": E.SForm
 }
 
@@ -42,9 +54,6 @@ def make_env(*others):
     return D
     
 
-LBRACKET = "["
-RBRACKET = "]"
-
 class _Function:
     def __init__(self, params, body):
         self.params = params #["a","b"]
@@ -62,15 +71,17 @@ class _Function:
 def evalexp(exp, env):
     """
     """
-    if isinstance(exp, (int, float)): return exp
+    if isinstance(exp, (int, float)):
+        return exp
+    
     elif isinstance(exp, list):
-        
         car = exp[0]
         cdr = exp[1:]
         
         if car == "Case":
             for pred, x in cdr:
-                if evalexp(pred, env): return evalexp(x, env)
+                if evalexp(pred, env) or evalexp(pred, env) == 0: # Accept 0 as True
+                    return evalexp(x, env)
             return False
         
         elif car == "And":
@@ -85,7 +96,7 @@ def evalexp(exp, env):
             return E.RuleTable()
                 
         # Comment
-        elif car == 'Comment': pass
+        elif car == '!': pass
         
         elif car == "Inc": 
             curr = evalexp(exp[1], env)
@@ -130,17 +141,30 @@ def evalexp(exp, env):
         
         else:
             raise NameError(f"{exp}")
-    elif exp.startswith(("\"", "\'")): return exp[1:-1]
+    elif exp.startswith("\"") and exp.endswith("\""):
+        return exp[1:-1]
     else:
         return env[exp]
 
+STRPATT = re.compile(r"\"[\w\s!]*\"")
 
 def tokenize_source(src):
     """
     [Print "Hello World"]
     """
-    print(src)
-    return src.replace(LBRACKET, f" {LBRACKET} ").replace(RBRACKET, f" {RBRACKET} ").split()
+    src = src.strip()
+    str_matches = list(STRPATT.finditer(src))
+    spans = [m.span() for m in str_matches]
+    indices = [0] + [i for s in spans for i in s] + [len(src)]
+    tokens = []
+    for x in list(zip(indices[:-1], indices[1:])):
+        if x in spans: # str match?
+            tokens.append(src[x[0]:x[1]])
+        else:
+            tokens.extend(src[x[0]:x[1]].replace(LBRACKET, f" {LBRACKET} ").replace(RBRACKET, f" {RBRACKET} ").split())
+    print("T>",tokens)
+    return tokens
+    # return src.replace(LBRACKET, f" {LBRACKET} ").replace(RBRACKET, f" {RBRACKET} ").split()
 
 def index_tokens(tokens):
     """
@@ -160,8 +184,7 @@ def index_tokens(tokens):
             L.append(tok)
     return L
 
-def toplevels(indexed_tokens):
-    "Returns a list of all top-level lists."
+def toplevel_exprs(indexed_tokens):
     TL = []
     L = []
     for tok in indexed_tokens:
@@ -208,12 +231,8 @@ def atom(tok):
 if __name__ == "__main__":
     s="""
     
-    [Print "Hello"]
-    
-    
-    
-    
-    
+    [Print [+ "Hello World" "!" "Python" "   " "SMT"]]
+    "Hello World"
     
     
     
@@ -223,14 +242,14 @@ if __name__ == "__main__":
     # print(read_from_tokens(tokenize_source(s)))
     # print(i)
     # print(listify(i,[]))
-    # print(toplevels(i))
+    # print(toplevel_exprs(i))
     
-    # print([listify(t, []) for t in toplevels(index_tokens(tokenize_source(s)))])
-    # t =toplevels(i)[0]
+    # print([listify(t, []) for t in toplevel_exprs(index_tokens(tokenize_source(s)))])
+    # t =toplevel_exprs(i)[0]
     # print(read_from_tokens(t))
-    e = make_env()
-    for tl in toplevels(i):
-        # print(read_from_tokens(tl))
-        print(tl)
-        evalexp(read_from_tokens(tl), e)
+    env = make_env()
+    # print(toplevel_exprs(i))
+    for e in toplevel_exprs(i):
+        # print(">>",e,read_from_tokens(e))
+        evalexp(read_from_tokens(e), env)
         

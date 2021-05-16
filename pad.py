@@ -1,6 +1,6 @@
 
 """
-smtpad: the text editor for smt
+SMTPad
 """
 
 import tkinter as tk
@@ -11,34 +11,6 @@ from tkinter.filedialog import askopenfilename, asksaveasfilename
 from lang import *
 from cmn import *
 from engine import render
-
-
-
-s="""
-[note [pitch [list 123 4 5 6 7]]]
-[! F5 [note [pitch 65]]]
-[pitch F5]
-[? F5 pitch]
-
-
-"""
-
-
-
-
-# def render_toplevel():
-    # D = SW.drawing.Drawing(filename="/tmp/smt.svg", size=(pgw,pgh), debug=True)
-    # """
-    # for obj in _smtns:if obj.toplevel:
-    # """
-    # for obj in smt_toplevel:
-        # if obj.toplevel:
-            # obj._apply_rules()
-            # # Form's packsvglst will call packsvglst on descendants recursively
-            # obj._pack_svg_list()
-            # for elem in obj._svg_list:
-                # D.add(elem)
-    # D.save(pretty=True)
 
 
 
@@ -54,7 +26,7 @@ def open_file():
     with open(filepath, "r") as input_file:
         text = input_file.read()
         txt_edit.insert(tk.END, text)
-    window.title(f"{CAPTION} - {filepath}")
+    pad.title(f"{CAPTION} - {filepath}")
 
 def save_file():
     """Save the current file as a new file."""
@@ -67,7 +39,7 @@ def save_file():
     with open(filepath, "w") as output_file:
         text = txt_edit.get(1.0, tk.END)
         output_file.write(text)
-    window.title(f"{CAPTION} - {filepath}")
+    pad.title(f"{CAPTION} - {filepath}")
 
 
 def evalsrc(e):
@@ -84,20 +56,31 @@ def insert_rbracket(_):
     txt_edit.insert(txt_edit.index(tk.INSERT), RBRACKET)
     txt_edit.mark_gravity(tk.INSERT, tk.RIGHT)
 
+def insert_rdquote(_):
+    txt_edit.mark_gravity(tk.INSERT, tk.LEFT)
+    txt_edit.insert(txt_edit.index(tk.INSERT), '"')
+    txt_edit.mark_gravity(tk.INSERT, tk.RIGHT)
+
+def insert_rquote(_):
+    txt_edit.mark_gravity(tk.INSERT, tk.LEFT)
+    txt_edit.insert(txt_edit.index(tk.INSERT), "'")
+    txt_edit.mark_gravity(tk.INSERT, tk.RIGHT)
+
 CAPTION = "SMTPad"
+pad = tk.Tk()
+pad.title(CAPTION)
+pad.rowconfigure(0, minsize=300, weight=1)
+pad.columnconfigure(1, minsize=250, weight=1)
 
-window = tk.Tk()
-window.title(CAPTION)
-window.rowconfigure(0, minsize=300, weight=1)
-window.columnconfigure(1, minsize=250, weight=1)
-
-txt_edit = tk.Text(window)
-# fr_buttons = tk.Frame(window, relief=tk.RAISED, bd=2)
+txt_edit = tk.Text(pad)
+# fr_buttons = tk.Frame(pad, relief=tk.RAISED, bd=2)
 # btn_open = tk.Button(fr_buttons, text="Open", command=open_file)
 # btn_save = tk.Button(fr_buttons, text="Save As", command=save_file)
 
-window.bind("<Control_L>e", evalsrc)
-window.bind(LBRACKET, insert_rbracket)
+pad.bind("<Control_L>e", evalsrc)
+pad.bind(LBRACKET, insert_rbracket)
+pad.bind('"', insert_rdquote)
+pad.bind("'", insert_rquote)
 
 
 # btn_open.grid(row=0, column=0, sticky="ew", padx=5, pady=5)
@@ -107,4 +90,5 @@ window.bind(LBRACKET, insert_rbracket)
 # fr_buttons.grid(row=0, column=0, sticky="ns")
 txt_edit.grid(row=0, column=1, sticky="nsew")
 
-window.mainloop()
+if __name__ == "__main__":
+	pad.mainloop()
