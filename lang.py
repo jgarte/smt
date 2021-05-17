@@ -10,40 +10,53 @@ like here, and it will all thrown away for you!
 [! Here is an inline comment
 which can be multiple lines
 and etc.]
+
+
+[TimeSig [Num 3] [Denom 4]]
+
+(set (timesig (num 3) (denom 5)))
+(num )
+
 """
 import re
 from functools import reduce
 from score import *
-
+# import score
 
 # S.E.cmn.unsafeadd(settime,istime,"Set Time...",)
-LBRACKET = "["
-RBRACKET = "]"
+LBRACKET = "("
+RBRACKET = ")"
 
-SMTCONS = {
-    "SForm": E.SForm,
-    "Note": Note, "mchar": E.MChar, "SimpleTimeSig": SimpleTimeSig
+SMTCONS = {x.__name__.lower() for x in (
+        E.SForm, E.HForm, E.VForm, E.MChar,
+        Note, SimpleTimeSig
+    )
 }
 
-
-TYPENV = {
-    "List": list, "Number": (int, float), "String": str,
-    "Note": Note, "SForm": E.SForm
+TYPENV = {t.__name__.lower(): t for t in (
+        list, int, float, str,
+        E.SForm, E.HForm, E.VForm, E.MChar
+    )
 }
 
-    
+def attrgetter(attr_name): 
+    return lambda inst: getattr(inst, attr_name)
 
 def make_env(*others):
+    D = dict(
+    )
     D = {
-        'List': lambda *args: list(args),
-        "+": lambda *args: reduce(lambda x,y: x+y, args),
-        "*": lambda *args: reduce(lambda x, y: x*y, args),
+        'list': lambda *args: list(args),
+        "+": lambda *args: reduce(lambda x, y: x + y, args),
+        "*": lambda *args: reduce(lambda x, y: x * y, args),
         "=": lambda *args: args.count(args[0]) == len(args),
-        "Print": print,
+        "print": print,
         # Boolean
-        "True": True, "False": False,
+        "true": True, "false": False,
         # SMT
-        "Pitch": lambda pitchobj: getattr(pitchobj, "pitch"),
+        "pitch": lambda pitchobj: getattr(pitchobj, "pitch"),
+        # TimeSig
+        "num": lambda ts: getattr(ts, "num")
     }
     if others:
         for other in others:
@@ -75,22 +88,19 @@ def evalexp(exp, env):
         car = exp[0]
         cdr = exp[1:]
         
-        if car == "Case":
+        if car == "case":
             for pred, x in cdr:
                 if evalexp(pred, env):
                     return evalexp(x, env)
             return False
         
-        elif car == "And":
+        elif car == "and":
             return all([evalexp(a, env) for a in cdr])
             
         # Setter defining variabls
-        elif car == 'Set':
+        elif car == 'set':
             var, val = cdr
             env[var] = evalexp(val, env)
-            
-        elif car == "RuleTable":
-            return E.RuleTable()
                 
         # Comment
         elif car == '!': pass
@@ -99,14 +109,14 @@ def evalexp(exp, env):
             curr = evalexp(exp[1], env)
             print("??????????????")
         
-        elif car == "Is":
+        elif car == "is":
             thing = cdr[0]
             type = cdr[1]
             return isinstance(evalexp(thing, env), TYPENV[type])
         
         # init = [Function [x y] [* x y] [+ x y]]
         # call = F(x, y)
-        elif car == "Function":
+        elif car == "fn":
             if isinstance(cdr[0], str): # Named function
                 pass
             else: # anonymus function
@@ -125,25 +135,18 @@ def evalexp(exp, env):
             args = [evalexp(arg, env) for arg in cdr]
             return op(*args)
             
-        
-        # Create SMT objects
+        # A SMT constructor (the class and it's attributes)
         elif car in SMTCONS:
-            attrs = [(a[0].lower(), evalexp(a[1], env)) for a in cdr]
-            return SMTCONS[car](**dict(attrs))
-        # # In env saved names
-        # elif :
-            # op = evalexp(x[0], env)
-            # args = [evalexp(arg, env) for arg in x[1:]]
-            # return op(*args)
-        
+            return SMTCONS[car](**dict([(a[0], evalexp(a[1], env)) for a in cdr]))
         else:
             raise NameError(f"{exp}")
+    # A string
     elif exp.startswith("\"") and exp.endswith("\""):
         return exp[1:-1]
     else:
         return env[exp]
 
-
+# Allow anything between double quotes except with double quote itself!
 STRPATT = re.compile(r'"[^"]*"')
 
 def tokenize_source(src):
@@ -159,7 +162,6 @@ def tokenize_source(src):
             tokens.append(src[x[0]:x[1]])
         else:
             tokens.extend(src[x[0]:x[1]].replace(LBRACKET, f" {LBRACKET} ").replace(RBRACKET, f" {RBRACKET} ").split())
-    # print("T>",tokens)
     return tokens
     # return src.replace(LBRACKET, f" {LBRACKET} ").replace(RBRACKET, f" {RBRACKET} ").split()
 
@@ -199,7 +201,7 @@ def toplevel_exprs(indexed_tokens):
             # Track if it's a bracket token.
             last_bracket = tok
         else:
-            if not last_bracket == (RBRACKET, 0):
+            if not last_bracket == (RBRACKET, 0): # not a comment
                 L.append(tok)
     return TL
 
@@ -232,22 +234,7 @@ def atom(tok):
 if __name__ == "__main__":
     s="""
     
-    [Case [True [Print 1]]]
-    
-    [Print "Hello      World !"]
-    [Print [+ " Sierk " ", " "Schmalzriedt" "...!"]]
-    AAAAA
-    foo
-    
-    dfjkl
-    asdjkj
-    
-    dk2908
-    23898
-    
-    [Print [+ "Lieber " [Case [False "Frau"] [1 "Herr"]]]]
-    
-    
+    (print (simpletimesig))
     
 
     """

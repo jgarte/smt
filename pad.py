@@ -47,7 +47,6 @@ def evalsrc(e):
     env = make_env()
     for toplevel_expr in toplevel_exprs(index_tokens(tokenize_source(srctxt))):
         evalexp(read_from_tokens(toplevel_expr), env)
-    # print(index_tokens(tokenize_source(srctxt)))
 
 
 # paredit
