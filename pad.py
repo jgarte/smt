@@ -45,7 +45,7 @@ def save_file():
 def evalsrc(e):
     srctxt = txt_edit.get('1.0', 'end')
     env = make_env()
-    for toplevel_expr in toplevels(index_tokens(tokenize_source(srctxt))):
+    for toplevel_expr in toplevel_exprs(index_tokens(tokenize_source(srctxt))):
         evalexp(read_from_tokens(toplevel_expr), env)
     # print(index_tokens(tokenize_source(srctxt)))
 

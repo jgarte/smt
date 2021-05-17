@@ -17,7 +17,7 @@ import math
 import operator as op
 from score import *
 
-
+print(E.cmn)
 
 # S.E.cmn.unsafeadd(settime,istime,"Set Time...",)
 LBRACKET = "["
@@ -45,7 +45,7 @@ def make_env(*others):
         "Print": print,
         # Boolean
         "True": True, "False": False,
-        # SMT objects
+        # SMT
         "Pitch": lambda pitchobj: getattr(pitchobj, "pitch"),
     }
     if others:
@@ -146,11 +146,11 @@ def evalexp(exp, env):
     else:
         return env[exp]
 
-STRPATT = re.compile(r"\"[\w\s!]*\"")
+
+STRPATT = re.compile(r'"[^"]*"')
 
 def tokenize_source(src):
     """
-    [Print "Hello World"]
     """
     src = src.strip()
     str_matches = list(STRPATT.finditer(src))
@@ -162,7 +162,7 @@ def tokenize_source(src):
             tokens.append(src[x[0]:x[1]])
         else:
             tokens.extend(src[x[0]:x[1]].replace(LBRACKET, f" {LBRACKET} ").replace(RBRACKET, f" {RBRACKET} ").split())
-    print("T>",tokens)
+    # print("T>",tokens)
     return tokens
     # return src.replace(LBRACKET, f" {LBRACKET} ").replace(RBRACKET, f" {RBRACKET} ").split()
 
@@ -231,8 +231,8 @@ def atom(tok):
 if __name__ == "__main__":
     s="""
     
-    [Print [+ "Hello World" "!" "Python" "   " "SMT"]]
-    "Hello World"
+    [Print "Hello      World !"]
+    [Print [+ " Sierk " ", " "Schmalzriedt" "...!"]]
     
     
     
