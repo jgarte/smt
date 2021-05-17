@@ -13,11 +13,8 @@ and etc.]
 """
 import re
 from functools import reduce
-import math
-import operator as op
 from score import *
 
-print(E.cmn)
 
 # S.E.cmn.unsafeadd(settime,istime,"Set Time...",)
 LBRACKET = "["
@@ -80,7 +77,7 @@ def evalexp(exp, env):
         
         if car == "Case":
             for pred, x in cdr:
-                if evalexp(pred, env) or evalexp(pred, env) == 0: # Accept 0 as True
+                if evalexp(pred, env):
                     return evalexp(x, env)
             return False
         
@@ -173,33 +170,37 @@ def index_tokens(tokens):
     """
     L = []
     i = 0
+    x = []
     for tok in tokens:
         if tok == LBRACKET:
             L.append((tok, i))
             i += 1
         elif tok == RBRACKET:
             i -= 1
-            L.append((tok, i))
+            L.append((tok, i))            
         else:
             L.append(tok)
+    # print(x)
     return L
 
 def toplevel_exprs(indexed_tokens):
     TL = []
     L = []
+    # Track last bracket, we trash anything
+    # which comes AFTER the last toplevel closing bracket (ie (']', 0)).
+    # These are considered as toplevel comments!
+    last_bracket = None
     for tok in indexed_tokens:
-        # L.append(tok)
-        # if isinstance(tok, tuple):
-            # if tok[0] == RBRACKET and tok[1] == 0:
-                # TL.append(L)
-                # L = []
         if isinstance(tok, tuple):
             L.append(tok[0])
             if tok[0] == RBRACKET and tok[1] == 0:
                 TL.append(L)
                 L = []
+            # Track if it's a bracket token.
+            last_bracket = tok
         else:
-            L.append(tok)
+            if not last_bracket == (RBRACKET, 0):
+                L.append(tok)
     return TL
 
 
@@ -231,8 +232,20 @@ def atom(tok):
 if __name__ == "__main__":
     s="""
     
+    [Case [True [Print 1]]]
+    
     [Print "Hello      World !"]
     [Print [+ " Sierk " ", " "Schmalzriedt" "...!"]]
+    AAAAA
+    foo
+    
+    dfjkl
+    asdjkj
+    
+    dk2908
+    23898
+    
+    [Print [+ "Lieber " [Case [False "Frau"] [1 "Herr"]]]]
     
     
     
