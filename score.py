@@ -42,6 +42,7 @@ class Staff(E.VForm):
             c.append(E.SForm(content=[E.HLineSeg(length=20, thickness=1)], height=1))
         super().__init__(content=c, **kwargs)
 
+
 class Stem(E.VLineSeg):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

@@ -24,10 +24,10 @@ from score import *
 # import score
 
 # S.E.cmn.unsafeadd(settime,istime,"Set Time...",)
-LBRACKET = "("
-RBRACKET = ")"
+LPAR = "("
+RPAR = ")"
 
-SMTCONS = {x.__name__.lower() for x in (
+SMTCONS = {x.__name__.lower(): x for x in (
         E.SForm, E.HForm, E.VForm, E.MChar,
         Note, SimpleTimeSig
     )
@@ -35,7 +35,8 @@ SMTCONS = {x.__name__.lower() for x in (
 
 TYPENV = {t.__name__.lower(): t for t in (
         list, int, float, str,
-        E.SForm, E.HForm, E.VForm, E.MChar
+        E.SForm, E.HForm, E.VForm, E.MChar,
+        Note
     )
 }
 
@@ -43,8 +44,6 @@ def attrgetter(attr_name):
     return lambda inst: getattr(inst, attr_name)
 
 def make_env(*others):
-    D = dict(
-    )
     D = {
         'list': lambda *args: list(args),
         "+": lambda *args: reduce(lambda x, y: x + y, args),
@@ -53,10 +52,6 @@ def make_env(*others):
         "print": print,
         # Boolean
         "true": True, "false": False,
-        # SMT
-        "pitch": lambda pitchobj: getattr(pitchobj, "pitch"),
-        # TimeSig
-        "num": lambda ts: getattr(ts, "num")
     }
     if others:
         for other in others:
@@ -81,41 +76,42 @@ class _Function:
 def evalexp(exp, env):
     """
     """
-    if isinstance(exp, (int, float)):
-        return exp
+    if isinstance(exp, (int, float)): return exp
     
     elif isinstance(exp, list):
         car = exp[0]
         cdr = exp[1:]
-        
         if car == "case":
             for pred, x in cdr:
                 if evalexp(pred, env):
                     return evalexp(x, env)
             return False
-        
         elif car == "and":
             return all([evalexp(a, env) for a in cdr])
-            
         # Setter defining variabls
-        elif car == 'set':
-            var, val = cdr
-            env[var] = evalexp(val, env)
+        elif car == '!':
+            thing, val = cdr
+            if isinstance(thing, list):
+                name, obj = thing
+                setattr(evalexp(obj, env), name, evalexp(val, env))
+            elif isinstance(thing, str): # a symbol
+                env[thing] = evalexp(val, env)
+            else:
+                raise SyntaxError
                 
         # Comment
-        elif car == '!': pass
+        elif car == '~': pass
         
         elif car == "Inc": 
             curr = evalexp(exp[1], env)
             print("??????????????")
         
-        elif car == "is":
+        elif car == "is?":
             thing = cdr[0]
-            type = cdr[1]
-            return isinstance(evalexp(thing, env), TYPENV[type])
+            type_ = cdr[1]
+            return isinstance(evalexp(thing, env), TYPENV[type_])
         
-        # init = [Function [x y] [* x y] [+ x y]]
-        # call = F(x, y)
+        # Function definition
         elif car == "fn":
             if isinstance(cdr[0], str): # Named function
                 pass
@@ -124,12 +120,12 @@ def evalexp(exp, env):
                 body = cdr[1:]
                 return _Function(params, body)
         
-        # Function call
+        # Anonymus function call
         elif isinstance(car, list):
             op = evalexp(car, env)
             args = [evalexp(arg, env) for arg in cdr]
             return op(*args)
-        
+        # Named function call
         elif car in env:
             op = env[car]
             args = [evalexp(arg, env) for arg in cdr]
@@ -137,18 +133,29 @@ def evalexp(exp, env):
             
         # A SMT constructor (the class and it's attributes)
         elif car in SMTCONS:
-            return SMTCONS[car](**dict([(a[0], evalexp(a[1], env)) for a in cdr]))
+            # att[0] = att name, att[1] = att value
+            return SMTCONS[car](**dict([(att[0], evalexp(att[1], env)) for att in cdr]))
         else:
-            raise NameError(f"{exp}")
+            # The last resort: try to resolve car as an
+            # attribute or a method of an object (which must come at cdr[0])
+            obj = cdr[0]
+            args = cdr[1:]
+            try:
+                # A method? then call it, if car not an attribute at all,
+                # let's have an AttributeError!
+                return getattr(evalexp(obj, env), car)(*args)
+            except TypeError: # Menas car is an attr, but not callable!
+                return getattr(evalexp(obj, env), car)
+            # raise NameError(f"????{exp}")
     # A string
     elif exp.startswith("\"") and exp.endswith("\""):
         return exp[1:-1]
+    # Should be a variable
     else:
         return env[exp]
 
 # Allow anything between double quotes except with double quote itself!
 STRPATT = re.compile(r'"[^"]*"')
-
 def tokenize_source(src):
     """
     """
@@ -161,9 +168,9 @@ def tokenize_source(src):
         if x in spans: # str match?
             tokens.append(src[x[0]:x[1]])
         else:
-            tokens.extend(src[x[0]:x[1]].replace(LBRACKET, f" {LBRACKET} ").replace(RBRACKET, f" {RBRACKET} ").split())
+            tokens.extend(src[x[0]:x[1]].replace(LPAR, f" {LPAR} ").replace(RPAR, f" {RPAR} ").split())
     return tokens
-    # return src.replace(LBRACKET, f" {LBRACKET} ").replace(RBRACKET, f" {RBRACKET} ").split()
+    # return src.replace(LPAR, f" {LPAR} ").replace(RPAR, f" {RPAR} ").split()
 
 def index_tokens(tokens):
     """
@@ -174,10 +181,10 @@ def index_tokens(tokens):
     i = 0
     x = []
     for tok in tokens:
-        if tok == LBRACKET:
+        if tok == LPAR:
             L.append((tok, i))
             i += 1
-        elif tok == RBRACKET:
+        elif tok == RPAR:
             i -= 1
             L.append((tok, i))            
         else:
@@ -195,13 +202,13 @@ def toplevel_exprs(indexed_tokens):
     for tok in indexed_tokens:
         if isinstance(tok, tuple):
             L.append(tok[0])
-            if tok[0] == RBRACKET and tok[1] == 0:
+            if tok[0] == RPAR and tok[1] == 0:
                 TL.append(L)
                 L = []
             # Track if it's a bracket token.
             last_bracket = tok
         else:
-            if not last_bracket == (RBRACKET, 0): # not a comment
+            if not last_bracket == (RPAR, 0): # not a comment
                 L.append(tok)
     return TL
 
@@ -211,14 +218,14 @@ def read_from_tokens(tokens):
     if len(tokens) == 0:
         raise SyntaxError('unexpected EOF')
     token = tokens.pop(0)
-    if token == LBRACKET:
+    if token == LPAR:
         L = []
-        while tokens[0] != RBRACKET:
+        while tokens[0] != RPAR:
             L.append(read_from_tokens(tokens))
         tokens.pop(0) # pop off ')'
         return L
-    elif token == RBRACKET:
-        raise SyntaxError(f'unexpected {RBRACKET}')
+    elif token == RPAR:
+        raise SyntaxError(f'unexpected {RPAR}')
     else:
         return atom(token)
 
@@ -234,8 +241,16 @@ def atom(tok):
 if __name__ == "__main__":
     s="""
     
-    (print (simpletimesig))
-    
+    (print "Hello World !")
+    (! n (note))
+    Was ist
+    N
+    ??
+    (print n)
+    (! mc (mchar (name "clefs.C")))
+    (print (xscale mc))
+    (! (xscale mc) 2)
+    (print (xscale mc))
 
     """
     i=index_tokens(tokenize_source(s))
@@ -248,8 +263,7 @@ if __name__ == "__main__":
     # t =toplevel_exprs(i)[0]
     # print(read_from_tokens(t))
     env = make_env()
-    # print(toplevel_exprs(i))
     for e in toplevel_exprs(i):
-        # print(">>",e,read_from_tokens(e))
+        # print(read_from_tokens(e))
         evalexp(read_from_tokens(e), env)
         

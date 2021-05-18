@@ -193,6 +193,7 @@ cmn = RuleTable(name="CMN")
 
 _registry = {}
 def getbyid(id_): return _registry[id_]
+
 class _SMTObject:
     def __init__(self, id_=None, domain=None, ruletable=None, toplevel=False):
         self.toplevel = toplevel
@@ -432,11 +433,13 @@ class _Observable(_Canvas):
     @top.setter
     def top(self, new): self.y += (new - self.top)
     
-        
+
+
+
 class MChar(_Observable, _Font):
     
     _idcounter = -1
-    
+
     def __init__(self, name, font=None, **kwargs):
         _Observable.__init__(self, **kwargs)
         _Font.__init__(self, font)
