@@ -185,7 +185,8 @@ class RuleTable:
 
 
 # Common Music Notation, default ruletable for all objects
-cmn = RuleTable(name="CMN")
+_RT = cmn = RuleTable(name="CMN")
+
 
 
 

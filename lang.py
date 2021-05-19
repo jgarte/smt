@@ -1,27 +1,12 @@
 
 """
-[AddRule cmn pred]
-[Is $ Note]
 
-This is a comment,
-so write any thing you
-like here, and it will all thrown away for you!
-[Define cmn ]
-[! Here is an inline comment
-which can be multiple lines
-and etc.]
-
-
-[TimeSig [Num 3] [Denom 4]]
-
-(set (timesig (num 3) (denom 5)))
-(num )
 
 """
 import re
 from functools import reduce
 from score import *
-# import score
+
 
 # S.E.cmn.unsafeadd(settime,istime,"Set Time...",)
 LPAR = "("
@@ -29,29 +14,31 @@ RPAR = ")"
 
 SMTCONS = {x.__name__.lower(): x for x in (
         E.SForm, E.HForm, E.VForm, E.MChar,
-        Note, SimpleTimeSig
+        Note, SimpleTimeSig, Clef
     )
 }
 
 TYPENV = {t.__name__.lower(): t for t in (
         list, int, float, str,
         E.SForm, E.HForm, E.VForm, E.MChar,
-        Note
+        Note, Clef
     )
 }
 
 def attrgetter(attr_name): 
     return lambda inst: getattr(inst, attr_name)
 
+# Put things here which shouldn't be evalulated (evaluation needs env)!
 def make_env(*others):
+    # These names have priority over object's methods
     D = {
         'list': lambda *args: list(args),
         "+": lambda *args: reduce(lambda x, y: x + y, args),
         "*": lambda *args: reduce(lambda x, y: x * y, args),
         "=": lambda *args: args.count(args[0]) == len(args),
-        "print": print,
-        # Boolean
-        "true": True, "false": False,
+        "?": print,
+        "t": True, "f": False,
+        "render": E.render, "rt": E._RT
     }
     if others:
         for other in others:
@@ -61,7 +48,7 @@ def make_env(*others):
 
 class _Function:
     def __init__(self, params, body):
-        self.params = params #["a","b"]
+        self.params = params
         self.body = body
         self.env = make_env()
     
@@ -75,6 +62,8 @@ class _Function:
 
 def evalexp(exp, env):
     """
+    (def rt t/f
+      (! (pitch @) "C#4"))
     """
     if isinstance(exp, (int, float)): return exp
     
@@ -86,6 +75,8 @@ def evalexp(exp, env):
                 if evalexp(pred, env):
                     return evalexp(x, env)
             return False
+        elif car == "def": # defining rules
+            rt, pred, *body = cdr
         elif car == "and":
             return all([evalexp(a, env) for a in cdr])
         # Setter defining variabls
@@ -146,7 +137,6 @@ def evalexp(exp, env):
                 return getattr(evalexp(obj, env), car)(*args)
             except TypeError: # Menas car is an attr, but not callable!
                 return getattr(evalexp(obj, env), car)
-            # raise NameError(f"????{exp}")
     # A string
     elif exp.startswith("\"") and exp.endswith("\""):
         return exp[1:-1]
@@ -240,18 +230,69 @@ def atom(tok):
 
 if __name__ == "__main__":
     s="""
+    Func Atom Atom
+        Func Atom Atom
+    Defn
+        Foo args+
+        ->
+            Fn x
+                x * 10
+            args
+    Defn Foo N
+        If
+            N = 0
+            1
+        Else
+            N * Foo N-1
     
-    (print "Hello World !")
-    (! n (note))
-    Was ist
-    N
-    ??
-    (print n)
-    (! mc (mchar (name "clefs.C")))
-    (print (xscale mc))
-    (! (xscale mc) 2)
-    (print (xscale mc))
-
+    Set y 10
+    Call
+        *
+        10 10
+    *
+        10 10
+    Call
+        Fn
+            x\sy\sz\n
+            +\sx\sy\sz
+        1 2 3
+    
+    Fn x y x
+    
+    Fn
+        x \n
+        x
+    
+    Note
+      Pitch
+       "C#4"
+      Dur
+    Set n Note Pitch 3 Dur 4
+    Note
+        Pitch
+            Conc "C#4" Color 
+        Dur
+            + 2 3 4 5
+                * 3 4
+                    4 5 6
+    Staff
+        Cont
+            Clef
+                Name "Sol"
+            Time
+                num 
+                    3
+                denom
+                    4
+            note
+                pitch "C#4"
+                dur 4
+            note
+                pitch 60
+                dur 4
+            rest
+                dur 4
+    (? (& t t t t (= 2 2 2.0009) 0.2))
     """
     i=index_tokens(tokenize_source(s))
     # print(read_from_tokens(tokenize_source(s)))
@@ -262,8 +303,8 @@ if __name__ == "__main__":
     # print([listify(t, []) for t in toplevel_exprs(index_tokens(tokenize_source(s)))])
     # t =toplevel_exprs(i)[0]
     # print(read_from_tokens(t))
-    env = make_env()
+    envt = make_env()
     for e in toplevel_exprs(i):
         # print(read_from_tokens(e))
-        evalexp(read_from_tokens(e), env)
+        evalexp(read_from_tokens(e), envt)
         
