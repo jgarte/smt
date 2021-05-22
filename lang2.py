@@ -1,96 +1,143 @@
-"""
-op atom atom atom atom atom -> unamb
 
-
-\n linebreak unambs amb situations.
-
-Ein op wird bis zum \n auf die args angewendet.
-
-Atoms = unambigouse
-Expressions = ambigouse
-+ 1 2 3 4 5 * 2 3 7
-
-+ 1 2 3 4 5 7 * 2 3
-+ 1 2 3 4 5\n
-    * 2 3\n
-    7
-Note(pitch="C4", dur=3+4+1*.5)
-Note Dur * .5 + 3 4 1
-Note
- Dur
-  Dur MyNote
-
-"""
 import re
-from functools import reduce
-class Exp: pass
-class Line:
-    def __init__(self, op, params):
-        self.op  = op
-        self.params = params
 
-funcenv = {
-    "+": sum,
-    "*": lambda args: reduce(lambda x, y: x * y, args)
-    }
-# p=re.compile(r"[*+][\s\d]*")
-TOPLEVEL_PATT = re.compile(r"(^[^\s]\w*(?:\n^\s+\w*)*)", re.M)
-LEADING_SPACE_PATT = re.compile(r"^\s*")
-OPERATORS_PATT = re.compile(r"[*+][\w\s]*")
-def count_leading_spaces(S):
-    M = LEADING_SPACE_PATT.search(S)
-    return 0 if not M else M.end()
+"""
++
+  2 3 4
+  *
+    10 10 + 
+            20 20
+            30 30
+fn
+  p1
+    p2
+  + p1 p2
+  * p1 p2
+  + p1 * p2 100
+
+  
+arglose fn?
+
+call
+  fn
+    append list 2 3 4
+        list 1 2 3
+
+-> ([2,3,4], [1,2,3])
+
+call
+  fn
+    p1 p2
+      p3
+    append list 2 3 4
+           list p1 p2 p3
+  1 2 3
+-> [2,3,4,1,2,3]
+
+defn name
+  p1 p2
+     p3 p4
+     p5 p6
+  + p1 p2 p3 p4 p5 p6
+
+name 3 + 5 6
+         4 5
+
+case
+  = * 10 10 10
+    + 10 2 - 9 8
+             23
+  print "Hello you?"
+  true
+  print "No!"
+"""
+
+
+
+
+
+
+
+
 
 s="""
-+ 1 1 1 1 1 1 + 1 2 * 2 2
++ 1 2 3 4
+  * 3 4 5 + 6 7
+  8 9 10 1112 0
 """
-def resolve_token(t):
-    try:
-        return int(t)
-    except ValueError:
-        try:
-            return float(t)
-        except ValueError:
-            pass
-        
-def evalexp(x, ready=None):
-    fn, *args = x.split()
-    A = [resolve_token(a) for a in args]
-    if ready:
-        return funcenv[fn](A+[ready])
-    else:
-        return funcenv[fn](A)
-def evalline(line):
-    last_val=None
-    for i, x in enumerate(reversed(line)):
-        if i==0:
-            last_val = evalexp(x)
-        else:
-            last_val = evalexp(x, last_val)
-    return last_val
-    
-    
-l =OPERATORS_PATT.findall(s)
+# Blocks at specific indentation levels!!!!!!!!!!!!!!!!!!!!111111
+kwenv = {
+    "*": None,
+    "+": None
+}
+def iskw(s): return s in kwenv
+def lines(src): return src.strip().splitlines()
+def tokenize_source(src):
+    toks = []
+    idx = 0
+    for i, line in enumerate(lines(src)):
+        for match in re.finditer("[*+\w\d]+", line):
+            toks.append({
+                "str": match.group(), "start": match.start(),
+                "end": match.end(), "line": i, "idx": idx,
+                "alloced": False
+            })
+            idx += 1
+    return toks
 
-print(evalline(l))
-# for m in TOPLEVEL_PATT.findall(s):
-    # splitted = m.split("\n")
-    # print(splitted[0])
-    # # for x in m.split("\n"):
-        # # print(count_leading_spaces(x), x)
-    
-def toplevels(src):
-    with open(src, "r") as s:
-        return TOPLEVEL_PATT.findall(s.read())
-    
+def tokensatline(line, toks):
+    return [t for t in toks if t["line"] == line]
 
-# with open("./x", "r") as x:
-    # print(p.findall(x.read()))
+def kwatline(line, tokens):
+    return [t for t in tokens if iskw(t["token"]) and t["line"] == line]
 
-def build_lineop():
+toks = tokenize_source(s)
+
+
+def linekws(linetoks):
+    """Returns a list of kw tokens at current line."""
+    return [t for t in linetoks if iskw(t["str"])]
+
+def isinblock(tok, kw):
+    """Is token inside of the kw's block?
+    
+    """
+    return (not iskw(tok["str"])) and tok["start"] > kw["start"] and \
+    tok["line"] >= kw["line"] and (not tok["alloced"])
+
+def allocate_literals(toks):
     L = []
-    op = 0
-"""
-(+ 1 2 (* 3 4 (* 5 (+ 1 6))))
-"""
+    maxline = max(toks, key=lambda t: t["line"])["line"]
+    for i in range(maxline, -1, -1):
+        kwtoks = linekws(tokensatline(i, toks))
+        if kwtoks:
+            for kw in sorted(kwtoks, key=lambda t: t["start"], reverse=True):
+                x=[kw]
+                for a in [t for t in toks if isinblock(t, kw)]:
+                    x.append(a)
+                    a["alloced"] = True
+                L.append(x)
+    return L
+
+for b in allocate_literals(toks):
+    print([x["str"] for x in b])
+
+# for b in blocks(toks):
+    # print([t["token"] for t in b])
+
+# for t in toks:
+    # print(t, iskw(t["str"]))
+
+# print(kwatline(0, spans))
+
+
+
+
+
+
+
+
+
+
+
 
