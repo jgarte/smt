@@ -5,15 +5,18 @@ from functools import reduce
 
 
 s="""
-+ 1 2 3 4
-  * 3 4 5 + 6 7 * 11 23      + 1000 1000
-  8 9 10 1112 + 0 0 230  * 3 4    500
-  1000            500 400 300
++ 2
+ show + 1 1 * 3 2 
+       -10
 """
+def show(thing):
+    print(thing)
+    return thing
 
-funenv = {
+builtins_env = {
     "*": lambda *args: reduce(lambda x, y: x*y, args),
-    "+": lambda *args: sum(args)
+    "+": lambda *args: sum(args),
+    "show": show
 }
 
 class Token:
@@ -36,7 +39,7 @@ def resolve_token(t):
             return float(t.label)
         except ValueError:
             try:
-                return funenv[t.label]
+                return builtins_env[t.label]
             except KeyError:
                 pass
 
@@ -48,26 +51,24 @@ def set_token_value_ip(t):
             t.value = float(t.label)
         except ValueError:
             try:
-                t.value = funenv[t.label]
+                t.value = builtins_env[t.label]
             except KeyError:
                 pass
 
     
 
-def tokisfun(t): return t.label in funenv
+def tokisfun(t): return t.label in builtins_env
 
 def lines(src): return src.strip().splitlines()
+
+# decimal numbers
+DECPATT = r"[+-]?((\d+(\.\d*)?)|(\.\d+))"
 
 def tokenize_source(src):
     toks = []
     for i, line in enumerate(lines(src)):
-        for match in re.finditer("[*+\w\d]+", line):    
+        for match in re.finditer(r"([*+]|\w+|{})".format(DECPATT), line):    
             toks.append(Token(label=match.group(), start=match.start(), end=match.end(), line=i)
-            # {
-                # "str": match.group(), "start": match.start(),
-                # "end": match.end(), "line": i, "idx": idx,
-                # "alloced": False, "obj": None
-            # }
             )
     return toks
 
